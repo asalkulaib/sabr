@@ -1,0 +1,19 @@
+{
+  "name": "fast",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Fast: a personal intermittent fasting and satiety tracker (offline PWA).",
+  "type": "module",
+  "scripts": {
+    "serve": "node tools/serve.mjs",
+    "test": "node --test \"tests/unit/*.test.js\"",
+    "e2e": "node tools/release.mjs && playwright test",
+    "release": "node tools/release.mjs",
+    "fonts": "node tools/fetch-fonts.mjs",
+    "icons": "node tools/render-icons.mjs"
+  },
+  "devDependencies": {
+    "@fontsource/nunito": "^5.3.0",
+    "@playwright/test": "^1.63.0"
+  }
+}
