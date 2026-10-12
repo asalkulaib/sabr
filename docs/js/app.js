@@ -194,12 +194,35 @@ function clearFlash() {
 async function undoLast() {
   const f = flash;
   if (!f || !f.undo) return;
+  // Undo had focus (a keyboard or VoiceOver tap): the message that replaces
+  // it has no Undo, so focus must land somewhere rather than on the page.
+  const hadFocus = flashRoot.contains(document.activeElement);
   flash = null;
   if (currentSheet() && currentSheet() !== f.sheet) await closeSheet();
   await f.undo();
   const open = currentSheet();
   if (open) open.api.rerender();
   showFlash('Undone.');
+  if (hadFocus) focusAfterUndo();
+}
+
+/**
+ * After Undo, focus goes to the open sheet's title, or to the screen's title,
+ * unless it is already somewhere (a closed sheet hands it back to its opener).
+ * Once more after the next frame, in case a redraw replaced the title.
+ */
+function focusAfterUndo() {
+  const lost = () => !document.activeElement || document.activeElement === document.body || !document.activeElement.isConnected || flashRoot.contains(document.activeElement);
+  const put = () => {
+    if (!lost()) return;
+    const open = currentSheet();
+    const target = open ? open.api.el.querySelector(':scope > .sheet-head h2') || open.api.el : view.querySelector('h1');
+    if (!target) return;
+    if (!target.hasAttribute('tabindex')) target.setAttribute('tabindex', '-1');
+    target.focus({ preventScroll: true });
+  };
+  put();
+  requestAnimationFrame(put);
 }
 
 function scheduleRender() {

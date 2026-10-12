@@ -6,7 +6,7 @@
 // A change applies from today on; past days keep the goal they had.
 
 import { h } from './dom.js';
-import { choice, optionWheel } from './components.js';
+import { choice, goalPair, optionWheel } from './components.js';
 import { openSheet, sheetHead } from './sheet.js';
 import * as store from '../store.js';
 import { HOUR } from '../core/time.js';
@@ -24,8 +24,13 @@ export function goalText(windowMs, longFast = null) {
 let customOpen = false; // the custom wheel stays open once chosen
 let customBy = null; // what the custom wheel sets: 'window' or 'fast'
 
-/** The goal choices; redraw() refreshes whatever holds them. */
-function goalControls(app, redraw) {
+/**
+ * The goal choices: the GoalPair (the fast and the window as figures), the
+ * preset track, Custom with its wheel, and the goal in words. Each choice
+ * saves at once; redraw() refreshes whatever holds them. announce: false
+ * saves without the message and its Undo (the welcome).
+ */
+export function goalControls(app, redraw, { announce = true } = {}) {
   const ctx = app.ctx();
   const key = ctx.todayKey;
   const current = Math.round(ctx.windowMsFor(key) / HOUR);
@@ -37,7 +42,7 @@ function goalControls(app, redraw) {
     if (windowHours === now.windowMsFor(key) / HOUR && longFastHours(key, now.settings) === fast) return;
     const { undo } = await store.setGoal(windowHours, key, fast);
     redraw();
-    app.flash(`Goal ${goalLabel(windowHours * HOUR, fast)} from today.`, { undo });
+    if (announce) app.flash(`Goal ${goalLabel(windowHours * HOUR, fast)} from today.`, { undo });
   };
   // A fast of a day or more keeps the eating window; a shorter one leaves the rest of the day to eat.
   // The wheel in use stays on screen, even when the goal it lands on is a preset.
@@ -65,48 +70,59 @@ function goalControls(app, redraw) {
         return set(w);
       },
     });
-  return h('div', { 'data-block': 'goal-controls' },
-    choice({
+  // The track above already says what the wheel sets: its label is read out, not shown.
+  const wheelLabel = wheel.querySelector('.field-label');
+  if (wheelLabel) wheelLabel.classList.add('sr-only');
+  return h('div', { class: 'goal-controls', 'data-block': 'goal-controls' },
+    goalPair({ fastHours: fastHoursFor(key, ctx.settings), windowHours: current }),
+    h('div', { class: 'goal-presets' }, choice({
       options: [...GOAL_PRESETS.map((v) => ({ value: v, label: goalLabel(v * HOUR) })), { value: 'custom', label: 'Custom' }],
       value: custom ? 'custom' : current,
       cols: 5,
       name: 'goal',
+      ariaLabel: 'Goal',
       onChange: (v) => {
         customOpen = v === 'custom';
         customBy = null;
         if (customOpen) redraw();
         else set(v);
       },
-    }),
+    })),
     custom
-      ? [
-        h('div', { class: 'gap' }, choice({
+      ? h('div', { class: 'goal-custom' },
+        choice({
           options: [{ value: 'window', label: 'Eating window' }, { value: 'fast', label: 'Fasting' }],
           value: by,
           cols: 2,
           name: 'goal-by',
           ariaLabel: 'Set the goal by',
           onChange: (v) => { customBy = v; redraw(); },
-        })),
-        h('div', { class: 'gap' }, wheel),
-      ]
+        }),
+        h('div', { class: 'goal-wheel' }, wheel))
       : null,
-    h('p', { class: 'gap-s', 'data-testid': 'goal-text' }, goalText(current * HOUR, long)),
-    h('p', { class: 'small quiet gap-s' }, 'A change applies from today on. Past days keep the goal they had.'));
+    h('p', { class: 'goal-text', 'data-testid': 'goal-text' }, goalText(current * HOUR, long)));
 }
 
-/** The Goal section on More. */
+const CAPTION = 'A change applies from today on. Past days keep the goal they had.';
+
+/**
+ * The Goal block on More: the hero of the screen, on the page. Its from-today
+ * note is shared with the success rule's, under What makes a day a success.
+ */
 export function goalSection(ctx, app) {
-  return h('section', { class: 'section', 'data-block': 'goal' },
+  return h('section', { class: 'section hero goal-hero', 'data-block': 'goal' },
     h('div', { class: 'label' }, 'Goal'),
-    h('div', { class: 'gap-s' }, goalControls(app, () => app.refresh())));
+    goalControls(app, () => app.refresh()));
 }
 
-/** The same choices in a sheet, from the Goal note on Today. */
+/** The same choices in a sheet, from the Goal note on Today. Changes apply as they settle. */
 export function showGoalSheet(app) {
-  openSheet((api) => h('div', {},
-    sheetHead(api, 'Goal'),
-    h('p', {}, 'Choose your eating window, and the fast is the rest of the day. Or, in Custom, choose how long to fast, up to 72 hours.'),
-    h('section', { class: 'section gap' }, goalControls(app, () => api.rerender()))),
-  { name: 'goal', label: 'Goal' });
+  openSheet((api) => ({
+    head: sheetHead(api, 'Goal'),
+    body: h('div', { class: 'goal-sheet' },
+      h('p', { class: 'goal-lead' }, 'Choose your eating window, and the fast is the rest of the day. Or, in Custom, choose how long to fast, up to 72 hours.'),
+      goalControls(app, () => api.rerender()),
+      h('p', { class: 'caption goal-caption' }, CAPTION)),
+  }),
+  { name: 'goal', label: 'Goal', flashes: true });
 }

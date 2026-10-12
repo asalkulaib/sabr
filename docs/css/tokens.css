@@ -105,6 +105,8 @@
   --space-12: 48px;
   --space-16: 64px;
   --space-24: 96px;
+  /* Narrow-phone breakpoint used in week.css and elsewhere: 374px (media
+     queries cannot read tokens, so the number is written there). */
   --card-pad: 20px;
   --inset-pad: 16px;
   --card-gap: 12px;
@@ -114,21 +116,6 @@
   --btn-h: 56px;
   --btn-h-2: 48px;
   --track-h: 52px;
-
-  /* Legacy spacing, kept until Phase 2 so screens not yet moved still land
-     on the 4pt scale: each points at the nearest step. */
-  --s1: var(--space-1);
-  --s2: var(--space-2);
-  --s3: var(--space-3);
-  --s4: var(--space-4);
-  --s5: var(--space-6);
-  --s6: var(--space-8);
-  --s7: var(--space-12);
-  --s8: var(--space-16);
-  --s9: var(--space-24);
-  --panel-x: var(--card-pad); /* legacy */
-  --col-gap: var(--space-3); /* legacy */
-  --margin-w: 96px; /* legacy */
 
   /* Gutters and layout. */
   --gutter-l: max(16px, env(safe-area-inset-left));
@@ -160,6 +147,7 @@
   --phase-h: 48px;
   --now-tag-h: 20px;
   --badge: 28px;
+  --meter-h: 6px; /* Week's meters and rails */
   --wheel-row: 40px; /* the same as ROW in js/ui/components.js */
   --wheel-col: 64px;
   --wheel-sep: 20px;
@@ -237,6 +225,7 @@
   --delay-burst-2: 450ms; /* the second burst, after the first */
   --delay-bar-step: 4ms; /* chart bars rise one after another */
   --delay-bar-max: 160ms;
+  --delay-week-step: 30ms; /* Week's ring of seven: each day's arc after the last */
 
   /* Stacking. */
   --z-sticky: 2;

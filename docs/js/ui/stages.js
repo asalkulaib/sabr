@@ -3,49 +3,78 @@
 // today-parts.js. The stages are never a target.
 
 import { h } from './dom.js';
-import { button } from './components.js';
+import { button, key, legend } from './components.js';
 import { openSheet, sheetHead } from './sheet.js';
 import { AUTOPHAGY_NOTE, SOURCES, STAGES, VARIATION_NOTE } from '../core/stages.js';
 import { STAGE_MORE, citeBy, stageSources } from '../core/stage-more.js';
-import { stageGlyph } from './icons.js';
+import { stageDisc } from './icons.js';
 
 // The hours of each stage, short enough for the line across the sheet.
 const SHORT_HOURS = { digesting: '0–4 h', settling: '4–12 h', switch: '12–24 h', ketones: '24–48 h', brain: '48–72 h', sparing: '72 h+' };
 
+// Disc sizes (the stage disc's own sizes): on the line, and at the top of a stage's page.
+const LINE_DISC = 52;
+const PAGE_DISC = 56;
+
 /**
- * The stages one at a time: all six along a line across the top, three to
- * a view, the one the fast is in now ringed in the fast's red, and a card for each below,
- * each a shade deeper, from soft grey to ink. Swipe the line, the cards, or tap
- * a stage; the sheet opens on the stage the fast is in now. Read more on a card
- * turns the sheet to that stage's longer page, and Back returns to its card.
+ * The stages as a journey: all six along a line across the top, about three
+ * and a half to a view, with the fast's red running from the first to the
+ * stage the fast is in now, and a card for each below. Swipe the line, the
+ * cards, or tap a stage; the sheet opens on the stage the fast is in now.
+ * Read more on a card turns the sheet to that stage's longer page, and Back
+ * returns to its card.
  */
 export function showStagesSheet(currentKey = null) {
   openSheet((api) => stagesView(api, currentKey, currentKey), { name: 'stages', label: 'Fasting stages' });
 }
 
+/** passed, now or ahead: where a stage stands against the one the fast is in. */
+function stateOf(st, currentKey) {
+  const now = STAGES.findIndex((x) => x.key === currentKey);
+  const i = STAGES.indexOf(st);
+  if (now < 0) return 'ahead';
+  return i < now ? 'passed' : i === now ? 'now' : 'ahead';
+}
+
+/** The Now tag; on a card and on a stage's page it carries the stage-now hook. */
+function nowTag(testid = null) {
+  return h('span', { class: 'now-tag', 'data-testid': testid, 'aria-hidden': testid ? null : 'true' }, 'Now');
+}
+
 /** The line and the cards, opened on the stage openKey. */
 function stagesView(api, currentKey, openKey) {
-  const readMore = (st) => api.replace(() => stageMore(api, st, currentKey));
-  const cards = h('ul', { class: 'stage-cards', 'data-testid': 'stage-list' }, STAGES.map((st) => h('li', {
-    class: `stage-card s-${st.key}`,
+  const readMore = (st) => api.replace(() => stageMore(api, st, currentKey), { dir: 'forward' });
+  const nowIndex = STAGES.findIndex((st) => st.key === currentKey);
+  const cards = h('ul', { class: 'stage-cards', role: 'list', 'data-testid': 'stage-list' }, STAGES.map((st) => h('li', {
+    class: 'stage-card',
     'data-stage': st.key,
   },
     stageHead(st, currentKey),
-    h('h2', { class: 'h2' }, st.name),
-    h('p', { class: 'gap-s' }, st.text),
+    h('h2', { class: 'stage-name' }, st.name),
+    h('p', { class: 'stage-text' }, st.text),
     h('div', { class: 'stage-more-row' }, moreButton(st, readMore)))));
-  const stops = STAGES.map((st) => h('button', {
-    type: 'button',
-    class: `stage-stop${st.key === currentKey ? ' now' : ''}`,
-    'data-action': `stage-${st.key}`,
-    'aria-label': `${st.name}, ${st.range}${st.key === currentKey ? ', now' : ''}`,
-    onclick: () => show(STAGES.indexOf(st), true),
-  },
-    h('span', { class: `disc s-${st.key}` }, stageGlyph(st.key)),
-    h('span', { class: 'name' }, st.name),
-    h('span', { class: 'hrs' }, SHORT_HOURS[st.key])));
-  // Three stages show at a time; the line swipes on its own, and follows the card shown.
-  const line = h('div', { class: 'stage-line', role: 'group', 'aria-label': 'Stages', 'data-testid': 'stage-line' }, h('div', { class: 'stage-track' }, stops));
+  const stops = STAGES.map((st) => {
+    // The line's icons are the sheet's six stage icons (data-stage-icon).
+    const disc = stageDisc(st.key, { size: LINE_DISC, state: stateOf(st, currentKey), live: false, mark: true });
+    return h('button', {
+      type: 'button',
+      class: `stage-stop${st.key === currentKey ? ' now' : ''}`,
+      'data-action': `stage-${st.key}`,
+      'aria-label': `${st.name}, ${st.range}${st.key === currentKey ? ', now' : ''}`,
+      onclick: () => show(STAGES.indexOf(st), true),
+    },
+      h('span', { class: 'stop-mark' }, disc, st.key === currentKey ? nowTag() : null),
+      h('span', { class: 'name' }, st.name),
+      h('span', { class: 'hrs tabular' }, SHORT_HOURS[st.key]));
+  });
+  // The fast so far, in red, from the first stage to the one it is in.
+  const track = h('div', { class: 'stage-track' },
+    nowIndex > 0 ? h('span', { class: 'stage-progress', 'aria-hidden': 'true' }) : null,
+    stops);
+  if (nowIndex > 0) track.style.setProperty('--now-x', `${(nowIndex * 100) / STAGES.length}%`);
+  // About three and a half stages show at a time; the line swipes on its own, and follows the card shown.
+  const line = h('div', { class: 'stage-line', role: 'group', 'aria-label': 'Stages', 'data-testid': 'stage-line' }, track);
+  line.style.setProperty('--disc', `${LINE_DISC}px`);
   const motion = (smooth) => (smooth && !matchMedia('(prefers-reduced-motion: reduce)').matches ? 'smooth' : 'auto');
   let marked = -1;
   const mark = (i, smooth = true) => {
@@ -55,7 +84,7 @@ function stagesView(api, currentKey, openKey) {
     if (i === marked) return;
     marked = i;
     const b = stops[i];
-    line.scrollTo({ left: b.offsetLeft - (line.clientWidth - b.offsetWidth) / 2, behavior: motion(smooth) });
+    line.scrollTo({ left: track.offsetLeft + b.offsetLeft - (line.clientWidth - b.offsetWidth) / 2, behavior: motion(smooth) });
   };
   const step = () => (cards.children[1] ? cards.children[1].offsetLeft - cards.children[0].offsetLeft : cards.clientWidth);
   const shownCard = () => Math.max(0, Math.min(STAGES.length - 1, Math.round(cards.scrollLeft / step())));
@@ -86,25 +115,27 @@ function stagesView(api, currentKey, openKey) {
   stops.forEach((b, j) => b.setAttribute('aria-current', String(j === start)));
   // Open on the stage asked for, once the cards and the line have their width.
   requestAnimationFrame(() => show(start, false));
-  return h('div', {},
-    sheetHead(api, 'Fasting stages'),
-    h('p', {}, 'Typical changes after your last bite, from human studies. Swipe the stages or the cards, or tap a stage. Read more opens the full story of a stage.'),
+  const body = h('div', { class: 'stages-view' },
+    h('p', { class: 'stages-intro' }, 'Typical changes after your last bite, from human studies. Swipe the stages or the cards, or tap a stage. Read more opens the full story of a stage.'),
     line,
+    // The legend names the red bar, so it shows only once there is one.
+    nowIndex > 0 ? legend([[key('progress-fast'), 'Fast']], null) : null,
     cards,
-    h('p', { class: 'small quiet gap' }, VARIATION_NOTE),
-    h('section', { class: 'section gap' },
-      h('div', { class: 'label' }, 'Autophagy'),
-      h('p', { class: 'gap-s', 'data-testid': 'autophagy-note' }, AUTOPHAGY_NOTE)),
-    h('section', { class: 'section' },
-      h('div', { class: 'label' }, 'Sources'),
-      h('ol', { class: 'steps gap-s small' }, SOURCES.map((src) => h('li', {}, h('span', {}, src))))));
+    h('p', { class: 'stages-variation' }, VARIATION_NOTE),
+    h('section', { class: 'stages-part' },
+      h('h3', {}, 'Autophagy'),
+      h('p', { 'data-testid': 'autophagy-note' }, AUTOPHAGY_NOTE)),
+    h('section', { class: 'stages-part' },
+      h('h3', {}, 'Sources'),
+      sourceList(SOURCES)));
+  return { head: sheetHead(api, 'Fasting stages'), body };
 }
 
 /** A card's top line: its hours, and Now on the stage the fast is in. */
 function stageHead(st, currentKey) {
   return h('div', { class: 'stage-card-head' },
-    h('div', { class: 'label' }, st.range),
-    st.key === currentKey ? h('span', { class: 'now-badge', 'data-testid': 'stage-now' }, 'Now') : null);
+    h('span', { class: 'stage-range' }, st.range),
+    st.key === currentKey ? nowTag('stage-now') : null);
 }
 
 function moreButton(st, readMore) {
@@ -114,26 +145,42 @@ function moreButton(st, readMore) {
 }
 
 /**
+ * The studies, numbered, each with its authors (through "et al.") in ink so
+ * the eye finds who wrote it. The words are the same as the source's.
+ */
+function sourceList(sources) {
+  return h('ol', { class: 'stage-sources', role: 'list' }, sources.map((src) => {
+    const cut = src.indexOf(' et al.');
+    const by = cut > 0 ? src.slice(0, cut + ' et al.'.length) : '';
+    return h('li', {}, h('span', {}, by ? h('span', { class: 'by' }, by) : null, by ? src.slice(by.length) : src));
+  }));
+}
+
+/**
  * One stage at length: what happens in the body, what the studies found,
  * plain advice, and the studies it draws on, by name only (no links: the
  * app never leaves itself). Back returns to the cards at this stage.
  */
 function stageMore(api, st, currentKey) {
   const more = STAGE_MORE[st.key];
-  const back = (name) => button('Back to the stages', () => api.replace(() => stagesView(api, currentKey, st.key)), { kind: 'outline', name });
-  const part = (label, ...body) => h('section', { class: 'section' }, h('div', { class: 'label' }, label), ...body);
-  return h('div', { 'data-testid': 'stage-more', 'data-stage': st.key },
-    sheetHead(api, 'Fasting stages'),
-    back('stages-back'),
-    h('div', { class: `stage-card stage-hero s-${st.key}` },
-      stageHead(st, currentKey),
-      h('h2', { class: 'h2' }, st.name),
-      h('p', { class: 'gap-s' }, st.text)),
-    part('What happens', ...more.body.map((t) => h('p', { class: 'gap-s' }, t))),
-    part('What the studies found', h('ul', { class: 'findings gap-s', 'data-testid': 'stage-findings' }, more.findings.map((f) => h('li', {},
+  const back = () => api.replace(() => stagesView(api, currentKey, st.key), { dir: 'back' });
+  const part = (title, ...content) => h('section', { class: 'more-part' }, h('h3', {}, title), ...content);
+  // Only the current stage is coloured here: its Now tag names the colour.
+  const disc = stageDisc(st.key, { size: PAGE_DISC, state: st.key === currentKey ? 'now' : 'ahead', live: false });
+  const head = sheetHead(api, 'Fasting stages', { back: { label: 'Back to the stages', name: 'stages-back', onClick: back } });
+  const body = h('div', { class: 'stage-page', 'data-testid': 'stage-more', 'data-stage': st.key },
+    h('div', { class: 'stage-page-hero' },
+      h('p', { class: 'kicker' }, 'Fasting stages'),
+      h('div', { class: 'stage-page-mark' }, disc, st.key === currentKey ? nowTag('stage-now') : null),
+      h('p', { class: 'stage-range' }, st.range),
+      h('h2', {}, st.name),
+      h('p', { class: 'lede' }, st.text)),
+    part('What happens', ...more.body.map((t) => h('p', {}, t))),
+    part('What the studies found', h('ul', { class: 'findings', role: 'list', 'data-testid': 'stage-findings' }, more.findings.map((f) => h('li', {},
       h('p', {}, f.text),
-      h('p', { class: 'small quiet' }, citeBy(f.by)))))),
-    part('Good to know', ...more.good.map((t) => h('p', { class: 'gap-s' }, t))),
-    part('Sources', h('ol', { class: 'steps gap-s small' }, stageSources(st.key).map((src) => h('li', {}, h('span', {}, src))))),
-    h('div', { class: 'gap' }, back('stages-back-end')));
+      h('p', { class: 'cite' }, citeBy(f.by)))))),
+    part('Good to know', h('ul', { class: 'advice', role: 'list' }, more.good.map((t) => h('li', {}, t)))),
+    part('Sources', sourceList(stageSources(st.key))),
+    button('Back to the stages', back, { kind: 'outline', block: true, name: 'stages-back-end' }));
+  return { head, body };
 }

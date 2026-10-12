@@ -1,33 +1,506 @@
-/* History, Weight and the weight import page. */
+/* History, Weight and the weight import page (spec 5.5). The lead figure
+   sits on the page, the chart runs the full width under its controls, and
+   supporting blocks (the reading, the tables, the import) are cards. */
 
 @layer screens {
 
-/* A chart's own switches: slim tracks on one line. */
-.chart-switches {
+/* ---------- The lead: a label row, the figure at hero size, its meta ---------- */
+.history .lead-row,
+.weight .lead-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  column-gap: var(--space-3);
+  min-height: var(--hit);
+}
+
+.history .lead-figure,
+.weight .lead-figure,
+.weight .lead-none {
+  margin: var(--space-1) 0 0;
+}
+
+.history .lead-meta {
   display: flex;
   flex-wrap: wrap;
-  justify-content: space-between;
-  gap: var(--s2);
-}
-
-/* Back to latest keeps its room while the latest is shown, so the chart never jumps. */
-.latest-idle {
-  visibility: hidden;
-}
-
-/* The average a chart leads with, and the days it covers. */
-.chart-lead-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  column-gap: var(--s3);
-}
-
-.chart-dates {
-  font-family: var(--font-ui);
-  font-weight: 800;
-  font-size: 13px;
+  column-gap: var(--space-3);
+  margin: var(--space-2) 0 0;
+  font-weight: 700;
+  font-size: var(--t-callout-size);
+  line-height: var(--t-callout-lh);
   color: var(--text-quiet);
+}
+
+/* ---------- History: controls, chart, legend, reading ---------- */
+.history .chart-switches {
+  display: flex;
+  align-items: center;
+  column-gap: var(--space-2);
+  margin-top: var(--space-5);
+}
+
+.history .chart-switches > .choice-wrap:first-child {
+  flex: 1 1 auto;
+}
+
+.history .chart-switches > .choice-wrap:first-child .choice.slim {
+  width: 100%;
+}
+
+/* Bars and Line: full targets, and the same air as the days beside them. */
+.history .chart-switches > .choice-wrap:last-child .choice.slim button {
+  min-width: var(--hit);
+}
+
+@media (min-width: 375px) {
+  .history .chart-switches > .choice-wrap:last-child .choice.slim button {
+    padding-inline: var(--space-4);
+  }
+}
+
+.history .history-plot {
+  margin-top: var(--space-3);
+}
+
+/* A finger moving along the chart reads the day under it; the page still
+   scrolls, and nothing on it is selected as text. */
+.history .history-chart,
+.weight .weight-chart {
+  touch-action: pan-y;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.history .history-chart .scrub-part,
+.history .history-chart .trend-halo,
+.history .history-chart .bar-value {
+  pointer-events: none;
+}
+
+/* A filter fades the other series, never a label's words below the quiet
+   tone: the shared fade must not reach the lines of a two-line label. */
+.history .history-chart text.dim tspan {
+  fill-opacity: 1;
+  stroke-opacity: 1;
+}
+
+.history .history-chart .scrub-part {
+  opacity: 0;
+  transition: opacity var(--dur-fast) var(--ease-out);
+}
+
+.history .history-chart.scrubbing .scrub-part,
+.history .history-chart:focus-visible .scrub-part {
+  opacity: 1;
+}
+
+/* A chosen day with nothing recorded keeps the crosshair once the finger lifts. */
+.history .history-chart.pick-bare .scrub-part:not(.date-tag) {
+  opacity: 1;
+}
+
+/* Over 7 days a day with a value keeps no crosshair: its label stands over
+   it, and its day under the axis turns ink. */
+.history .history-chart .scrub-part.cross-off:not(.date-tag) {
+  opacity: 0;
+}
+
+.history .history-chart text.x-chosen {
+  font-weight: 900;
+  fill: var(--text-display);
+}
+
+/* Paused days meet edge to edge, with no seam between them. */
+.history .history-chart rect[data-paused] {
+  shape-rendering: crispEdges;
+}
+
+/* The day under the finger, at the top, haloed in the page. */
+.history .history-chart .date-tag,
+.weight .weight-chart .date-tag {
+  font-weight: 800;
+  font-size: var(--t-chart);
+  fill: var(--text-display);
+  paint-order: stroke;
+  stroke: var(--bg);
+  stroke-width: 5;
+  stroke-linejoin: round;
+}
+
+.history .focus-line {
+  margin-top: var(--space-3);
+}
+
+.history .legend {
+  margin-top: var(--space-4);
+}
+
+/* A plain key sits at the height of the chips beside it. */
+.history .legend > .legend-item:not(.legend-pick) {
+  min-height: var(--slim-h);
+}
+
+.history .history-reading {
+  margin-top: var(--space-4);
+}
+
+/* The day's mark, then the day and what it held as one flowing sentence in
+   the same type, then the trend on a quieter line of its own. */
+.history .history-readout {
+  margin: 0;
+  font-weight: 700;
+  font-size: var(--t-headline-size);
+  line-height: var(--t-headline-lh);
+  color: var(--text-display);
+}
+
+.history .read-day .key {
+  display: inline-block;
+  vertical-align: middle;
+  width: var(--space-3);
+  height: var(--space-3);
+  margin: 0 var(--space-2) var(--space-1) 0;
+}
+
+.history .read-trend {
+  display: block;
+  margin-top: var(--space-1);
+  font-size: var(--t-callout-size);
+  line-height: var(--t-callout-lh);
+  color: var(--text-quiet);
+}
+
+.history .reading-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: var(--space-3);
+}
+
+/* ---------- History empty: a statement and a quiet line, as on Satiety and Weight ---------- */
+.history .empty-words {
+  margin: 0;
+  color: var(--text-display);
+  text-wrap: pretty;
+}
+
+.history .empty-how {
+  margin: var(--space-2) 0 0;
+  font-weight: 600;
+  font-size: var(--t-callout-size);
+  line-height: var(--t-callout-lh);
+  color: var(--text-quiet);
+  text-wrap: pretty;
+}
+
+/* ---------- Tables, under their toggle ---------- */
+.history .table-toggle,
+.weight .table-toggle {
+  margin-top: var(--space-6);
+}
+
+.history .table td,
+.weight .table td {
+  height: var(--hit);
+  padding-block: 0;
+}
+
+.history .table th:not(:first-child),
+.history .table td:not(:first-child),
+.weight .table th:not(:first-child),
+.weight .table td:not(:first-child) {
+  padding-left: var(--space-4);
+}
+
+/* Figures never break inside a cell; the day column takes what is left, its
+   date and its miss each kept whole (history.js). */
+.history .table :is(th, td):not(:first-child),
+.weight .table :is(th, td):not(:first-child) {
   white-space: nowrap;
+}
+
+/* A narrow screen (320 to 374): closer columns, a slimmer card edge, and
+   the weekday free to sit over its date. */
+@media (max-width: 374px) {
+  .history .table th:not(:first-child),
+  .history .table td:not(:first-child),
+  .weight .table th:not(:first-child),
+  .weight .table td:not(:first-child) {
+    padding-left: var(--space-3);
+  }
+
+  .history .table-card,
+  .weight .table-card {
+    padding-inline: var(--inset-pad);
+  }
+
+  /* The weekday may sit over its date here: the rows keep some air. */
+  .history .table td {
+    padding-block: var(--space-1);
+  }
+}
+
+/* A table with a miss: the figure columns sit a step closer, so the day
+   and its miss read on one line. */
+@media (min-width: 375px) {
+  .history .table:has(.clay) th:not(:first-child),
+  .history .table:has(.clay) td:not(:first-child) {
+    padding-left: var(--space-3);
+  }
+}
+
+.history .table td .key {
+  margin-left: var(--space-2);
+  vertical-align: middle;
+}
+
+/* ---------- Weight: the lead ---------- */
+/* Back to latest keeps its room while the latest is shown, so nothing jumps. */
+.weight .latest-slot {
+  transition:
+    opacity var(--dur-fast) var(--ease-out),
+    visibility var(--dur-fast) var(--ease-out);
+}
+
+.weight .latest-slot.latest-idle {
+  visibility: hidden;
+  opacity: 0;
+}
+
+.weight .latest-slot .btn-2 {
+  min-height: var(--slim-h);
+}
+
+.weight .meta-pairs {
+  margin-top: var(--space-2);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Weigh-ins holds its place while the date before it changes under a finger. */
+.weight .meta-pairs > :first-child {
+  min-width: calc(var(--space-16) + var(--space-2));
+}
+
+.weight .weight-change {
+  margin: var(--space-3) 0 0;
+  font-weight: 700;
+  font-size: var(--t-callout-size);
+  line-height: var(--t-callout-lh);
+  color: var(--text-quiet);
+}
+
+.weight .change-value {
+  font-weight: 900;
+  color: var(--text-display);
+}
+
+/* ---------- Weight: over time ---------- */
+.weight .weight-chart-block {
+  margin-top: var(--space-6);
+}
+
+/* Five frames across the full width, each as wide as its words plus an even
+   share of the room left, so every pill has the same air at its ends. */
+.weight .weight-range {
+  margin-top: var(--space-2);
+}
+
+.weight .weight-range .choice.slim {
+  display: grid;
+  width: 100%;
+  grid-auto-flow: row;
+  grid-template-columns: repeat(5, auto);
+  justify-content: stretch;
+}
+
+.weight .weight-range .choice.slim button {
+  min-width: var(--hit);
+  padding: 0 var(--space-2);
+}
+
+/* Too narrow for five across (a 320 or 360 screen): two rows, three frames
+   over two, each with its words whole. Picked by tap (weight.js). */
+@media (max-width: 374px) {
+  .weight .weight-range .choice.slim {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    row-gap: var(--space-2);
+    border-radius: var(--r-panel);
+  }
+
+  .weight .weight-range .choice.slim button {
+    grid-column: span 2;
+    padding: 0 var(--space-2);
+  }
+
+  .weight .weight-range .choice.slim button:nth-of-type(n + 4) {
+    grid-column: span 3;
+  }
+}
+
+.weight .weight-plot {
+  margin-top: var(--space-4);
+}
+
+.weight .chart-readout {
+  min-height: 0;
+  margin: 0 0 var(--space-2);
+}
+
+.weight .weight-chart .weigh-in {
+  paint-order: stroke;
+}
+
+/* The day chosen: a crosshair, a ringed dot and its date. A tap or an arrow
+   glides them there; a drag follows the finger with no delay. */
+.weight .weight-chart .chosen-part {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--dur-fast) var(--ease-out);
+}
+
+.weight .weight-chart.chosen-on .chosen-part {
+  opacity: 1;
+}
+
+.weight .weight-chart.chosen-glide .chosen-part {
+  transition:
+    opacity var(--dur-fast) var(--ease-out),
+    transform var(--dur-fast) var(--ease-out);
+}
+
+.weight .weight-chart.chosen-still .chosen-part {
+  transition: none;
+}
+
+.weight .weight-note {
+  margin: var(--space-3) 0 0;
+}
+
+/* ---------- Weight: empty, and the import card ---------- */
+.weight .weight-empty-words {
+  margin: var(--space-3) 0 0;
+}
+
+.weight .weight-empty h2 {
+  white-space: nowrap;
+}
+
+.weight .import-card {
+  margin-top: var(--space-8);
+}
+
+.weight .import-status {
+  margin: 0;
+}
+
+.weight .import-main,
+.weight .import-paste {
+  margin-top: var(--space-4);
+}
+
+.weight .import-paste p {
+  margin-bottom: var(--space-2);
+}
+
+.weight .import-more {
+  display: grid;
+  row-gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+/* On a narrow screen the two outlines keep their words on one line inside the card. */
+@media (max-width: 374px) {
+  .weight .import-more .btn {
+    padding-inline: var(--space-3);
+    font-size: var(--t-callout-size);
+    line-height: var(--t-callout-lh);
+  }
+}
+
+/* ---------- The import page ---------- */
+.import-page {
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 0;
+}
+
+.import-page .import-title {
+  margin-top: var(--space-3);
+}
+
+.import-page .import-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  column-gap: var(--space-3);
+  margin-top: var(--space-6);
+}
+
+.import-page .import-head.ok {
+  grid-template-columns: var(--ring-mark) minmax(0, 1fr);
+}
+
+/* The done disc sits on the first line of the words. */
+.import-page .import-glyph {
+  display: flex;
+  align-items: center;
+  height: var(--t-title-2-lh);
+}
+
+.import-page .import-head p {
+  margin: 0;
+}
+
+.import-page .import-words,
+.import-page .import-safari {
+  margin: var(--space-4) 0 0;
+}
+
+/* Open Sabr stays at the foot of the screen, over the safe area. */
+.import-page .import-dock {
+  position: sticky;
+  bottom: 0;
+  margin-top: auto;
+  padding: var(--space-6) 0 calc(env(safe-area-inset-bottom) + var(--space-4));
+  background: var(--bg);
+}
+
+/* While it loads: the page's own shape in grey. */
+.import-page .sk-result {
+  width: 70%;
+  height: var(--t-title-2-lh);
+  margin: var(--space-6) 0 0;
+}
+
+.import-page .sk-words {
+  margin-top: var(--space-4);
+}
+
+.import-page .sk-line {
+  height: var(--space-4);
+  margin: 0 0 var(--space-3);
+}
+
+.import-page .sk-short {
+  width: 55%;
+}
+
+.import-page .sk-dock {
+  height: var(--btn-h);
+  border-radius: var(--r-pill);
+}
+
+/* ---------- Reduce Motion: fades only, and short ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .history .history-chart .scrub-part,
+  .weight .weight-chart .chosen-part,
+  .weight .weight-chart.chosen-glide .chosen-part {
+    transition: opacity var(--dur-reduced) var(--ease-out);
+  }
+
+  .weight .latest-slot {
+    transition:
+      opacity var(--dur-reduced) var(--ease-out),
+      visibility var(--dur-reduced) var(--ease-out);
+  }
 }
 }

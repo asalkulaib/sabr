@@ -1,31 +1,805 @@
-/* Satiety, and the fullness card wherever it appears. */
+/* Satiety (Insights, Now, Meals), and the fullness card wherever it appears
+   (Satiety's Now view and a day in Week). Spec 5.6. Sizes, colours and
+   motion come from tokens only. */
 
 @layer screens {
 
-/* ---------- Satiety ---------- */
+/* ---------- Marks ---------- */
 .stop-icon {
   flex: none;
-  width: 14px;
-  height: 14px;
-  vertical-align: -2px;
+  width: var(--ring-key);
+  height: var(--ring-key);
+  vertical-align: middle;
 }
 
-.tiles {
+/* ---------- The shared top: the header, then the switch ---------- */
+.satiety .page-switch {
+  margin-top: var(--space-4);
+}
+
+/* Now keeps its place in the middle of its option; the dot hangs after it. */
+.satiety .page-switch .now-label {
+  position: relative;
+}
+
+.satiety .page-switch .now-label > .dot {
+  position: absolute;
+  top: 50%;
+  left: 100%;
+  transform: translateY(-50%);
+}
+
+.satiety-content {
+  margin-top: var(--space-6);
+}
+
+/* While a way of finishing is picked, the page keeps room for the focus bar. */
+.satiety.focused {
+  padding-bottom: var(--focus-bar-room);
+}
+
+/* ---------- The focus bar: fixed just above the tabs ---------- */
+.satiety .focus-bar {
+  position: fixed;
+  z-index: var(--z-tabbar);
+  left: var(--gutter-l);
+  right: var(--gutter-r);
+  bottom: calc(var(--tabbar-total) + var(--space-2));
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--s4);
+  grid-template-columns: var(--ring-key) minmax(0, 1fr) auto;
+  column-gap: var(--space-2);
+  align-items: center;
+  max-width: calc(var(--content-max) - 2 * var(--space-4));
+  min-height: var(--track-h);
+  margin: 0 auto;
+  padding: var(--space-1) var(--space-1) var(--space-1) var(--space-4);
+  background: var(--bg);
+  border: 2px solid var(--ink);
+  border-radius: var(--r-panel);
 }
 
-.tile .figure {
-  font-size: 30px;
+/* A message above the tabs: the bar sits over it. */
+body.has-flash .satiety .focus-bar {
+  bottom: calc(var(--tabbar-total) + var(--space-2) + var(--flash-room));
 }
 
-.meal-entry .item-side {
+.satiety .focus-bar > .small {
+  font-weight: 700;
+  font-size: var(--t-callout-size);
+  line-height: var(--t-callout-lh);
+  color: var(--text-display);
+  text-wrap: balance;
+}
+
+/* On the narrowest phones the sentence keeps to two lines beside Show all. */
+@media (max-width: 359px) {
+  .satiety .focus-bar {
+    padding-left: var(--space-3);
+  }
+
+  .satiety .focus-bar > .small {
+    font-weight: 800;
+    font-size: var(--t-footnote-size);
+    line-height: var(--t-footnote-lh);
+  }
+
+  .satiety .focus-bar > .btn-2 {
+    padding-inline: var(--space-3);
+  }
+}
+
+/* Show all: the bar's one action, an ink pill. */
+.satiety .focus-bar > .btn-2 {
+  --btn-fg: var(--on-select);
+  color: var(--on-select);
+  background: var(--ink);
+  border-color: var(--ink);
+}
+
+.satiety .focus-bar > .btn-2:active,
+.satiety .focus-bar > .btn-2.pressed {
+  background: var(--text-label);
+  border-color: var(--text-label);
+}
+
+.satiety .focus-bar.enter {
+  animation: focus-bar-in var(--dur-base) var(--ease-out) both;
+}
+
+@keyframes focus-bar-in {
+  from {
+    opacity: 0;
+    transform: translateY(var(--space-2));
+  }
+}
+
+/* Show all: the bar fades out, then the page redraws without it. */
+.satiety .focus-bar.leaving {
+  pointer-events: none;
+  animation: focus-bar-out var(--dur-fast) var(--ease-in) both;
+}
+
+@keyframes focus-bar-out {
+  to { opacity: 0; }
+}
+
+/* ---------- Insights: the drift hero ---------- */
+.satiety-hero .hero-label {
+  font-weight: 800;
+  font-size: var(--t-footnote-size);
+  line-height: var(--t-footnote-lh);
+  color: var(--full-text);
+}
+
+.satiety-hero .hero-figure {
+  margin-top: var(--space-1);
+  font-weight: 900;
+  font-size: var(--t-hero-size);
+  line-height: var(--t-hero-lh);
+  letter-spacing: var(--t-hero-track);
+  font-variant-numeric: lining-nums proportional-nums;
+  color: var(--text-display);
+}
+
+.satiety-hero .hero-figure.none {
+  font-size: var(--t-title-1-size);
+  line-height: var(--t-title-1-lh);
+  letter-spacing: var(--t-title-1-track);
+}
+
+.satiety-hero .hero-note {
+  margin: var(--space-2) 0 0;
+  font-weight: 600;
+  font-size: var(--t-callout-size);
+  line-height: var(--t-callout-lh);
+  color: var(--text-quiet);
+}
+
+/* When the drift is the message, it reads as one. */
+.satiety-hero .hero-note.climbing {
+  font-weight: 700;
+  font-size: var(--t-body-size);
+  line-height: var(--t-body-lh);
+  color: var(--text-display);
+}
+
+/* What the drift rests on, under its note. */
+.satiety-hero .hero-count {
+  margin: var(--space-2) 0 0;
+  font-weight: 600;
+  font-size: var(--t-footnote-size);
+  line-height: var(--t-footnote-lh);
+  color: var(--text-quiet);
+  text-wrap: pretty;
+}
+
+.satiety-hero .contrib-group {
+  margin-top: var(--space-5);
+}
+
+.satiety-hero .contrib-note {
+  text-wrap: pretty;
+}
+
+.satiety-hero .contrib-figure {
+  font-variant-numeric: lining-nums proportional-nums;
+}
+
+/* ---------- Insights: the chart cards ---------- */
+/* Each card's figure is a step under the hero, so the drift stays the one hero. */
+.satiety-card .satiety-lead {
+  font-weight: 900;
+  font-size: var(--t-title-2-size);
+  line-height: var(--t-title-2-lh);
+  letter-spacing: var(--t-title-2-track);
+  font-variant-numeric: lining-nums proportional-nums;
+  color: var(--text-display);
+}
+
+/* One line under the heading or figure: what the chart shows. */
+.satiety-card .chart-note {
+  margin: var(--space-1) 0 0;
+  font-weight: 600;
+  font-size: var(--t-callout-size);
+  line-height: var(--t-callout-lh);
+  color: var(--text-quiet);
+  text-wrap: pretty;
+}
+
+.satiety-card > .card-title + .chart-note {
+  margin-top: 0;
+}
+
+.satiety-card .chart-wait {
+  margin: var(--space-3) 0 0;
+  font-weight: 700;
+  font-size: var(--t-callout-size);
+  line-height: var(--t-callout-lh);
+  color: var(--text-display);
+}
+
+.satiety-card .chart-block {
+  margin-top: var(--space-4);
+}
+
+.satiety-card .chart-block .legend {
+  margin-top: var(--space-4);
+  column-gap: var(--space-2);
+}
+
+/* The chips are one group; the plain keys share the row under them and wrap on their own. */
+.satiety .legend > .legend-keys {
+  order: 1;
+  flex-basis: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: var(--space-4);
+  row-gap: var(--space-2);
+}
+
+/* Chart words: values quiet, what changed in ink. */
+.satiety .chart .zone-band {
+  fill: var(--shade);
+}
+
+.satiety .chart .zone-words,
+.satiety .chart .col-head {
+  font-weight: 800;
+  font-size: var(--t-chart);
+  fill: var(--text-label);
+}
+
+.satiety .chart .lag-value {
+  font-weight: 800;
+  font-size: var(--t-chart-end);
+  fill: var(--text-quiet);
+}
+
+.satiety .chart .rise {
+  font-weight: 900;
+  font-size: var(--t-chart-word);
+  fill: var(--text-display);
+}
+
+.satiety .chart .row-word {
+  font-weight: 800;
+  font-size: var(--t-chart-word);
+  fill: var(--text-display);
+}
+
+/* The rules between rows sit outside them and never fade. */
+.satiety .chart .row-rule {
+  pointer-events: none;
+}
+
+/* A dimmed row keeps its words at the quiet tone (3.17), the rise included. */
+.satiety .chart .dim .rise,
+.satiety .chart .dim .row-word {
+  fill: var(--text-quiet);
+  fill-opacity: 1;
+}
+
+/* The lag lines rise once a session: each starts flat at its right-after
+   value and tilts up to its 20-minute value; its end mark climbs with it. */
+.satiety .chart .lag-rise {
+  transform-box: fill-box;
+  animation: lag-rise var(--dur-chart) var(--ease-out) var(--delay, var(--delay-none)) both;
+}
+
+.satiety .chart .lag-rise.up {
+  transform-origin: left bottom;
+}
+
+.satiety .chart .lag-rise.down {
+  transform-origin: left top;
+}
+
+@keyframes lag-rise {
+  from { transform: skewY(var(--skew)); }
+}
+
+.satiety .chart .lag-end {
+  animation: lag-end var(--dur-chart) var(--ease-out) var(--delay, var(--delay-none)) both;
+}
+
+@keyframes lag-end {
+  from { transform: translateY(var(--drop)); }
+}
+
+/* Until the chart is seen, the lines wait flat at their right-after values. */
+.satiety .chart.waiting .lag-rise {
+  animation: none;
+  transform: skewY(var(--skew));
+}
+
+.satiety .chart.waiting .lag-end {
+  animation: none;
+  transform: translateY(var(--drop));
+}
+
+/* The figures on the right show as their lines climb: a waiting chart never reads ahead of its lines. */
+.satiety .chart .lag-label-in {
+  animation: lag-label-in var(--dur-chart) var(--ease-out) var(--delay, var(--delay-none)) both;
+}
+
+@keyframes lag-label-in {
+  from { opacity: 0; }
+}
+
+.satiety .chart.waiting .lag-label-in {
+  animation: none;
+  opacity: 0;
+}
+
+/* ---------- Insights: findings and the table ---------- */
+.satiety .findings {
+  margin-top: var(--group-gap);
+}
+
+.satiety .findings > .group-title {
+  margin-top: 0;
+}
+
+.satiety .finding-list > li {
+  font-weight: 800;
+  font-size: var(--t-title-3-size);
+  line-height: var(--t-title-3-lh);
+  color: var(--text-display);
+  text-wrap: pretty;
+}
+
+.satiety .finding-list > li + li {
+  margin-top: var(--space-4);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--hairline);
+}
+
+.satiety .findings-empty {
+  margin: 0;
+  font-weight: 600;
+  font-size: var(--t-callout-size);
+  line-height: var(--t-callout-lh);
+  color: var(--text-quiet);
+}
+
+.satiety .table-card {
+  margin-top: var(--space-6);
+  padding-top: var(--space-2);
+  padding-bottom: var(--space-2);
+}
+
+.satiety .table-card + .table-toggle {
+  margin-top: var(--space-3);
+}
+
+.satiety .table-toggle {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-6);
+}
+
+/* ---------- Add a meal: inside each view ---------- */
+[data-block='satiety-meals'] > .add-meal-row {
+  margin-bottom: var(--space-6);
+}
+
+[data-block='satiety-now'] > .add-meal-row,
+.satiety-empty > .add-meal-row {
+  margin-top: var(--space-6);
+}
+
+.satiety .table td {
+  padding: var(--space-3) 0;
+  vertical-align: top;
+}
+
+/* Every head on one baseline; only Right after may take two lines. */
+.satiety .table th {
+  vertical-align: bottom;
+}
+
+.satiety .table th:not(:nth-child(3)) {
   white-space: nowrap;
 }
 
-.meal-entry .drift {
+.satiety .table th:not(:first-child),
+.satiety .table td:not(:first-child) {
+  padding-left: var(--space-2);
+}
+
+.satiety .meal-date {
   display: block;
+  font-weight: 800;
+  font-size: var(--t-headline-size);
+  line-height: var(--t-headline-lh);
   color: var(--text-display);
+  white-space: nowrap;
+}
+
+.satiety .meal-stop {
+  display: block;
+  font-weight: 700;
+  font-size: var(--t-footnote-size);
+  line-height: var(--t-footnote-lh);
+  color: var(--text-quiet);
+}
+
+.satiety .table .drift-cell {
+  font-weight: 900;
+  color: var(--text-display);
+}
+
+/* On the narrowest phones the columns sit closer, so the table keeps inside its card. */
+@media (max-width: 359px) {
+  .satiety .table th:not(:first-child),
+  .satiety .table td:not(:first-child) {
+    padding-left: var(--space-1);
+  }
+
+  .satiety .meal-date {
+    font-size: var(--t-callout-size);
+    line-height: var(--t-callout-lh);
+  }
+}
+
+/* ---------- Now: the fullness check ---------- */
+.check-hero .check-grid {
+  display: grid;
+  grid-template-columns: var(--ring-md) minmax(0, 1fr);
+  column-gap: var(--space-4);
+  align-items: center;
+}
+
+.check-hero .dial {
+  position: relative;
+  width: var(--ring-md);
+  height: var(--ring-md);
+}
+
+.check-hero .dial-figure {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-weight: 900;
+  font-size: var(--t-title-1-size);
+  line-height: var(--t-title-1-lh);
+  letter-spacing: var(--t-title-1-track);
+  font-variant-numeric: lining-nums tabular-nums;
+  color: var(--text-display);
+}
+
+.satiety .check-label {
+  font-weight: 800;
+  font-size: var(--t-footnote-size);
+  line-height: var(--t-footnote-lh);
+  color: var(--full-text);
+}
+
+.check-hero .check-meal {
+  margin: var(--space-1) 0 0;
+  font-weight: 800;
+  font-size: var(--t-headline-size);
+  line-height: var(--t-headline-lh);
+  color: var(--text-display);
+}
+
+.check-hero .check-left {
+  margin: var(--space-1) 0 0;
+  font-weight: 600;
+  font-size: var(--t-callout-size);
+  line-height: var(--t-callout-lh);
+  color: var(--text-quiet);
+}
+
+.check-hero.due .check-left {
+  font-weight: 800;
+  color: var(--text-display);
+}
+
+.check-hero .check-action {
+  margin-top: var(--space-4);
+}
+
+/* Coming due, the closed dial pulses once. */
+.check-hero.pulse .progress-ring {
+  animation: dial-pulse var(--dur-glide) var(--ease-in-out) both;
+}
+
+@keyframes dial-pulse {
+  50% { transform: scale(1.03); }
+}
+
+.check-hero + .check-group {
+  margin-top: var(--space-6);
+}
+
+.check-row {
+  padding: var(--space-3) 0;
+}
+
+.check-row + .check-row {
+  border-top: 1px solid var(--hairline);
+}
+
+.check-row > p {
+  margin: 0;
+  font-weight: 600;
+  font-size: var(--t-callout-size);
+  line-height: var(--t-callout-lh);
+  color: var(--text-quiet);
+}
+
+.check-row .check-row-meal {
+  font-weight: 800;
+  color: var(--text-display);
+}
+
+.check-row .check-row-action {
+  margin-top: var(--space-2);
+}
+
+.satiety .check-none {
+  margin: var(--space-1) 0 0;
+  font-weight: 600;
+  font-size: var(--t-callout-size);
+  line-height: var(--t-callout-lh);
+  color: var(--text-quiet);
+}
+
+/* ---------- Now: the meal being eaten ---------- */
+[data-block='satiety-now'] > .eating-card {
+  margin-top: var(--space-6);
+}
+
+.satiety .eating-line {
+  margin: 0;
+  font-weight: 800;
+  font-size: var(--t-headline-size);
+  line-height: var(--t-headline-lh);
+  color: var(--text-display);
+}
+
+.satiety .eating-action {
+  margin-top: var(--space-4);
+}
+
+/* After the check, the day's card: 24 below the hero, 12 below another card. */
+[data-block='satiety-now'] > .check-hero ~ [data-block='fullness'],
+[data-block='satiety-now'] > .check-none + [data-block='fullness'],
+[data-block='satiety-now'] > .check-group + [data-block='fullness'] {
+  margin-top: var(--space-6);
+}
+
+/* ---------- The fullness card (Satiety Now and Day) ---------- */
+[data-block='fullness'] .fullness-label {
+  font-weight: 800;
+  font-size: var(--t-footnote-size);
+  line-height: var(--t-footnote-lh);
+  color: var(--full-text);
+}
+
+[data-block='fullness'] .fullness-label .ar {
+  font-size: inherit;
+}
+
+[data-block='fullness'] .fullness-question {
+  margin: var(--space-2) 0 0;
+  font-weight: 900;
+  font-size: var(--t-title-3-size);
+  line-height: var(--t-title-3-lh);
+  color: var(--text-display);
+  text-wrap: balance;
+}
+
+[data-block='fullness'] .fullness-track {
+  margin-top: var(--space-4);
+}
+
+[data-block='fullness'] .fullness-statement {
+  display: flex;
+  column-gap: var(--space-2);
+  align-items: flex-start;
+  margin: var(--space-2) 0 0;
+  font-weight: 900;
+  font-size: var(--t-title-3-size);
+  line-height: var(--t-title-3-lh);
+  color: var(--text-display);
+  text-wrap: balance;
+}
+
+/* The mark sits on the first line of the words. */
+[data-block='fullness'] .fullness-statement > .key {
+  flex: none;
+  margin-top: var(--space-1);
+}
+
+/* ---------- Meals: one list on the page ---------- */
+.satiety .meals-key .legend {
+  margin-top: 0;
+  column-gap: var(--space-2);
+}
+
+.satiety .meals-reading {
+  margin: var(--space-2) 0 0;
+  font-weight: 600;
+  font-size: var(--t-footnote-size);
+  line-height: var(--t-footnote-lh);
+  color: var(--text-quiet);
+}
+
+.satiety .meals-empty {
+  margin: var(--space-4) 0 0;
+  font-weight: 600;
+  font-size: var(--t-body-size);
+  line-height: var(--t-body-lh);
+  color: var(--text-quiet);
+}
+
+.satiety .meal-day {
+  margin-top: var(--space-6);
+}
+
+/* The day stays at the top while its meals scroll under it. */
+.satiety .meal-day-head {
+  position: sticky;
+  top: env(safe-area-inset-top);
+  z-index: var(--z-sticky);
+  display: flex;
+  align-items: center;
+  min-height: var(--slim-h);
+  margin: 0;
+  font-weight: 800;
+  font-size: var(--t-headline-size);
+  line-height: var(--t-headline-lh);
+  color: var(--text-display);
+  background: var(--bg);
+  border-bottom: 1px solid var(--hairline);
+}
+
+.satiety .meal-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.satiety .meal-list > li {
+  position: relative;
+}
+
+/* Hairlines between meals, clear of the marks. */
+.satiety .meal-list > li + li::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: var(--space-8);
+  right: 0;
+  height: 1px;
+  background: var(--hairline);
+}
+
+.satiety .meal-entry {
+  min-height: var(--space-16);
+}
+
+.satiety .meal-entry .item-lead {
+  display: flex;
+  justify-content: center;
+}
+
+.satiety .meal-main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.satiety .meal-entry .item-meta {
+  font-weight: 700;
+  font-size: var(--t-footnote-size);
+  line-height: var(--t-footnote-lh);
+}
+
+.satiety .meal-entry .outside-words {
+  color: var(--miss-text);
+}
+
+.satiety .meal-entry .readings {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  white-space: nowrap;
+}
+
+.satiety .meal-entry .reads {
+  font-weight: 800;
+  font-size: var(--t-callout-size);
+  line-height: var(--t-callout-lh);
+  color: var(--text-quiet);
+}
+
+.satiety .meal-entry .read-ink {
+  color: var(--text-display);
+}
+
+.satiety .meal-entry .drift {
+  display: block;
+  font-weight: 900;
+  font-size: var(--t-footnote-size);
+  line-height: var(--t-footnote-lh);
+  color: var(--text-display);
+}
+
+/* A meal just added from here shows itself once: a shade that fades. */
+.satiety .meal-list > li.fresh::after {
+  content: '';
+  position: absolute;
+  inset: 0 calc(-1 * var(--space-2));
+  border-radius: var(--r-control);
+  background: var(--shade);
+  pointer-events: none;
+  animation: fresh-fade var(--dur-spin) var(--ease-out) var(--delay, var(--delay-none)) both;
+}
+
+@keyframes fresh-fade {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+/* ---------- Empty ---------- */
+.satiety-empty > p {
+  margin: var(--space-3) 0 0;
+  font-weight: 600;
+  font-size: var(--t-body-size);
+  line-height: var(--t-body-lh);
+  color: var(--text-body);
+}
+
+.satiety-empty > p:first-child,
+.satiety-empty > .legend + p {
+  margin-top: 0;
+}
+
+/* Before there is anything to show: the marks you will rate with, then the message and how to begin. */
+.satiety-empty > .legend {
+  margin: 0 0 var(--space-4);
+}
+
+.satiety-empty > .empty-message {
+  font-weight: 900;
+  font-size: var(--t-title-3-size);
+  line-height: var(--t-title-3-lh);
+  color: var(--text-display);
+  text-wrap: balance;
+}
+
+.satiety-empty > .empty-how {
+  margin-top: var(--space-2);
+  font-weight: 600;
+  font-size: var(--t-callout-size);
+  line-height: var(--t-callout-lh);
+  color: var(--text-quiet);
+  text-wrap: pretty;
+}
+
+/* ---------- Reduce Motion: no movement; nothing pulses or rises ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .satiety .chart .lag-rise,
+  .satiety .chart .lag-end,
+  .satiety .chart .lag-label-in,
+  .check-hero.pulse .progress-ring,
+  .satiety .meal-list > li.fresh::after {
+    animation: none;
+  }
+
+  .satiety .meal-list > li.fresh::after {
+    opacity: 0;
+  }
+
+  .satiety .focus-bar.enter,
+  .satiety .focus-bar.leaving {
+    animation: none;
+    transition: opacity var(--dur-reduced) var(--ease-out);
+  }
 }
 }

@@ -2,73 +2,818 @@
 
 @layer screens {
 
-/* ---------- Week as a schedule ---------- */
-.sched-head,
-.dayrow {
-  display: grid;
-  grid-template-columns: 22px 56px minmax(0, 1fr) 64px;
-  column-gap: var(--s2);
-  align-items: center;
-}
+/* ================= Week ================= */
 
-.sched-head {
-  padding-bottom: var(--s1);
-}
-
-.sched-head text {
-  font-family: var(--font-ui);
+/* The week bar: which week, and the pager under it. */
+.week .week-range {
+  margin: 0;
   font-weight: 800;
-  font-size: 11px;
-  fill: var(--text-quiet);
+  font-size: var(--t-headline-size);
+  line-height: var(--t-headline-lh);
+  letter-spacing: var(--t-headline-track);
+  color: var(--text-display);
+  text-wrap: balance;
 }
 
-.dayrow {
+.week .week-pager {
+  margin-top: var(--space-2);
+}
+
+.week .week-pager .glyph {
+  width: var(--chevron-w);
+  height: var(--chevron-h);
+}
+
+/* The hero: the ring of seven beside the count. */
+.screen .week .week-hero {
+  display: grid;
+  grid-template-columns: var(--ring-md) minmax(0, 1fr);
+  column-gap: var(--space-5);
+  align-items: center;
+  margin-top: var(--space-4);
+}
+
+/* The seven arcs draw in turn, a short step apart. */
+.week .week-ring {
+  --delay-ring-step: calc(var(--dur-chart) / 20); /* 30ms, until tokens.css has --delay-week-step */
+  width: var(--ring-md);
+  height: var(--ring-md);
+}
+
+.week .week-count {
+  margin-top: var(--space-1);
+  font-weight: 900;
+  font-size: var(--t-hero-size);
+  line-height: var(--t-hero-lh);
+  letter-spacing: var(--t-hero-track);
+  font-variant-numeric: lining-nums proportional-nums;
+  color: var(--text-display);
+}
+
+.week .week-notes {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: var(--space-4);
+  row-gap: var(--space-1);
+  margin-top: var(--space-2);
+}
+
+.week .week-notes .note {
+  font-weight: 800;
+  font-size: var(--t-callout-size);
+  line-height: var(--t-callout-lh);
+  white-space: nowrap;
+  color: var(--text-display);
+}
+
+.week .week-notes .note b {
+  display: inline;
+  margin-right: var(--space-1);
+  font-weight: 700;
+  font-size: var(--t-callout-size);
+  line-height: var(--t-callout-lh);
+  color: var(--text-quiet);
+}
+
+/* ---------- The schedule ---------- */
+.week .week-schedule {
+  margin-top: var(--space-6);
+}
+
+.week .sched-head,
+.week .dayrow {
+  display: grid;
+  grid-template-columns: var(--ring-mark) minmax(0, 1fr) auto var(--space-4);
+  column-gap: var(--space-3);
+}
+
+.week .sched-head {
+  padding-bottom: var(--space-1);
+}
+
+/* The hours, over the track column. */
+.week .sched-axis {
+  position: relative;
+  grid-column: 2 / 4;
+  height: var(--t-footnote-lh);
+  font-weight: 700;
+  font-size: var(--t-footnote-size);
+  line-height: var(--t-footnote-lh);
+  color: var(--text-quiet);
+}
+
+.week .sched-axis > span {
+  position: absolute;
+  top: 0;
+  left: calc(var(--at) * 100%);
+  transform: translateX(-50%);
+}
+
+.week .dayrow {
+  position: relative;
+  isolation: isolate;
+  grid-template-areas:
+    'ring line res chev'
+    'ring track track .';
+  row-gap: var(--space-2);
+  align-items: center;
   width: 100%;
-  min-height: 52px;
-  padding: var(--s2) 0;
-  border-top: 1px solid var(--rule-quiet);
+  min-height: var(--space-16);
+  padding: var(--space-2) 0;
   text-align: left;
+  border-top: 1px solid var(--hairline);
 }
 
-.dayrow .cell {
-  display: block;
-  width: 22px;
-  height: 22px;
+/* Pressed: a soft shape a little wider than the row, no scale. */
+.week .dayrow::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  inset: 0 calc(-1 * var(--space-2));
+  border-radius: var(--r-control);
+  transition: background-color var(--dur-fast) var(--ease-out);
 }
 
-.sched-line {
+.week .dayrow:active::before {
+  background: var(--shade);
+}
+
+.week .dayrow:focus-visible {
+  outline: none;
+}
+
+.week .dayrow:focus-visible::before {
+  outline: var(--focus-w) solid var(--focus);
+  outline-offset: calc(-1 * var(--focus-w));
+}
+
+/* The chevron: the row opens its day. */
+.week .dayrow::after {
+  content: '';
+  grid-area: chev;
+  justify-self: end;
+  width: var(--chevron-w);
+  height: var(--chevron-h);
+  background: var(--edge);
+  -webkit-mask: var(--chevron-mask) center / contain no-repeat;
+  mask: var(--chevron-mask) center / contain no-repeat;
+  align-self: start;
+  margin-top: calc((var(--t-headline-lh) - var(--chevron-h)) / 2);
+}
+
+.week .dayrow > .result-ring {
+  grid-area: ring;
+  width: var(--ring-mark);
+  height: var(--ring-mark);
+}
+
+/* The day, then its times in a column that lines up from row to row. */
+.week .dr-line {
+  grid-area: line;
+  display: grid;
+  grid-template-columns: calc(var(--space-16) + var(--space-4)) minmax(0, 1fr);
+  justify-items: start;
+  align-items: baseline;
+  column-gap: var(--space-2);
+  min-width: 0;
+  white-space: nowrap;
+}
+
+/* A narrow phone: every row puts its times under the day, so all rows match.
+   374px is the shared narrow-phone width (media queries cannot read tokens). */
+@media (max-width: 374px) {
+  .week .dr-line {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.week .dayrow .d {
+  font-weight: 900;
+  font-size: var(--t-headline-size);
+  line-height: var(--t-headline-lh);
+  color: var(--text-display);
+}
+
+/* Today's row: its day on an ink pill, hung into the gap so its words line up with the other days. */
+.week .dayrow[aria-current='date'] .d {
+  margin-left: calc(-1 * var(--space-2));
+  padding: 0 var(--space-2);
+  color: var(--on-select);
+  background: var(--select);
+  border-radius: var(--r-pill);
+}
+
+.week .dayrow .t {
+  font-weight: 700;
+  font-size: var(--t-callout-size);
+  line-height: var(--t-callout-lh);
+  color: var(--text-quiet);
+}
+
+.week .dayrow .r {
+  grid-area: res;
+  align-self: start;
+  font-weight: 800;
+  font-size: var(--t-callout-size);
+  line-height: var(--t-callout-lh);
+  white-space: nowrap;
+  text-align: right;
+  color: var(--text-quiet);
+}
+
+.week .dayrow .r.ok {
+  color: var(--win-text);
+}
+
+.week .dayrow .r.miss {
+  color: var(--miss-text);
+}
+
+.week .dr-track {
+  grid-area: track;
+  min-width: 0;
+}
+
+.week .day-track,
+.day .day-track {
   display: block;
   width: 100%;
   height: auto;
   overflow: visible;
 }
 
-.dayrow .d {
-  font-family: var(--font-ui);
-  font-weight: 900;
-  font-size: 14.5px;
-  white-space: nowrap;
-  color: var(--ink);
+.week .legend {
+  margin-top: var(--space-3);
 }
 
-.dayrow .t {
-  display: block;
-  margin-top: 2px;
-  font-family: var(--font-ui);
+/* One key for a day's mark and its bar on the line. */
+.week .key-pair {
+  display: inline-flex;
+  column-gap: var(--space-1);
+}
+
+/* ---------- Stat tiles and cards ---------- */
+.week .tiles {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  column-gap: var(--card-gap);
+  margin-top: var(--card-gap);
+}
+
+.week .tiles.first {
+  margin-top: var(--group-gap);
+}
+
+.week .tile {
+  min-width: 0;
+  padding: var(--inset-pad);
+  background: var(--bg-raised);
+  border-radius: var(--r-panel);
+}
+
+.week .tile > .card-title {
+  margin-bottom: var(--space-2);
+}
+
+.week .stat-label {
   font-weight: 700;
-  font-size: 13px;
+  font-size: var(--t-callout-size);
+  line-height: var(--t-callout-lh);
   color: var(--text-body);
-  font-variant-numeric: tabular-nums lining-nums;
 }
 
-.dayrow .r {
+/* A stacked stat: its label over its figure. */
+.week .stat.stacked {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  row-gap: var(--space-1);
+  padding: 0;
+}
+
+.week .stat.stacked + .stat.stacked {
+  margin-top: var(--space-3);
+}
+
+.week .stat.stacked .stat-label {
+  display: inline-flex;
+  align-items: center;
+  column-gap: var(--space-2);
   font-weight: 800;
-  font-size: 13.5px;
-  color: var(--text-quiet);
-  text-align: right;
+  font-size: var(--t-footnote-size);
+  line-height: var(--t-footnote-lh);
+  color: var(--text-label);
+  text-wrap: balance;
 }
 
-.dayrow .r.ok {
+.week .stat.stacked .stat-value {
+  font-weight: 800;
+  text-align: left;
+}
+
+.week .stat-value.figure-value {
+  font-weight: 900;
+  font-size: var(--t-title-2-size);
+  line-height: var(--t-title-2-lh);
+  letter-spacing: var(--t-title-2-track);
+  font-variant-numeric: lining-nums proportional-nums;
+}
+
+.week .stat-value.empty,
+.week .stat.stacked .stat-value.empty {
+  font-weight: 600;
+  font-size: var(--t-callout-size);
+  line-height: var(--t-callout-lh);
+  color: var(--text-quiet);
+}
+
+/* An empty stat: its quiet words under the label, not squeezed beside it. */
+.week .stat:has(> .stat-value.empty):not(.stacked) {
+  grid-template-columns: minmax(0, 1fr);
+  row-gap: var(--space-1);
+}
+
+.week .stat:not(.stacked) > .stat-value.empty {
+  text-align: left;
+}
+
+.week .tile-note {
+  margin: var(--space-1) 0 0;
+  font-weight: 600;
+  font-size: var(--t-callout-size);
+  line-height: var(--t-callout-lh);
+  color: var(--text-quiet);
+}
+
+/* Workdays: on time, with a cell per window, then energy at 4 PM. */
+.week .on-time .stat {
+  padding-top: 0;
+}
+
+.week .meter {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  column-gap: var(--space-1);
+  height: calc(var(--space-1) * 1.5);
+  margin-top: var(--space-1);
+}
+
+.week .meter > span {
+  background: var(--track);
+  border-radius: var(--r-pill);
+}
+
+.week .meter > span.on {
+  background: var(--ink);
+}
+
+.week .week-sub {
+  margin: var(--space-5) 0 var(--space-1);
+  font-weight: 900;
+  font-size: var(--t-headline-size);
+  line-height: var(--t-headline-lh);
+  color: var(--text-display);
+}
+
+.week .energy-line + .energy-line {
+  margin-top: var(--space-2);
+}
+
+.week .energy-line .stat {
+  padding-bottom: var(--space-1);
+}
+
+/* A share at a glance: an ink fill on a grey rail. */
+.week .rail {
+  display: block;
+  height: calc(var(--space-1) * 1.5);
+  overflow: hidden;
+  background: var(--track);
+  border-radius: var(--r-pill);
+}
+
+.week .rail.thick {
+  height: var(--space-2);
+  margin-top: var(--space-3);
+}
+
+.week .rail-fill {
+  display: block;
+  width: calc(var(--frac, 0) * 100%);
+  height: 100%;
+  background: var(--ink);
+  border-radius: var(--r-pill);
+}
+
+.week .energy-all {
+  margin: var(--space-3) 0 0;
+  font-weight: 600;
+  font-size: var(--t-callout-size);
+  line-height: var(--t-callout-lh);
+  color: var(--text-quiet);
+}
+
+.week .stat-pair {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  column-gap: var(--space-3);
+}
+
+.week .stat-pair .stat.stacked + .stat.stacked {
+  margin-top: 0;
+}
+
+.week [data-stat='triggers'] {
+  margin-top: var(--space-4);
+}
+
+/* Paging: the next week comes in from its side. */
+.week .week-body.turn-next {
+  animation: week-turn-next var(--dur-base) var(--ease-out) both;
+}
+
+.week .week-body.turn-prev {
+  animation: week-turn-prev var(--dur-base) var(--ease-out) both;
+}
+
+@keyframes week-turn-next {
+  from { opacity: 0; transform: translateX(var(--space-6)); }
+}
+
+@keyframes week-turn-prev {
+  from { opacity: 0; transform: translateX(calc(-1 * var(--space-6))); }
+}
+
+/* ================= Day ================= */
+
+.day .head-title > .label:first-child {
+  text-wrap: balance;
+}
+
+/* Tempted? sits level with Back, so the date has the full width. */
+.day .head-title {
+  grid-row: 1;
+  grid-column: 1 / -1;
+}
+
+.day .head > .btn-2 {
+  grid-row: 1;
+  grid-column: 2;
+  align-self: start;
+}
+
+/* The hero: the result ring and the verdict, then the day on its line. */
+/* The header's own padding is the step to the hero: 16, as on Week. */
+.screen .day .day-hero {
+  margin-top: 0;
+}
+
+.day .day-hero-top {
+  display: grid;
+  grid-template-columns: var(--ring-md) minmax(0, 1fr);
+  column-gap: var(--space-4);
+  align-items: center;
+}
+
+.day .day-hero-top > .result-ring {
+  width: var(--ring-md);
+  height: var(--ring-md);
+}
+
+/* After a save that changes the verdict, ring and words cross-fade. */
+.day .day-hero-top.changed {
+  animation: fade-in var(--dur-base) var(--ease-out) both;
+}
+
+.day .day-verdict {
+  margin: 0;
+  font-weight: 900;
+  font-size: var(--t-title-3-size);
+  line-height: var(--t-title-3-lh);
+  letter-spacing: var(--t-title-3-track);
+  color: var(--text-display);
+  text-wrap: pretty;
+}
+
+.day .day-verdict.ok {
   color: var(--win-text);
+}
+
+.day .day-verdict.quiet {
+  color: var(--text-quiet);
+}
+
+.day .miss-line.day-verdict {
+  display: flex;
+  align-items: flex-start;
+  column-gap: var(--space-2);
+  color: var(--miss-text);
+}
+
+.day .miss-line.day-verdict > svg {
+  width: var(--space-5);
+  height: var(--space-5);
+  margin-top: calc((var(--t-title-3-lh) - var(--space-5)) / 2);
+}
+
+.day .day-times {
+  margin: var(--space-1) 0 0;
+  font-weight: 700;
+  font-size: var(--t-callout-size);
+  line-height: var(--t-callout-lh);
+  color: var(--text-quiet);
+}
+
+.day .day-ahead {
+  margin: var(--space-2) 0 0;
+  font-weight: 600;
+  font-size: var(--t-callout-size);
+  line-height: var(--t-callout-lh);
+  color: var(--text-quiet);
+}
+
+.day .day-track-wrap {
+  margin-top: var(--space-4);
+}
+
+.day .track-axis {
+  font-family: var(--font-ui);
+  font-weight: 800;
+  font-size: var(--t-chart);
+  font-variant-numeric: lining-nums tabular-nums;
+  fill: var(--text-quiet);
+}
+
+/* The record: every block has its title on the page (title-2), 32 apart.
+   Blocks with controls (Window, Check-in, Fullness) sit in a grey card;
+   Outside, Meals, Temptations and Day settings sit on the page itself. */
+.day .day-group > .group-title {
+  margin-top: var(--space-8);
+}
+
+.screen .day .day-group > .card,
+.screen .day .day-group > [data-block='fullness'] {
+  margin-top: 0;
+}
+
+.day .day-card-text {
+  margin: 0;
+  font-weight: 600;
+  font-size: var(--t-callout-size);
+  line-height: var(--t-callout-lh);
+  color: var(--text-display);
+}
+
+.day .day-card-text.quiet {
+  color: var(--text-quiet);
+}
+
+.day .day-card-text + .pill-row {
+  margin-top: var(--space-3);
+}
+
+.day .day-card-text + .btn {
+  margin-top: var(--space-4);
+}
+
+.day .day-actions {
+  display: flex;
+  flex-direction: column;
+  row-gap: var(--space-2);
+  margin-top: var(--space-4);
+}
+
+.day .day-summary {
+  margin: 0 0 var(--space-4);
+  font-weight: 800;
+  font-size: var(--t-headline-size);
+  line-height: var(--t-headline-lh);
+  color: var(--text-display);
+}
+
+/* Each wheel under its label row: the label, and the wheel's own Clear at
+   its right. The two columns share their rows, so the wheels stay level
+   even when a narrow phone puts Clear under its label. */
+.day .day-wheels {
+  row-gap: 0;
+}
+
+.day .day-wheels > .time-wrap {
+  display: grid;
+  grid-row: span 3;
+  grid-template-rows: subgrid;
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
+}
+
+.day .day-wheels .field-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  align-content: flex-start;
+  column-gap: var(--space-2);
+  row-gap: var(--space-1);
+  margin-bottom: var(--space-2);
+}
+
+/* The label takes the pill's height, so both columns' labels sit level. */
+.day .day-wheels .field-head > .field-label {
+  display: flex;
+  align-items: center;
+  min-height: var(--hit);
+  margin: 0;
+  white-space: nowrap;
+}
+
+.day .day-wheels .field-head > .btn-2 {
+  margin-left: auto;
+}
+
+.day .day-wheels + .error-line {
+  margin-top: var(--space-3);
+}
+
+.day .day-center {
+  justify-content: center;
+}
+
+.day .day-actions > .confirm {
+  margin-top: var(--space-2);
+}
+
+/* A question inside a grey card sits on a white tile, as in a sheet. */
+.day .day-card .confirm {
+  background: var(--bg);
+}
+
+/* Outside, Meals and Temptations: list rows with hairlines on the page,
+   then the add action. The pressed fill bleeds 8 past the words (3.7). */
+.day .day-group .list {
+  max-width: none;
+}
+
+.day .day-group-empty {
+  margin: 0;
+  font-weight: 600;
+  font-size: var(--t-callout-size);
+  line-height: var(--t-callout-lh);
+  color: var(--text-quiet);
+}
+
+.day .day-group-action {
+  margin-top: var(--space-2);
+}
+
+.day .day-group-empty + .day-group-action {
+  margin-top: var(--space-4);
+}
+
+/* A row of two lines keeps its time and chevron on the title's line, as on Week. */
+.day .day-group .item {
+  align-items: start;
+  align-content: center;
+}
+
+.day .day-group .item-lead {
+  display: grid;
+  place-items: center;
+  height: var(--t-headline-lh);
+}
+
+.day .day-group .item::after {
+  align-self: start;
+  margin-top: calc((var(--t-headline-lh) - var(--chevron-h)) / 2);
+}
+
+.day .day-group .item-lead .key {
+  width: var(--space-3);
+  height: var(--space-3);
+}
+
+/* Fullness: the group title carries the card's label and gloss, and the
+   question or the statement is the card's heading, at headline. */
+.day .day-fullness > [data-block='fullness'] > .fullness-label {
+  display: none;
+}
+
+.day .day-fullness [data-block='fullness'] :is(.fullness-question, .fullness-statement) {
+  margin-top: 0;
+  font-size: var(--t-headline-size);
+  line-height: var(--t-headline-lh);
+  letter-spacing: var(--t-headline-track);
+}
+
+.day .day-fullness [data-block='fullness'] .fullness-statement > .key {
+  margin-top: calc((var(--t-headline-lh) - var(--space-5)) / 2);
+}
+
+/* Check-in: one field under another. */
+.day .day-fields {
+  display: flex;
+  flex-direction: column;
+  row-gap: var(--space-6);
+}
+
+/* Day settings: Day off and Pause on the page, split by a hairline. */
+.day .day-row + .day-row {
+  margin-top: var(--space-5);
+  padding-top: var(--space-5);
+  border-top: 1px solid var(--hairline);
+}
+
+.day .day-row > .card-title {
+  margin: 0;
+}
+
+.day .day-row-text {
+  margin: var(--space-1) 0 var(--space-3);
+  font-weight: 600;
+  font-size: var(--t-callout-size);
+  line-height: var(--t-callout-lh);
+  color: var(--text-quiet);
+}
+
+/* ================= Sheets opened from a day ================= */
+
+:is([data-sheet='edit-outside'], [data-sheet='temptation-detail']) .day-form {
+  display: flex;
+  flex-direction: column;
+  row-gap: var(--space-6);
+}
+
+:is([data-sheet='edit-outside'], [data-sheet='temptation-detail']) .day-form-lead {
+  display: flex;
+  flex-direction: column;
+  row-gap: var(--space-3);
+}
+
+:is([data-sheet='edit-outside'], [data-sheet='temptation-detail']) .day-form-lead p {
+  margin: 0;
+}
+
+[data-sheet='edit-outside'] .day-form-hero {
+  margin: 0;
+  font-weight: 900;
+  font-size: var(--t-title-2-size);
+  line-height: var(--t-title-2-lh);
+  letter-spacing: var(--t-title-2-track);
+  color: var(--text-display);
+  text-wrap: balance;
+}
+
+[data-sheet='temptation-detail'] .day-form-hero {
+  font-weight: 900;
+  font-size: var(--t-title-3-size);
+  line-height: var(--t-title-3-lh);
+  color: var(--text-display);
+}
+
+[data-sheet='temptation-detail'] .day-form-lead {
+  row-gap: var(--space-2);
+}
+
+[data-sheet='temptation-detail'] .day-form-outcome {
+  font-weight: 800;
+  font-size: var(--t-headline-size);
+  line-height: var(--t-headline-lh);
+  color: var(--text-display);
+}
+
+[data-sheet='temptation-detail'] .day-form-note {
+  font-weight: 600;
+  font-size: var(--t-callout-size);
+  line-height: var(--t-callout-lh);
+  color: var(--text-quiet);
+}
+
+/* Delete sits apart, after a hairline. */
+:is([data-sheet='edit-outside'], [data-sheet='temptation-detail']) .day-form-end {
+  padding-top: var(--space-6);
+  border-top: 1px solid var(--hairline);
+}
+
+/* ================= Reduce Motion ================= */
+@media (prefers-reduced-motion: reduce) {
+  /* Paging and a changed verdict cross-fade: opacity only, no slide. */
+  .week .week-body.turn-next,
+  .week .week-body.turn-prev,
+  .day .day-hero-top.changed {
+    animation: none;
+    transition: opacity var(--dur-reduced) var(--ease-out);
+  }
+
+  @starting-style {
+    .week .week-body.turn-next,
+    .week .week-body.turn-prev,
+    .day .day-hero-top.changed {
+      opacity: 0;
+    }
+  }
+
+  .week .dayrow::before {
+    transition: none;
+  }
 }
 }

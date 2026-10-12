@@ -1,103 +1,177 @@
-/* The stages sheet ([data-sheet="stages"]) and Read more. */
+/* The stages sheet ([data-sheet="stages"]) and Read more: the fast as a
+   journey along a line, a neutral card for each stage, and a stage's own
+   page. Red only for the fast's progress and Now; the selection is ink. */
 
 @layer screens {
 
-/* ---------- Fasting stages, one at a time ---------- */
-/* Room above and below for a stop's focus ring, which the sideways scroll would clip. */
-.stage-line {
-  margin-top: calc(var(--s4) - 4px);
-  padding-block: 4px;
+/* ---------- Text ---------- */
+[data-sheet='stages'] .stages-view p,
+[data-sheet='stages'] .stage-page p {
+  margin: 0;
+  max-width: none;
+}
+
+[data-sheet='stages'] :is(.stages-part, .more-part) h3 {
+  font-weight: 900;
+  font-size: var(--t-title-3-size);
+  line-height: var(--t-title-3-lh);
+  letter-spacing: var(--t-title-3-track);
+  color: var(--text-display);
+}
+
+/* A range reads in sentence case ("From about 12 h") without changing its words. */
+[data-sheet='stages'] .stage-range {
+  font-weight: 800;
+  font-size: var(--t-callout-size);
+  line-height: var(--t-callout-lh);
+  letter-spacing: var(--t-callout-track);
+  color: var(--text-quiet);
+}
+
+[data-sheet='stages'] .stage-range::first-letter {
+  text-transform: capitalize;
+}
+
+[data-sheet='stages'] .stages-intro {
+  font-weight: 600;
+  font-size: var(--t-callout-size);
+  line-height: var(--t-callout-lh);
+  letter-spacing: var(--t-callout-track);
+  color: var(--text-quiet);
+}
+
+/* ---------- The stages line: full bleed, about 3.6 stops to a view ---------- */
+[data-sheet='stages'] .stage-line {
+  position: relative;
+  margin: var(--space-5) calc(-1 * var(--sheet-pad)) 0;
+  padding: var(--space-2) var(--sheet-pad);
+  scroll-padding-inline: var(--sheet-pad);
   overflow-x: auto;
   overscroll-behavior-x: contain;
   scrollbar-width: none;
 }
 
-.stage-line::-webkit-scrollbar {
+[data-sheet='stages'] .stage-line::-webkit-scrollbar {
   display: none;
 }
 
-/* Three stages to a view, with the next one showing at the edge: swipe the line for the rest. */
-.stage-track {
+[data-sheet='stages'] .stage-track {
   position: relative;
   display: grid;
   grid-auto-flow: column;
   grid-auto-columns: 1fr;
-  width: 167%;
+  width: calc((100% + 2 * var(--sheet-pad)) * 6 / 3.6);
 }
 
-/* The line that joins the stages, behind their discs: from the middle of the first column to the middle of the sixth. */
-.stage-track::before {
+/* The rule through the disc centres, first to last, and over it the fast so
+   far: from the first centre to the centre of the stage it is in. */
+[data-sheet='stages'] .stage-track::before,
+[data-sheet='stages'] .stage-progress {
   content: '';
   position: absolute;
   left: calc(100% / 12);
+  top: calc(var(--space-2) + var(--disc) / 2);
+  transform: translateY(-50%);
+}
+
+[data-sheet='stages'] .stage-track::before {
   right: calc(100% / 12);
-  top: 29px;
   border-top: 2px solid var(--track);
 }
 
-.stage-stop {
+[data-sheet='stages'] .stage-progress {
+  width: var(--now-x, 0);
+  height: var(--space-1);
+  background: var(--fast);
+  border-radius: var(--r-pill);
+}
+
+[data-sheet='stages'] .stage-stop {
   position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
-  row-gap: 6px;
-  padding: 0 4px 8px;
-  font-family: var(--font-ui);
+  padding: var(--space-2) var(--space-1);
   font-weight: 800;
-  font-size: 15px;
-  line-height: 1.25;
+  font-size: var(--t-footnote-size);
+  line-height: var(--t-footnote-lh);
+  letter-spacing: var(--t-footnote-track);
   text-align: center;
   color: var(--text-quiet);
   border-radius: var(--r-control);
+  transition: color var(--dur-fast) var(--ease-out);
 }
 
-.stage-stop .name {
-  min-height: 2.5em;
-}
-
-.stage-stop .hrs {
-  font-size: 14px;
-}
-
-.stage-stop .disc {
+[data-sheet='stages'] .stage-stop .stop-mark {
+  position: relative;
   display: grid;
   place-items: center;
-  width: 58px;
-  height: 58px;
-  border: 2px solid var(--track);
+  margin-bottom: var(--space-4);
+}
+
+/* The stage in view: an ink ring round its disc. */
+[data-sheet='stages'] .stage-stop .stop-mark::after {
+  content: '';
+  position: absolute;
+  inset: calc(-1.5 * var(--space-1));
+  border: 2px solid var(--select);
   border-radius: var(--r-pill);
+  opacity: 0;
+  transform: scale(0.92);
+  transition:
+    opacity var(--dur-fast) var(--ease-out),
+    transform var(--dur-fast) var(--ease-out);
+  pointer-events: none;
 }
 
-.stage-stop .disc svg {
-  width: 30px;
-  height: 30px;
+[data-sheet='stages'] .stage-stop[aria-current='true'] .stop-mark::after {
+  opacity: 1;
+  transform: none;
 }
 
-.stage-stop .disc .stage-icon {
-  stroke: var(--ink);
+/* Now sits on the lower edge of the stage the fast is in. */
+[data-sheet='stages'] .stage-stop .now-tag {
+  position: absolute;
+  z-index: 1;
+  left: 50%;
+  top: calc(100% - var(--space-2));
+  transform: translateX(-50%);
 }
 
-/* The fast's red rings the stage the fast is in now. */
-.stage-stop.now .disc {
-  border: 4px solid var(--fast);
+[data-sheet='stages'] .stage-stop .name {
+  display: block;
+  min-height: calc(2 * var(--t-footnote-lh));
 }
 
-.stage-stop[aria-current='true'] {
-  color: var(--ink);
+[data-sheet='stages'] .stage-stop .hrs {
+  display: block;
+  margin-top: var(--space-1);
 }
 
-.stage-stop[aria-current='true'] .name {
-  text-decoration: underline;
-  text-decoration-thickness: 2px;
-  text-underline-offset: 4px;
+[data-sheet='stages'] .stage-stop[aria-current='true'] {
+  font-weight: 900;
+  color: var(--text-display);
 }
 
-.stage-cards {
+[data-sheet='stages'] .stage-stop:focus-visible {
+  outline: var(--focus-w) solid var(--focus);
+  outline-offset: var(--focus-gap);
+}
+
+[data-sheet='stages'] .stage-line + .legend {
+  margin-top: var(--space-1);
+}
+
+/* ---------- The cards: neutral, one at a time, each as tall as its words ---------- */
+/* The list is as tall as the longest card, so the note under it stays put
+   while the cards swipe; a short card ends at its own Read more. */
+[data-sheet='stages'] .stage-cards {
   display: grid;
+  align-items: start;
   grid-auto-flow: column;
   grid-auto-columns: 100%;
-  column-gap: var(--s3);
-  margin: var(--s4) 0 0;
+  column-gap: var(--card-gap);
+  margin: var(--space-4) 0 0;
   padding: 0;
   list-style: none;
   overflow-x: auto;
@@ -106,129 +180,213 @@
   scrollbar-width: none;
 }
 
-.stage-cards::-webkit-scrollbar {
+[data-sheet='stages'] .stage-cards::-webkit-scrollbar {
   display: none;
 }
 
-.stage-card {
+[data-sheet='stages'] .stage-card {
+  display: flex;
+  flex-direction: column;
   scroll-snap-align: start;
-  padding: var(--s4) var(--panel-x) var(--s5);
-  color: var(--ink);
+  padding: var(--card-pad);
+  color: var(--text-body);
+  background: var(--bg-raised);
   border-radius: var(--r-panel);
 }
 
-.stage-card .label {
-  color: var(--ink);
-}
-
-.stage-card .h2 {
-  margin-top: var(--s1);
-  color: inherit;
-}
-
-.stage-card p {
-  max-width: none;
-}
-
-.s-ketones,
-.s-brain,
-.s-sparing {
-  color: var(--bg);
-}
-
-.stage-card.s-ketones .label,
-.stage-card.s-brain .label,
-.stage-card.s-sparing .label {
-  color: var(--bg);
-}
-
-.stage-stop .disc.s-ketones .stage-icon,
-.stage-stop .disc.s-brain .stage-icon,
-.stage-stop .disc.s-sparing .stage-icon {
-  stroke: var(--bg);
-}
-
-/* Read more sits at the foot of every card, level across them. */
-.stage-cards .stage-card {
+[data-sheet='stages'] .stage-card-head {
   display: flex;
-  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  column-gap: var(--space-3);
+  min-height: var(--t-callout-lh);
 }
 
-.stage-more-row {
-  margin-top: auto;
-  padding-top: var(--s4);
+[data-sheet='stages'] .stage-card .stage-name {
+  margin-top: var(--space-2);
+  font-weight: 900;
+  font-size: var(--t-title-2-size);
+  line-height: var(--t-title-2-lh);
+  letter-spacing: var(--t-title-2-track);
+  color: var(--text-display);
 }
 
-/* On the dark cards the outline is drawn in light. */
-.s-ketones .btn.outline,
-.s-brain .btn.outline,
-.s-sparing .btn.outline {
-  color: var(--bg);
-  border-color: var(--bg);
-  background: none;
+[data-sheet='stages'] .stage-card .stage-text {
+  margin-top: var(--space-2);
 }
 
-.s-ketones .btn:focus-visible,
-.s-brain .btn:focus-visible,
-.s-sparing .btn:focus-visible {
-  outline-color: var(--bg);
+/* Read more follows the stage's words at one fixed gap. */
+[data-sheet='stages'] .stage-more-row {
+  margin-top: var(--space-4);
 }
 
-.s-ketones .btn.outline:active,
-.s-ketones .btn.outline.pressed,
-.s-brain .btn.outline:active,
-.s-brain .btn.outline.pressed,
-.s-sparing .btn.outline:active,
-.s-sparing .btn.outline.pressed {
-  color: var(--ink);
-  background: var(--bg);
-  border-color: var(--bg);
+/* ---------- Under the cards ---------- */
+/* p in the selector: it outranks the text reset's margin: 0 above. */
+[data-sheet='stages'] .stages-view p.stages-variation {
+  margin-top: var(--space-6);
+  font-weight: 700;
+  font-size: var(--t-footnote-size);
+  line-height: var(--t-footnote-lh);
+  letter-spacing: var(--t-footnote-track);
+  color: var(--text-quiet);
 }
 
-/* A stage's own page: its card at the top, then the longer read. */
-.stage-hero {
-  margin: var(--s4) 0 var(--s5);
+[data-sheet='stages'] .stages-part {
+  margin-top: var(--group-gap);
 }
 
-.findings {
-  margin: 0;
+[data-sheet='stages'] .stages-part > p {
+  margin-top: var(--space-3);
+}
+
+/* The studies: numbers in their own column, the authors in ink. */
+[data-sheet='stages'] .stage-sources {
+  counter-reset: source;
+  margin: var(--space-3) 0 0;
   padding: 0;
   list-style: none;
 }
 
-.findings > li {
-  padding: var(--s2) 0;
+[data-sheet='stages'] .stage-sources > li {
+  display: grid;
+  grid-template-columns: var(--space-6) 1fr;
+  column-gap: var(--space-2);
+  counter-increment: source;
+  font-weight: 600;
+  font-size: var(--t-footnote-size);
+  line-height: var(--t-footnote-lh);
+  letter-spacing: var(--t-footnote-track);
+  color: var(--text-quiet);
 }
 
-.findings > li + li {
-  border-top: 1px solid var(--rule-quiet);
+[data-sheet='stages'] .stage-sources > li + li {
+  margin-top: var(--space-3);
 }
 
-.findings p {
-  max-width: none;
+[data-sheet='stages'] .stage-sources > li::before {
+  content: counter(source);
+  font-weight: 800;
+  font-variant-numeric: lining-nums tabular-nums;
 }
 
-.findings .small {
-  margin-top: 2px;
+[data-sheet='stages'] .stage-sources .by {
+  font-weight: 800;
+  color: var(--text-display);
 }
 
-.stage-card-head {
+/* ---------- A stage's own page ---------- */
+[data-sheet='stages'] .stage-page-hero {
+  margin-top: var(--space-3);
+}
+
+[data-sheet='stages'] .stage-page .kicker {
+  font-weight: 800;
+  font-size: var(--t-footnote-size);
+  line-height: var(--t-footnote-lh);
+  letter-spacing: var(--t-footnote-track);
+  color: var(--text-quiet);
+}
+
+[data-sheet='stages'] .stage-page-mark {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  column-gap: var(--s3);
+  column-gap: var(--space-3);
+  margin-top: var(--space-3);
 }
 
-.now-badge {
-  padding: 2px 10px;
-  font-family: var(--font-ui);
-  font-weight: 900;
-  font-size: 12px;
-  line-height: 1.5;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--bg);
-  background: var(--fast-text);
+[data-sheet='stages'] .stage-page-hero .stage-range {
+  margin-top: var(--space-4);
+}
+
+[data-sheet='stages'] .stage-page-hero h2 {
+  margin-top: var(--space-1);
+  font-size: var(--t-title-1-size);
+  line-height: var(--t-title-1-lh);
+  letter-spacing: var(--t-title-1-track);
+  color: var(--text-display);
+}
+
+[data-sheet='stages'] .stage-page .lede {
+  margin-top: var(--space-3);
+  color: var(--text-display);
+}
+
+[data-sheet='stages'] .more-part {
+  margin-top: var(--group-gap);
+}
+
+[data-sheet='stages'] .more-part > p {
+  margin-top: var(--space-3);
+}
+
+/* What the studies found: each finding on its own card, not tappable. */
+[data-sheet='stages'] .findings,
+[data-sheet='stages'] .advice {
+  margin: var(--space-3) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+[data-sheet='stages'] .findings > li {
+  padding: var(--inset-pad);
+  background: var(--bg-raised);
+  border-radius: var(--r-control);
+}
+
+[data-sheet='stages'] .findings > li + li {
+  margin-top: var(--space-2);
+}
+
+[data-sheet='stages'] .findings p {
+  color: var(--text-display);
+}
+
+[data-sheet='stages'] .findings .cite {
+  margin-top: var(--space-2);
+  font-weight: 800;
+  font-size: var(--t-footnote-size);
+  line-height: var(--t-footnote-lh);
+  letter-spacing: var(--t-footnote-track);
+  color: var(--text-quiet);
+}
+
+/* Good to know: plain advice, an ink dot before each line. */
+[data-sheet='stages'] .advice > li {
+  --dot: calc(1.5 * var(--space-1));
+  position: relative;
+  padding-left: calc(var(--dot) + var(--space-2));
+}
+
+[data-sheet='stages'] .advice > li + li {
+  margin-top: var(--space-3);
+}
+
+[data-sheet='stages'] .advice > li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: calc((var(--t-body-lh) - var(--dot)) / 2);
+  width: var(--dot);
+  height: var(--dot);
+  background: var(--ink);
   border-radius: var(--r-pill);
+}
+
+[data-sheet='stages'] .stage-page > [data-action='stages-back-end'] {
+  margin-top: var(--group-gap);
+}
+
+/* ---------- Reduce Motion ---------- */
+/* The ring round the stage in view fades in place; no icon on the line moves. */
+@media (prefers-reduced-motion: reduce) {
+  [data-sheet='stages'] .stage-stop .stop-mark::after {
+    transform: none;
+    transition: opacity var(--dur-reduced) var(--ease-out);
+  }
+
+  [data-sheet='stages'] .stage-stop .stage-icon,
+  [data-sheet='stages'] .stage-stop .stage-icon * {
+    animation: none !important;
+  }
 }
 }

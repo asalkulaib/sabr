@@ -1,45 +1,685 @@
-/* More, Help, and the Goal, Pause, Reset, Tempted and Restore sheets. */
+/* More, Help, and the Goal, Pause, Reset, Tempted, Restore and time sheets. */
 
 @layer screens {
 
-/* Footnote numeral and gloss. */
-sup.fn {
-  font-family: var(--font-ui);
-  font-weight: 500;
-  font-size: 11px;
-  line-height: 0;
-  color: var(--text-label);
-  margin-left: 1px;
+/* ---------- The goal controls (More's hero, the Goal sheet, the welcome) ---------- */
+.goal-controls > * + *,
+.goal-custom > * + * {
+  margin-top: var(--space-4);
 }
 
-.gloss {
-  font-size: 15px;
-  line-height: 1.6;
+/* The track sits a little further from the 40 figures above it, everywhere. */
+.goal-controls > .goal-presets {
+  margin-top: var(--space-6);
+}
+
+.goal-controls .goal-text {
+  font-weight: 600;
+  font-size: var(--t-body-size);
+  line-height: var(--t-body-lh);
   color: var(--text-body);
-  padding-top: var(--s3);
-  border-top: 1px solid var(--rule-quiet);
 }
 
-.gloss .term {
+[data-sheet='goal'] .goal-caption {
+  margin-top: var(--space-2);
+}
+
+/* ---------- More ---------- */
+/* The Goal block leads, on the page, 16 under the header. */
+.more .goal-hero {
+  margin-top: var(--space-4);
+}
+
+.more .goal-hero > .label {
+  margin-bottom: var(--space-2);
+}
+
+.more .card-title.in-group {
+  margin: 0 0 var(--space-3);
+}
+
+/* A card's own words: callout, ink; quiet where they explain. */
+.more .more-body {
+  margin: 0;
+  font-weight: 600;
+  font-size: var(--t-callout-size);
+  line-height: var(--t-callout-lh);
+  color: var(--text-body);
+}
+
+.more .more-body.quiet {
+  color: var(--text-quiet);
+}
+
+.more .more-body + .more-body {
+  margin-top: var(--space-2);
+}
+
+.more .more-text {
+  margin: var(--space-3) 0 0;
+  font-weight: 600;
+  font-size: var(--t-body-size);
+  line-height: var(--t-body-lh);
+  color: var(--text-body);
+}
+
+.more .more-text + .caption {
+  margin-top: var(--space-2);
+}
+
+/* Setting rows sit straight under the card's heading. */
+.more .card-title.in-group + .setting-row {
+  margin-top: calc(-1 * var(--space-2));
+}
+
+.more .ics-status {
+  margin: var(--space-2) 0 0;
+  font-weight: 700;
+  font-size: var(--t-callout-size);
+  line-height: var(--t-callout-lh);
+  color: var(--text-quiet);
+}
+
+/* The same element, when there is something to do: a callout in ink. */
+.more .ics-status.callout {
+  margin-top: var(--space-3);
   color: var(--text-display);
-  font-weight: 500;
 }
 
-.timer {
-  font-family: var(--font-display);
+.more [data-block='calendar'] > .btn,
+.more [data-block='export'] > .btn {
+  margin-top: var(--space-4);
+}
+
+/* Alarms: the title and its On/Off switch on one row. */
+.more .title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  column-gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.more .title-row > .card-title.in-group {
+  margin: 0;
+}
+
+.more .title-row .choice.slim button {
+  min-width: var(--space-16);
+}
+
+/* Pauses: rows with a status tag, then Add a pause. */
+.more .pause-list {
+  margin-top: var(--space-2);
+}
+
+.more .pauses-card > .btn {
+  margin-top: var(--space-4);
+}
+
+.more .status-tag {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--now-tag-h);
+  padding: 0 var(--space-2);
   font-weight: 900;
-  font-size: 60px;
-  line-height: 1;
-  letter-spacing: -0.02em;
-  color: var(--text-display);
-  font-variant-numeric: tabular-nums lining-nums;
+  font-size: var(--t-footnote-size);
+  line-height: var(--t-footnote-lh);
+  border-radius: var(--r-pill);
 }
 
-.phrases > li {
-  font-family: var(--font-display);
-  font-weight: 900;
-  font-size: 21px;
-  line-height: 1.35;
+.more .status-tag.now {
+  color: var(--on-select);
+  background: var(--select);
+}
+
+.more .status-tag.ahead {
   color: var(--text-display);
+  border: 2px solid var(--edge);
+}
+
+/* Your data: one card, three parts set off by hairlines. */
+.more .section.group.data-group {
+  padding: var(--card-pad);
+}
+
+.more .data-part + .data-part {
+  margin-top: var(--space-5);
+  padding-top: var(--space-5);
+  border-top: 1px solid var(--hairline);
+}
+
+/* The status is the first line under its heading, as Export and Storage have. */
+.more .backup-status {
+  margin: 0;
+  font-weight: 800;
+  font-size: var(--t-callout-size);
+  line-height: var(--t-callout-lh);
+  color: var(--text-display);
+}
+
+.more .backup-status + .more-body {
+  margin-top: var(--space-2);
+}
+
+.more [data-block='backup'] > .btn {
+  margin-top: var(--space-4);
+}
+
+.more [data-block='backup'] > .pill-row,
+.more [data-block='reset'] > .pill-row {
+  margin-top: var(--space-3);
+}
+
+/* Help: one row with the book glyph, the title and a chevron. */
+.more .help-row {
+  grid-template-columns: var(--icon-chip) minmax(0, 1fr) var(--chevron-w);
+  font-weight: 700;
+}
+
+.more .help-row > .glyph {
+  width: var(--icon-chip);
+  height: var(--icon-chip);
+}
+
+.more [data-block='help'] {
+  margin-top: var(--group-gap);
+}
+
+.more .version {
+  margin: var(--space-8) 0 0;
+  max-width: none;
+  text-align: center;
+  white-space: nowrap;
+  font-weight: 700;
+  font-size: var(--t-footnote-size);
+  line-height: var(--t-footnote-lh);
+}
+
+.more .version-label {
+  color: var(--text-quiet);
+}
+
+.more .version-value {
+  color: var(--text-display);
+}
+
+/* ---------- Time setting sheets: one wheel, centred ---------- */
+[data-sheet^='time-'] .time-setting {
+  padding-top: var(--space-2);
+}
+
+/* ---------- Goal sheet ---------- */
+[data-sheet='goal'] .goal-lead {
+  margin: 0 0 var(--space-6);
+  font-weight: 600;
+  font-size: var(--t-body-size);
+  line-height: var(--t-body-lh);
+  color: var(--text-quiet);
+}
+
+/* ---------- Help ---------- */
+/* The sub-page header, as on Day: Back and Tempted? share the top row and
+   the title has the full width below. */
+.help .head-title {
+  grid-row: 1;
+  grid-column: 1 / -1;
+}
+
+.help .head > .btn-2 {
+  grid-row: 1;
+  grid-column: 2;
+  align-self: start;
+}
+
+.help .help-title {
+  font-size: var(--t-title-2-size);
+  line-height: var(--t-title-2-lh);
+  letter-spacing: var(--t-title-2-track);
+  color: var(--text-display);
+}
+
+.help .help-intro {
+  margin-top: var(--space-2);
+  font-weight: 600;
+  font-size: var(--t-body-size);
+  line-height: var(--t-body-lh);
+  color: var(--text-body);
+}
+
+.help .help-card {
+  margin-top: var(--space-4);
+}
+
+.help .help-hero + .help-card {
+  margin-top: var(--space-6);
+}
+
+.help .help-card > p,
+.help .steps > li {
+  font-weight: 600;
+  font-size: var(--t-body-size);
+  line-height: var(--t-body-lh);
+  color: var(--text-body);
+}
+
+/* The badge sits level with the first line of its step. */
+.help .steps.badges > li::before {
+  margin-top: calc((var(--t-body-lh) - var(--badge)) / 2);
+}
+
+.help b {
+  font-weight: 800;
+  color: var(--text-display);
+}
+
+/* What is typed or shown exactly: the Shortcut's name, the date format, the
+   notification. A filled highlight with no outline, so it never reads as
+   something to tap. A short name stays on one line; the notification wraps. */
+.help .code {
+  padding: 0 var(--space-2);
+  font-weight: 800;
+  font-size: var(--t-callout-size);
+  line-height: var(--t-callout-lh);
+  color: var(--text-display);
+  background: var(--shade);
+  border: 0;
+  border-radius: var(--r-control);
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+
+.help .code.short {
+  white-space: nowrap;
+}
+
+/* If an import fails: the problem over its fix, hairlines between. */
+.help .fixes > li {
+  padding: var(--space-3) 0;
+}
+
+.help .fixes > li + li {
+  margin-top: 0;
+  border-top: 1px solid var(--hairline);
+}
+
+.help .fixes > li:first-child {
+  padding-top: 0;
+}
+
+.help .fixes > li:last-child {
+  padding-bottom: 0;
+}
+
+.help .fix-problem {
+  display: block;
+  font-weight: 800;
+  font-size: var(--t-headline-size);
+  line-height: var(--t-headline-lh);
+  color: var(--text-display);
+}
+
+.help .fix-answer {
+  display: block;
+  margin-top: var(--space-1);
+  font-weight: 600;
+  font-size: var(--t-callout-size);
+  line-height: var(--t-callout-lh);
+  color: var(--text-body);
+}
+
+/* ---------- Pause sheet ---------- */
+[data-sheet='pause'] .pause-lead {
+  margin: 0;
+  font-weight: 600;
+  font-size: var(--t-body-size);
+  line-height: var(--t-body-lh);
+  color: var(--text-body);
+}
+
+[data-sheet='pause'] .pause-wheels {
+  margin-top: var(--space-5);
+  padding: var(--inset-pad);
+  background: var(--bg-raised);
+  border-radius: var(--r-panel);
+}
+
+/* Each date wheel fills its half of the card. */
+[data-sheet='pause'] .wheel.date {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+[data-sheet='pause'] .wheel-lens {
+  background: var(--bg);
+}
+
+[data-sheet='pause'] .pause-summary {
+  margin: var(--space-3) 0 0;
+  font-weight: 600;
+  font-size: var(--t-callout-size);
+  line-height: var(--t-callout-lh);
+  color: var(--text-quiet);
+}
+
+[data-sheet='pause'] .pause-count {
+  font-weight: 900;
+  font-size: var(--t-title-1-size);
+  line-height: var(--t-title-1-lh);
+  letter-spacing: var(--t-title-1-track);
+  color: var(--text-display);
+}
+
+[data-sheet='pause'] .pause-unit {
+  font-weight: 800;
+  color: var(--text-display);
+}
+
+[data-sheet='pause'] .pause-reason {
+  margin-top: var(--space-6);
+}
+
+/* ---------- Reset ---------- */
+/* Title-2, as Restore and every other sheet's headline. */
+[data-sheet='reset'] .reset-title {
+  font-size: var(--t-title-2-size);
+  line-height: var(--t-title-2-lh);
+  letter-spacing: var(--t-title-2-track);
+  color: var(--text-display);
+}
+
+[data-sheet='reset'] .reset-body {
+  margin: var(--space-3) 0 0;
+  font-weight: 600;
+  font-size: var(--t-body-size);
+  line-height: var(--t-body-lh);
+  color: var(--text-body);
+}
+
+[data-sheet='reset'] .reset-body .count {
+  font-weight: 900;
+  color: var(--text-display);
+}
+
+[data-sheet='reset'] .reset-backup {
+  margin-top: var(--space-6);
+}
+
+[data-sheet='reset'] .reset-backup > p {
+  margin: 0 0 var(--space-3);
+}
+
+/* ---------- Restore ---------- */
+[data-sheet='restore'] .statement {
+  font-size: var(--t-title-2-size);
+  line-height: var(--t-title-2-lh);
+  letter-spacing: var(--t-title-2-track);
+}
+
+/* ---------- Tempted ---------- */
+/* The body is a column, so a step that is only a headline can fill it and
+   sit at the optical centre, a little above the middle. */
+[data-sheet='temptation'] .sheet-body {
+  display: flex;
+  flex-direction: column;
+}
+
+[data-sheet='temptation'] .tempt-step.focus {
+  flex: 1 0 auto;
+  display: grid;
+  align-content: center;
+  padding-bottom: var(--focus-lift);
+}
+
+/* A question answered in the dock sits just above the dock; a statement
+   (held, slip) keeps the optical centre. */
+[data-sheet='temptation'] .tempt-step.focus:is([data-step='trigger'], [data-step='end'], [data-step='ask']) {
+  align-content: end;
+  padding-bottom: var(--space-2);
+}
+
+[data-sheet='temptation'] .kicker {
+  margin-bottom: var(--space-2);
+  color: var(--text-quiet);
+}
+
+[data-sheet='temptation'] .tempt-headline {
+  font-size: var(--t-display-size);
+  line-height: var(--t-display-lh);
+  letter-spacing: var(--t-display-track);
+  color: var(--text-display);
+}
+
+[data-sheet='temptation'] .tempt-ask {
+  margin: var(--space-3) 0 0;
+  font-weight: 900;
+  font-size: var(--t-title-3-size);
+  line-height: var(--t-title-3-lh);
+  color: var(--text-display);
+}
+
+[data-sheet='temptation'] .tempt-lead,
+[data-sheet='temptation'] .tempt-slip {
+  margin: 0;
+  font-weight: 900;
+  font-size: var(--t-title-2-size);
+  line-height: var(--t-title-2-lh);
+  letter-spacing: var(--t-title-2-track);
+  color: var(--text-display);
+}
+
+/* What waiting gives you: rows across the column. */
+[data-sheet='temptation'] .gains {
+  max-width: none;
+  margin-top: var(--space-4);
+}
+
+[data-sheet='temptation'] .gains > li {
+  font-weight: 600;
+  font-size: var(--t-body-size);
+  line-height: var(--t-body-lh);
+  color: var(--text-body);
+}
+
+/* The urge timer: the time inside the draining ring. */
+[data-sheet='temptation'] .urge-ring {
+  position: relative;
+  width: var(--ring-focus);
+  height: var(--ring-focus);
+  margin: var(--space-4) auto 0;
+}
+
+[data-sheet='temptation'] .urge-ring > svg {
+  display: block;
+}
+
+[data-sheet='temptation'] .urge-centre {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+}
+
+[data-sheet='temptation'] .timer {
+  font-weight: 900;
+  font-size: var(--t-hero-size);
+  line-height: var(--t-hero-lh);
+  letter-spacing: var(--t-hero-track);
+  color: var(--text-display);
+}
+
+[data-sheet='temptation'] .urge-ends {
+  margin-top: var(--space-1);
+  font-weight: 700;
+  font-size: var(--t-footnote-size);
+  line-height: var(--t-footnote-lh);
+  color: var(--text-quiet);
+}
+
+/* The prompt keeps two lines of room, so the card under it never jumps. It
+   spans the ring and 32 to each side. A new prompt fades in over the last
+   one as it fades out, both in one cell. */
+[data-sheet='temptation'] .urge-prompt {
+  display: grid;
+  max-width: calc(var(--ring-focus) + 2 * var(--space-8));
+  min-height: calc(var(--t-title-3-lh) * 2);
+  margin: var(--space-4) auto 0;
+  font-weight: 900;
+  font-size: var(--t-title-3-size);
+  line-height: var(--t-title-3-lh);
+  text-align: center;
+  color: var(--text-display);
+}
+
+[data-sheet='temptation'] .prompt-text {
+  grid-area: 1 / 1;
+}
+
+[data-sheet='temptation'] .prompt-in {
+  animation: fade-in var(--dur-base) var(--ease-out) both;
+}
+
+[data-sheet='temptation'] .prompt-out {
+  animation: fade-out var(--dur-base) var(--ease-in) both;
+}
+
+[data-sheet='temptation'] .urge-rate {
+  margin-top: var(--space-4);
+  padding: var(--inset-pad);
+  background: var(--bg-raised);
+  border-radius: var(--r-panel);
+}
+
+[data-sheet='temptation'] .urge-so-far {
+  margin: var(--space-4) 0 0;
+  font-weight: 600;
+  font-size: var(--t-callout-size);
+  line-height: var(--t-callout-lh);
+  text-align: center;
+  color: var(--text-quiet);
+}
+
+[data-sheet='temptation'] .gloss {
+  max-width: none;
+  margin: var(--space-6) 0 0;
+  padding-top: var(--space-3);
+  font-weight: 700;
+  font-size: var(--t-footnote-size);
+  line-height: var(--t-footnote-lh);
+  color: var(--text-quiet);
+  border-top: 1px solid var(--hairline);
+}
+
+[data-sheet='temptation'] .gloss .term {
+  font-weight: 800;
+  color: var(--text-display);
+}
+
+[data-sheet='temptation'] sup.fn {
+  font-weight: 800;
+  font-size: var(--t-micro-size);
+  line-height: 0;
+}
+
+/* Practical exits and the ways out: cards, 12 apart. */
+[data-sheet='temptation'] .exits {
+  display: grid;
+  row-gap: var(--card-gap);
+  margin-top: var(--space-3);
+}
+
+[data-sheet='temptation'] .exit-card {
+  padding: var(--inset-pad);
+  background: var(--bg-raised);
+  border-radius: var(--r-panel);
+}
+
+[data-sheet='temptation'] .exit-card .card-title {
+  margin-bottom: var(--space-2);
+}
+
+[data-sheet='temptation'] .exit-card > p {
+  margin: 0;
+  font-weight: 600;
+  font-size: var(--t-body-size);
+  line-height: var(--t-body-lh);
+  color: var(--text-body);
+}
+
+[data-sheet='temptation'] .exit-card > .caption {
+  margin-top: var(--space-2);
+  font-size: var(--t-footnote-size);
+  line-height: var(--t-footnote-lh);
+  color: var(--text-quiet);
+}
+
+[data-sheet='temptation'] .exit-card > .miss-line {
+  margin-top: var(--space-3);
+}
+
+[data-sheet='temptation'] .exit-card > .btn {
+  margin-top: var(--space-4);
+}
+
+[data-sheet='temptation'] .exit-card > .btn + .btn {
+  margin-top: var(--space-2);
+}
+
+/* The phrases, as quotes: an ink rule at the left, square. */
+[data-sheet='temptation'] .phrases > li {
+  padding-left: var(--space-3);
+  font-weight: 800;
+  font-size: var(--t-headline-size);
+  line-height: var(--t-headline-lh);
+  color: var(--text-display);
+  text-wrap: balance;
+  border-left: 3px solid var(--ink);
+}
+
+[data-sheet='temptation'] .phrases > li + li {
+  margin-top: var(--space-3);
+}
+
+[data-sheet='temptation'] .tempt-held {
+  font-size: var(--t-hero-size);
+  line-height: var(--t-hero-lh);
+  letter-spacing: var(--t-hero-track);
+  color: var(--text-display);
+  transform-origin: left center;
+  animation: held-in var(--dur-base) var(--ease-out) both;
+}
+
+[data-sheet='temptation'] .tempt-line {
+  margin: var(--space-3) 0 0;
+  font-weight: 600;
+  font-size: var(--t-body-size);
+  line-height: var(--t-body-lh);
+  color: var(--text-body);
+}
+
+@keyframes held-in {
+  from { opacity: 0; transform: scale(0.96); }
+}
+
+/* ---------- Reduce Motion: what entered with a move only fades ---------- */
+@media (prefers-reduced-motion: reduce) {
+  [data-sheet='temptation'] .tempt-held,
+  [data-sheet='temptation'] .prompt-in {
+    animation: none;
+    transition: opacity var(--dur-reduced) var(--ease-out);
+  }
+
+  @starting-style {
+    [data-sheet='temptation'] .tempt-held,
+    [data-sheet='temptation'] .prompt-in {
+      opacity: 0;
+    }
+  }
+
+  [data-sheet='temptation'] .prompt-out {
+    animation: none;
+    opacity: 0;
+    transition: opacity var(--dur-reduced) var(--ease-in);
+  }
 }
 }

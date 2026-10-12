@@ -1,21 +1,24 @@
-// Today's parts: the three rings that lead it, the stage panel and the week
-// row. The fast is the outer red ring, timed from the last bite (or when the
-// fast began) and filling towards the fasting goal; past the goal it laps
-// itself. The green ring is the day's eating window and the blue ring its
-// fullness. The stage the fast is in sits in the middle of the rings and
-// moves. The stages are never a target.
+// Today's parts: the three rings that lead it, the readout beside them, the
+// stage card and the week row. The fast is the outer red ring, timed from
+// the last bite (or when the fast began) and filling towards the fasting
+// goal; past the goal it laps itself. The green ring is the day's eating
+// window and the blue ring its fullness. The stage the fast is in sits in
+// the middle of the rings and moves. The stages are never a target.
 
 import { h, live } from './dom.js';
-import { button, durationFigure, key, legend } from './components.js';
-import { HOUR, MIN, addDays, fmtDayShort, fmtDuration, fmtMinutes, weekStart, weekdayShort } from '../core/time.js';
+import { button, figureParts, key, legend } from './components.js';
+import { HOUR, MIN, addDays, durationParts, fmtDayShort, fmtDuration, fmtMinutes, weekStart, weekdayShort } from '../core/time.js';
 import { fastHoursFor, isFlexible, plannedStartMin } from '../core/rules.js';
 import { STAGES, fastingState } from '../core/stages.js';
 import { LEFT_WANTING, dayFullness, mealsByDay } from '../core/fullness.js';
-import { stageGlyph, stageIcon } from './icons.js';
-import { celebrate, miniRing, ringsSvg } from './rings.js';
+import { glyph, stageDisc, stageGlyph, stageIcon } from './icons.js';
+import { RING, celebrate, miniRing, ringsSvg } from './rings.js';
 import { showStagesSheet } from './stages.js';
 
-/** The current stage as a small button beside the time: it opens the stages at this one. */
+/**
+ * The current stage as a tertiary pill under the rings: its icon moving, its
+ * name, and a chevron. It opens the stages at this one.
+ */
 function stageChip(stage) {
   return h('button', {
     type: 'button',
@@ -24,7 +27,7 @@ function stageChip(stage) {
     'data-testid': 'stage-name',
     'aria-label': `Stage: ${stage.name}. About the stages`,
     onclick: () => showStagesSheet(stage.key),
-  }, stageGlyph(stage.key, { mark: false, live: true }), h('span', {}, stage.name));
+  }, stageGlyph(stage.key, { mark: false, live: true }), h('span', { class: 'stage-chip-name' }, stage.name), glyph('chevron'));
 }
 
 const FULL_WORD = { before_full: 'Left wanting', full: 'Satisfied', stuffed: 'Overfull' };
@@ -62,25 +65,53 @@ export function dayRings(ctx, day) {
   return { win, winText, full, fullText: FULL_WORD[fullness] || 'Not rated yet', fullness, rec, e };
 }
 
-/** One line beside the rings: the ring's name in its colour, then its words. */
-const ringStat = (kind, name, text, testid) => h('div', { class: `ring-stat stat-${kind}`, 'data-testid': testid },
-  h('div', { class: 'label' }, name), h('div', { class: 'ring-stat-text' }, text));
+/**
+ * A ring's name with its key: the readout is the rings' legend. miss: the
+ * ring is drawn in stripes, so its key is the striped ring and its name is
+ * in the colour of a miss.
+ */
+export const ringName = (kind, name, miss = false) => (miss
+  ? h('span', { class: 'legend-item is-miss' }, key('day-miss'), name)
+  : h('span', { class: 'legend-item' }, key(`ring-${kind}`), name));
 
 /**
- * The rings with the time fasted beside them, the stage, and the window's
- * and fullness' words. compact: a smaller version, for the stage panel.
+ * The size the hero rings are drawn at: 184, or 120 below 375 wide, so the
+ * readout keeps room for its lead figure and the ring stays on the gutter.
  */
-function fastingRing(ctx, state, lastBiteTs, compact, goalHours, day) {
+export const heroRingSize = () => (typeof matchMedia === 'function' && matchMedia('(max-width: 374px)').matches ? RING.md.size : RING.hero.size);
+
+/**
+ * A duration as a figure with small units. A long one (days, or more than
+ * seven characters) steps down a size so it never runs out of its column.
+ */
+export function fitFigure(ms) {
+  const parts = durationParts(ms);
+  const fig = figureParts(parts);
+  const text = parts.map(([n, u]) => n + u).join(' ');
+  if (text.includes('day') || text.length > 7) fig.style.setProperty('--fig-size', 'var(--t-title-1-size)');
+  return fig;
+}
+
+/**
+ * The rings with the readout beside them: the time fasted in the fast's red,
+ * how it stands against the goal, then the window's and fullness' words.
+ * compact: the smaller rings, for the stage card.
+ */
+function fastingRing(ctx, state, lastBiteTs, compact, goalHours, day, animate) {
   const d = dayRings(ctx, day);
   const frac = state.elapsedMs / (goalHours * HOUR);
   const reached = frac >= 1;
+  const size = compact ? RING.md.size : heroRingSize();
+  const small = size === RING.md.size;
   const svg = ringsSvg({
     fast: { frac, testid: 'stage-marker', hours: (state.elapsedMs / HOUR).toFixed(1) },
     win: d.win,
     full: d.full,
   }, {
-    size: compact ? 132 : 164,
-    centre: (c, size) => stageIcon(state.stage.key, { x: c, y: c, size: size * 0.2, live: true, mark: false }),
+    size,
+    key: 'hero',
+    animate,
+    centre: (c) => stageIcon(state.stage.key, { x: c, y: c, size: small ? 24 : 36, live: true, mark: false }),
   });
   const wrap = h('div', {
     class: `ring-wrap${compact ? ' compact' : ''}`,
@@ -88,15 +119,17 @@ function fastingRing(ctx, state, lastBiteTs, compact, goalHours, day) {
     'data-stage': state.stage.key,
     'data-goal': String(goalHours),
   },
-    // The stage sits under the rings, its icon moving in their middle.
-    h('div', { class: 'ring-col' }, svg, stageChip(state.stage)),
-    h('div', { class: 'ring-side' },
-      h('div', { class: 'label stat-fast' }, 'Fasting'),
-      // Redrawn each minute: large digits, small units.
-      live('div', { class: 'ring-time', 'data-testid': 'fasting-for' }, (t) => String(Math.round(Math.max(0, t - lastBiteTs) / MIN)), (mins) => durationFigure(Number(mins) * MIN)),
-      h('div', { class: 'ring-goal', 'data-testid': 'ring-goal' }, reached ? `Goal of ${goalHours} h reached` : `of your ${goalHours} h goal`),
-      ringStat('win', 'Window', d.winText, 'ring-window'),
-      ringStat('full', 'Fullness', d.fullText, 'ring-fullness')));
+    svg,
+    h('div', { class: 'ring-readout', 'data-testid': 'ring-legend' },
+      h('div', { class: 'ring-row', 'data-ring-row': 'fast' },
+        ringName('fast', 'Fast'),
+        // Redrawn each minute: large digits, small units.
+        live('div', { class: 'value tabular', 'data-testid': 'fasting-for' }, (t) => String(Math.round(Math.max(0, t - lastBiteTs) / MIN)), (mins) => fitFigure(Number(mins) * MIN)),
+        h('div', { class: `ring-goal${reached ? ' reached' : ''}`, 'data-testid': 'ring-goal' }, reached ? `Goal of ${goalHours} h reached` : `of your ${goalHours} h goal`)),
+      h('div', { class: 'ring-row', 'data-ring-row': 'win', 'data-testid': 'ring-window' },
+        ringName('win', 'Window', !!d.win.miss), h('div', { class: `value${d.win.miss ? ' is-miss' : ''}` }, d.winText)),
+      h('div', { class: 'ring-row', 'data-ring-row': 'full', 'data-testid': 'ring-fullness' },
+        ringName('full', 'Fullness'), h('div', { class: 'value' }, d.fullText))));
   // A goal reached, a window kept, a day left wanting: each celebrated once.
   const moments = [];
   if (reached) moments.push({ key: `fast:${lastBiteTs}:${goalHours}`, kind: 'fast' });
@@ -105,24 +138,19 @@ function fastingRing(ctx, state, lastBiteTs, compact, goalHours, day) {
   return celebrate(wrap, moments);
 }
 
-/** What each ring means, in one row. */
-const ringLegend = () => h('div', { class: 'ring-legend' }, legend([
-  ['ring-fast', 'Fast'], ['ring-win', 'Window'], ['ring-full', 'Fullness'],
-], 'ring-legend'));
-
-/** How far the fasting goal is, then the next stage; live. */
+/** How far the fasting goal is, then the next stage: two live rows. */
 function ringLines(state, lastBiteTs, goalHours) {
   const reached = state.elapsedMs >= goalHours * HOUR;
-  return h('p', { class: 'quiet small gap ring-lines' },
+  return h('div', { class: 'stage-lines tabular' },
     reached
-      ? h('span', { 'data-testid': 'goal-line' }, `Fasting goal of ${goalHours} h reached.`)
-      : live('span', { 'data-testid': 'goal-line' }, (t) => {
+      ? h('div', { class: 'stage-line', 'data-testid': 'goal-line' }, `Fasting goal of ${goalHours} h reached.`)
+      : live('div', { class: 'stage-line', 'data-testid': 'goal-line' }, (t) => {
         const left = goalHours * HOUR - (t - lastBiteTs);
         return left > 0 ? `Fasting goal ${goalHours} h: ${fmtDuration(left)} to go.` : `Fasting goal of ${goalHours} h reached.`;
       }),
     state.next
-      ? [h('br'), live('span', { 'data-testid': 'stage-next' },
-        (t) => `Next: ${state.next.name.toLowerCase()}, in about ${fmtDuration(Math.max(0, state.next.from * HOUR - (t - lastBiteTs)))}.`)]
+      ? live('div', { class: 'stage-line', 'data-testid': 'stage-next' },
+        (t) => `Next: ${state.next.name.toLowerCase()}, in about ${fmtDuration(Math.max(0, state.next.from * HOUR - (t - lastBiteTs)))}.`)
       : null);
 }
 
@@ -140,46 +168,56 @@ function markStage(el, state, renderTs) {
 /** The fasting goal in hours: a long fast, or the day less today's eating window. */
 const goalHoursFor = (ctx) => fastHoursFor(ctx.todayKey, ctx.settings);
 
-/** The rings lead Today, with the fast's two times under them. day: the day whose window and fullness the rings show. */
-export function ringHero(ctx, lastBiteTs, times = null, { day = ctx.todayKey } = {}) {
+/**
+ * The rings lead Today, in one order in every mode that has them: the ring
+ * row, the stage chip, then what the caller puts under them (the 16:00
+ * warning, the way in), then the fast's two times. day: the day whose window
+ * and fullness the rings show. animate: a user action changed a ring.
+ */
+export function ringHero(ctx, lastBiteTs, { times = null, day = ctx.todayKey, middle = null, animate = false } = {}) {
   const state = fastingState(lastBiteTs, ctx.nowTs);
-  return markStage(h('div', { class: 'ring-hero gap' },
-    fastingRing(ctx, state, lastBiteTs, false, goalHoursFor(ctx), day), ringLegend(), times), state, ctx.nowTs);
+  return markStage(h('div', { class: 'ring-hero' },
+    fastingRing(ctx, state, lastBiteTs, false, goalHoursFor(ctx), day, animate),
+    stageChip(state.stage),
+    middle,
+    times), state, ctx.nowTs);
 }
 
 /**
- * The stage panel: the stage, what happens in it, and how far the goal and
- * the next stage are. On a day without eating, or while a meal goes on after
- * the window, it holds smaller rings and their times as well; otherwise the
- * rings lead Today above.
+ * The stage card: the stage on its still disc, how far the goal and the next
+ * stage are, what happens in it, and the way to the stages. On a day without
+ * eating, or while a meal goes on after the window, it holds the smaller
+ * rings, the stage chip and the fast's times first; otherwise the rings lead
+ * Today above.
  */
-export function stagesSection(ctx, app, lastBiteTs, { withRing, times = null, day = ctx.todayKey }) {
+export function stagesSection(ctx, app, lastBiteTs, { withRing, times = null, day = ctx.todayKey, animate = false }) {
   if (!lastBiteTs) return null;
   const state = fastingState(lastBiteTs, ctx.nowTs);
   const goalHours = goalHoursFor(ctx);
-  return markStage(h('section', { class: 'section', 'data-block': 'stages', 'data-stage': state.stage.key },
-    withRing ? [fastingRing(ctx, state, lastBiteTs, true, goalHours, day), ringLegend(), times] : null,
-    h('div', { class: withRing ? 'stage-head gap-l' : 'stage-head' },
-      h('span', { class: `stage-disc s-${state.stage.key}`, 'aria-hidden': 'true' }, stageGlyph(state.stage.key, { mark: false, live: true })),
-      h('div', {},
-        h('div', { class: 'label' }, `Stage ${state.index + 1} of ${STAGES.length}`),
-        h('h2', { class: 'h2 stage-title' }, state.stage.name))),
-    h('p', { class: 'gap-s' }, state.stage.text),
+  return markStage(h('section', { class: `section stage-card-today${withRing ? ' with-ring' : ''}`, 'data-block': 'stages', 'data-stage': state.stage.key },
+    withRing ? [fastingRing(ctx, state, lastBiteTs, true, goalHours, day, animate), stageChip(state.stage), times] : null,
+    // With the rings, the chip above already names the stage and moves its
+    // icon: under the hairline, a quiet count says only where it falls.
+    withRing
+      ? h('div', { class: 'label stage-count' }, `Stage ${state.index + 1} of ${STAGES.length}`)
+      : h('div', { class: 'stage-head' },
+        stageDisc(state.stage.key, { size: 48, state: 'now', live: false }),
+        h('div', { class: 'stage-head-words' },
+          h('div', { class: 'label' }, `Stage ${state.index + 1} of ${STAGES.length}`),
+          h('h2', { class: 'stage-title' }, state.stage.name))),
     ringLines(state, lastBiteTs, goalHours),
-    h('div', { class: 'gap' }, button('About the stages', () => showStagesSheet(state.stage.key), { kind: 'secondary', name: 'about-stages' })),
+    h('p', { class: 'stage-text' }, state.stage.text),
+    h('div', { class: 'stage-about' }, button('About the stages', () => showStagesSheet(state.stage.key), { kind: 'secondary', name: 'about-stages' })),
   ), state, ctx.nowTs);
 }
 
 // The same words as the Week schedule (week.js) for each day's result.
 const RESULT_WORD = { success: 'success', miss: 'miss', paused: 'paused', pending: 'in progress', unlogged: 'nothing logged' };
 
-/** A day's result as its window ring: green, orange stripes, grey, or dashed ahead; a blue dot when left wanting. */
-const resultCell = (result, leftWanting) => miniRing(result, leftWanting);
-
 /**
  * The week on Today: Sunday to Saturday, each day's result in the same marks
- * as the schedule, today underlined, and a legend naming only the marks in
- * the row. Tap a day to open it.
+ * as the schedule, today's name on an ink pill, and a legend naming only the
+ * marks in the row. Tap a day to open it.
  */
 export function weekRow(ctx, app) {
   const start = weekStart(ctx.todayKey);
@@ -202,17 +240,16 @@ export function weekRow(ctx, app) {
       'aria-current': day === ctx.todayKey ? 'date' : null,
       'aria-label': [fmtDayShort(day), word, lw ? 'left wanting' : null].filter(Boolean).join(', '),
       onclick: () => app.go(`day/${day}`),
-    }, h('span', { class: 'wd' }, weekdayShort(day)), resultCell(result, lw));
+    }, h('span', { class: 'wd' }, weekdayShort(day)), miniRing(result, lw));
   });
   return h('div', { class: 'week-today', 'data-testid': 'today-week' },
     h('div', { class: 'week-row' }, cells),
-    h('div', { class: 'week-legend' }, legend([
-      seen.has('success') ? ['success', 'Success'] : null,
-      seen.has('miss') ? [key('miss'), 'Miss'] : null,
-      seen.has('paused') ? ['paused', 'Paused'] : null,
-      seen.has('open') ? ['outline', 'Open or not logged'] : null,
-      seen.has('future') ? ['dashed', 'Still ahead'] : null,
-      seen.has('wanting') ? ['dot', 'Left wanting'] : null,
-    ], 'today-week-legend')));
+    legend([
+      seen.has('success') ? ['day-success', 'Success'] : null,
+      seen.has('miss') ? ['day-miss', 'Miss'] : null,
+      seen.has('paused') ? ['day-paused', 'Paused'] : null,
+      seen.has('open') ? ['day-open', 'Open or not logged'] : null,
+      seen.has('future') ? ['day-ahead', 'Still ahead'] : null,
+      seen.has('wanting') ? ['left-wanting', 'Left wanting'] : null,
+    ], 'today-week-legend'));
 }
-

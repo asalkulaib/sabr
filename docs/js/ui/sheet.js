@@ -109,6 +109,29 @@ function holdRoom(sheet, px) {
   });
 }
 
+/**
+ * Marks a sheet open or shut. A message on screen sits lower over a sheet
+ * than over the tabs: it glides to its new place with the sheet (--dur-sheet
+ * as one opens, --dur-base as one closes) instead of jumping in one frame.
+ */
+function setSheetOpen(on) {
+  const html = document.documentElement;
+  if (html.classList.contains('sheet-open') === on) return;
+  const host = document.getElementById('flash-root');
+  const showing = host && host.querySelector('[data-flash]');
+  const before = showing ? host.getBoundingClientRect().top : null;
+  if (host && typeof host.getAnimations === 'function') for (const a of host.getAnimations()) a.cancel();
+  html.classList.toggle('sheet-open', on);
+  if (before == null || reduced() || typeof host.animate !== 'function') return;
+  const shift = before - host.getBoundingClientRect().top;
+  if (Math.abs(shift) < 1) return;
+  const css = getComputedStyle(html);
+  host.animate([{ transform: `translateY(${shift}px)` }, { transform: 'none' }], {
+    duration: parseFloat(css.getPropertyValue(on ? '--dur-sheet' : '--dur-base')) || (on ? 380 : 240),
+    easing: css.getPropertyValue('--ease-out').trim() || 'ease-out',
+  });
+}
+
 /** A message is showing, px tall with its gap: the open sheet keeps room for it. */
 export function roomForMessage(px) {
   if (current) holdRoom(current.api.el, px);
@@ -148,7 +171,6 @@ export function openSheet(build, opts = {}) {
   const sheet = h('div', {
     class: `sheet${opts.full ? ' full' : ''}`,
     role: 'dialog',
-    'aria-modal': 'true',
     'aria-label': opts.label || 'Details',
     'data-sheet': opts.name || '',
     tabindex: '-1',
@@ -168,7 +190,7 @@ export function openSheet(build, opts = {}) {
       current = null;
       r.inert = true; // nothing in a closing sheet can be tapped
       r.classList.add('closing');
-      document.documentElement.classList.remove('sheet-open');
+      setSheetOpen(false);
       await new Promise((resolve) => {
         sheet.addEventListener('animationend', (e) => { if (e.target === sheet) resolve(); });
         sheet.addEventListener('transitionend', (e) => { if (e.target === sheet && e.propertyName === 'opacity') resolve(); });
@@ -213,7 +235,8 @@ export function openSheet(build, opts = {}) {
   r.hidden = false;
   r.inert = false;
   setBehind(true);
-  document.documentElement.classList.add('locked', 'sheet-open');
+  document.documentElement.classList.add('locked');
+  setSheetOpen(true);
   current = entry;
   focusTitle(sheet);
   return api;
@@ -253,7 +276,8 @@ export function closeNow({ keepFocus = false } = {}) {
   r.hidden = true;
   r.inert = false;
   setBehind(false);
-  document.documentElement.classList.remove('locked', 'sheet-open');
+  document.documentElement.classList.remove('locked');
+  setSheetOpen(false);
   if (!keepFocus) returnFocus();
   if (opts.onClose) opts.onClose();
 }

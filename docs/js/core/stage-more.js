@@ -18,7 +18,7 @@ export const STAGE_MORE = {
       { text: 'Each meal primes the body for the next, so blood sugar is handled better as the day goes on.', by: 'Dimitriadis' },
     ],
     good: [
-      'Fast times every stage from the time of your last bite, even one you add later, so this one starts then.',
+      'Sabr times every stage from the time of your last bite, even one you add later, so this one starts then.',
       'A bigger meal takes longer to absorb, so this stage can run past 4 hours.',
     ],
   },

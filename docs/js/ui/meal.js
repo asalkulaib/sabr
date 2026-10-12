@@ -1,8 +1,14 @@
 // Meals: first bite, logging, finishing, closing the window, 20-minute check.
+//
+// Every form sheet has the same build: a fixed head (title and Close), a
+// body of fields 24 apart that alone scrolls, and a fixed footer with what
+// the change will do (an effect card, misses in words), then any error, then
+// the one main action. The small builders here are shared by the window
+// times, outside and Begin fast sheets.
 
 import { h } from './dom.js';
-import { clockGlyph } from './icons.js';
-import { button, choice, scale, textField, timeField, STOP_OPTIONS } from './components.js';
+import { clockGlyph, glyph } from './icons.js';
+import { button, choice, errorLine, key, missLine, scale, textField, timeField, STOP_OPTIONS } from './components.js';
 import { openSheet, sheetHead } from './sheet.js';
 import * as store from '../store.js';
 import { MIN, HOUR, addDays, at, dayKey, floorToMinute, fmtDayLong, fmtDayShort, fmtDuration, fmtOnDay, fmtTime, fmtWhen, minutesOfDay, nearestTime, now } from '../core/time.js';
@@ -11,6 +17,63 @@ import { placeAddedMeal } from '../core/added-meal.js';
 import { MEAL_TYPES, guessMealType, typeOfName } from '../core/meal-types.js';
 import { mealInProgress } from './shared.js';
 import { ringIn } from './alarm.js';
+
+// ---------- The parts every form sheet is built from ----------
+
+/** A sheet's body: its fields in one column, 24 apart. */
+export const form = (...kids) => h('div', { class: 'form' }, ...kids);
+
+/** A hairline between the groups of a long form (32 apart). */
+export const formRule = () => h('div', { class: 'form-rule', 'aria-hidden': 'true' });
+
+/** One field with the lines that belong to it (an error under its wheel), 8 apart. */
+export const field = (...kids) => h('div', { class: 'form-field' }, ...kids);
+
+/** The sheet's own heading in its body, such as the meal's name. */
+export const formHero = (text, testid = null) => h('h3', { class: 'form-hero', 'data-testid': testid }, text);
+
+/**
+ * An error in words beside its alert glyph. With a testid the line hides
+ * itself while it has no words; without one it is hidden here.
+ */
+export function errLine(text = '', testid = null) {
+  const line = errorLine(text, { testid });
+  if (!testid) line.hidden = !text;
+  return line;
+}
+
+/** New words for an error line made by errLine (none hides it). */
+export function say(line, text) {
+  const words = line.querySelector('[role="alert"]');
+  words.textContent = text || '';
+  if (!words.hasAttribute('data-testid')) line.hidden = !text;
+}
+
+/**
+ * What a change will do, in an effect card. When the words are an error
+ * (error: true), they show as an error line instead, with the alert glyph;
+ * the testid keeps the words either way. Empty, it hides.
+ */
+export function effectLine(testid, text = '') {
+  const words = h('p', { class: 'effect', 'data-testid': testid }, text);
+  const slot = h('div', { class: 'effect-slot' }, glyph('alert', { size: 16 }), words);
+  slot.set = (next, { error = false } = {}) => {
+    words.textContent = next || '';
+    slot.classList.toggle('is-error', !!error);
+  };
+  return slot;
+}
+
+/**
+ * Misses in words, one stripes key per reason, under one testid. The line is
+ * drawn again for each new set of reasons; with none it hides.
+ */
+export function missSlot(testid) {
+  const slot = h('div', { class: 'miss-slot' });
+  slot.set = (reasons) => slot.replaceChildren(missLine(reasons || [], { testid }));
+  slot.set([]);
+  return slot;
+}
 
 /** Most recent moment at or before ref with this clock time (for edits after the fact). */
 export function latestAtOrBefore(minutes, ref) {
@@ -55,20 +118,26 @@ function pickFromName(name) {
  * name, stored as the meal's name. Until one is tapped, the start time picks
  * it (guessAt gives that time in minutes since midnight); box.refresh()
  * follows a change of time. Redraws itself, so the wheels stay put.
+ * titled: the sheet's title already says Meal, so the track has no label of
+ * its own on screen (a screen reader still hears it).
  */
-function mealTypeSection(ctx, draft, guessAt = null) {
-  const box = h('section', { class: 'section', 'data-block': 'meal-type' });
+function mealTypeSection(ctx, draft, guessAt = null, { titled = false } = {}) {
+  const box = h('div', { class: 'meal-type', 'data-block': 'meal-type' });
   const draw = () => {
     const pick = draft.pick ?? (guessAt ? guessMealType(guessAt()) : null);
     draft.name = pick === 'other' ? (draft.other || '').trim() : pick || '';
     const others = pick === 'other' ? recentOtherNames(ctx) : [];
+    // Snack, Breakfast and Lunch share the first line; Dinner and Other the second (sheets.css).
     box.replaceChildren(...[
-      choice({ label: 'Meal', options: TYPE_OPTIONS, value: pick, cols: 3, name: 'meal-type', onChange: (v) => { draft.pick = v; draw(); } }),
+      choice({ label: titled ? null : 'Meal', ariaLabel: 'Meal', options: TYPE_OPTIONS, value: pick, cols: 3, name: 'meal-type', onChange: (v) => { draft.pick = v; draw(); } }),
       pick === 'other'
-        ? h('div', { class: 'gap' }, textField({ label: 'Name', placeholder: 'Dessert', value: draft.other, name: 'meal-name',
-          onInput: (v) => { draft.other = v; draft.name = v; } }))
+        ? h('div', { class: 'meal-name' },
+          textField({ label: 'Name', placeholder: 'Dessert', value: draft.other, name: 'meal-name',
+            onInput: (v) => { draft.other = v; draft.name = v; } }),
+          others.length
+            ? h('div', { class: 'btn-row pill-row' }, others.map((n) => button(h('span', { class: 'clip' }, n), () => { draft.other = n; draw(); }, { kind: 'secondary' })))
+            : null)
         : null,
-      others.length ? h('div', { class: 'btn-row gap-s' }, others.map((n) => button(n, () => { draft.other = n; draw(); }, { kind: 'secondary' }))) : null,
     ].filter(Boolean));
   };
   draw();
@@ -81,15 +150,43 @@ const hungerScale = (draft) => scale({
   label: 'Hunger before', low: '1 not hungry', high: '10 very hungry', name: 'hunger',
 });
 
+// Each option as wide as its words, so "Left wanting" never wraps, and each
+// carries its way's mark (as on Satiety), so the shapes are learned where
+// the rating is made. Drawn fresh for each sheet: a node sits in one place only.
+const stopOptions = () => STOP_OPTIONS.map((o) => ({ ...o, label: [key(`stop-${o.value}`), h('span', {}, o.label)] }));
 const stopChoice = (draft) => choice({
-  options: STOP_OPTIONS, value: draft.stop, onChange: (v) => { draft.stop = v; },
-  label: 'How did you finish?', cols: 3, name: 'stop',
+  options: stopOptions(), value: draft.stop, onChange: (v) => { draft.stop = v; },
+  label: 'How did you finish?', cols: 3, name: 'stop', fit: true,
 });
 
 const fullnessScale = (draft, key = 'fullnessNow', label = 'Fullness now') => scale({
   n: 10, value: draft[key], onChange: (v) => { draft[key] = v; },
   label, low: '1 empty', high: '10 stuffed', name: key === 'fullnessNow' ? 'fullness-now' : 'fullness-20',
 });
+
+// ---------- How a day becomes a miss, in words ----------
+
+/** The words for each way a day becomes a miss: the same everywhere a sheet warns of one. */
+function missWords(ctx, day) {
+  const hours = Math.round(ctx.windowMsFor(day) / HOUR);
+  return {
+    early: 'Opening before 16:00 on a workday makes the day a miss.',
+    over: `That is longer than your ${hours}-hour goal, so the day becomes a miss.`,
+    outside: 'Eating outside the window makes the day a miss.',
+  };
+}
+
+/**
+ * The misses a window's own times make, in words, before they are saved:
+ * the day judged by the rules with these times. kinds: the reasons the
+ * sheet's times decide ('early' needs the first bite, 'over' the last);
+ * eating outside the window does not follow the times, so it is not said here.
+ */
+export function timesMissLines(ctx, day, rec, kinds) {
+  const after = evaluateDay(day, rec, 0, ctx.nowTs, ctx.todayKey, ctx.startKey, ctx.windowMsFor(day), isFlexible(day, ctx.settings));
+  const words = missWords(ctx, day);
+  return after.reasons.filter((r) => kinds.includes(r)).map((r) => words[r]);
+}
 
 // ---------- Start a meal ----------
 
@@ -129,30 +226,31 @@ export function showStartMealSheet(app) {
     const typeBox = mealTypeSection(ctx, draft, () => minutesOfDay(draft.ts ?? now()));
     const rec = sit.rec;
     // Only a first meal before 16:00 on a workday makes the day a miss.
-    const warnEl = h('p', { class: 'statement gap', 'data-testid': 'meal-warning' });
-    const aheadEl = h('p', { class: 'small', 'data-testid': 'meal-ahead' });
+    const warnEl = missLine('', { testid: 'meal-warning' });
+    const aheadEl = errLine('', 'meal-ahead');
     const updateWarn = () => {
       const key = draft.ts == null ? null : dayKey(draft.ts);
       const early = key != null && sit.kind === 'first' && cutoffApplies(key, ctx.days.get(key), ctx.settings) && minutesOfDay(draft.ts) < CUTOFF_MIN;
-      warnEl.textContent = early ? 'Before 16:00 on a workday: today will count as a miss.' : '';
-      warnEl.hidden = !early;
-      aheadEl.textContent = draft.ts == null ? 'That time is still ahead.' : '';
+      warnEl.set(early ? 'Before 16:00 on a workday: today will count as a miss.' : '');
+      say(aheadEl, draft.ts == null ? 'That time is still ahead.' : '');
     };
-    // A clock time means today, or last night just after midnight; never a time still ahead.
-    const field = timeField({
-      label: 'Started at',
-      minutes: draft.ts == null ? minutesOfDay(now()) : minutesOfDay(draft.ts),
-      name: 'meal-start',
-      onChange: (m) => { draft.ts = resolveFirstBite(app.ctx().todayKey, m); draft.moved = true; updateWarn(); typeBox.refresh(); },
-    });
-    const presets = h('div', { class: 'presets gap-s', role: 'group', 'aria-label': 'Quick times' },
+    // The quick times stand beside the wheel, a stack as tall as it.
+    const presets = h('div', { class: 'presets', role: 'group', 'aria-label': 'Quick times' },
       QUICK.map(([mins, label]) => button(label, () => {
         draft.ts = floorToMinute(now() - mins * MIN);
         draft.moved = true;
-        field.set(minutesOfDay(draft.ts));
+        startField.set(minutesOfDay(draft.ts));
         updateWarn();
         typeBox.refresh();
       }, { kind: 'secondary', name: `meal-start-${mins}` })));
+    // A clock time means today, or last night just after midnight; never a time still ahead.
+    const startField = timeField({
+      label: 'Started at',
+      minutes: draft.ts == null ? minutesOfDay(now()) : minutesOfDay(draft.ts),
+      name: 'meal-start',
+      aside: presets,
+      onChange: (m) => { draft.ts = resolveFirstBite(app.ctx().todayKey, m); draft.moved = true; updateWarn(); typeBox.refresh(); },
+    });
     updateWarn();
     const context = {
       first: 'Your first meal opens the window.',
@@ -179,25 +277,31 @@ export function showStartMealSheet(app) {
       return null;
     };
 
-    return h('div', {},
-      sheetHead(api, 'Start a meal'),
-      h('p', { 'data-testid': 'meal-context' }, context),
-      h('div', { class: 'stanza gap' },
-        h('p', { class: 'statement' }, 'Protein and vegetables first.'),
-        h('p', { class: 'statement' }, 'Eat slowly.'),
-        h('p', { class: 'statement' }, 'Pause halfway.')),
-      h('section', { class: 'section gap' }, presets, field, aheadEl),
-      warnEl,
-      typeBox,
-      h('section', { class: 'section' }, hungerScale(draft)),
-      hint ? h('p', { class: 'small', 'data-testid': 'meal-hint' }, hint) : null,
-      h('div', { class: 'gap' }, button('Start eating', save, { block: true, name: 'start-eating' })),
-      h('div', { class: 'gap-s' }, button('Already finished? Add a meal', () => showAddMealSheet(app, { from: {
-        pick: draft.pick, other: draft.other, hungerBefore: draft.hungerBefore,
-        // A start left at now would make a meal of no length: Add a meal then starts an hour ago.
-        ts: draft.moved && draft.ts != null && draft.ts < floorToMinute(now()) - MIN ? draft.ts : null,
-      } }), { kind: 'outline', block: true, name: 'already-finished' })),
-    );
+    return {
+      head: sheetHead(api, 'Start a meal'),
+      body: form(
+        // Eating after the window's hours is a miss, said beside its stripes.
+        sit.kind === 'outside'
+          ? missLine(context, { testid: 'meal-context' })
+          : h('p', { class: 'meal-context', 'data-testid': 'meal-context' }, context),
+        h('div', { class: 'coach' },
+          h('p', {}, 'Protein and vegetables first.'),
+          h('p', {}, 'Eat slowly.'),
+          h('p', {}, 'Pause halfway.')),
+        field(startField, aheadEl, warnEl),
+        typeBox,
+        hungerScale(draft),
+        button('Already finished? Add a meal', () => showAddMealSheet(app, { from: {
+          pick: draft.pick, other: draft.other, hungerBefore: draft.hungerBefore,
+          // A start left at now would make a meal of no length: Add a meal then starts an hour ago.
+          ts: draft.moved && draft.ts != null && draft.ts < floorToMinute(now()) - MIN ? draft.ts : null,
+        } }), { kind: 'outline', block: true, name: 'already-finished' }),
+      ),
+      actions: [
+        errLine(hint, 'meal-hint'),
+        button('Start eating', save, { block: true, name: 'start-eating' }),
+      ],
+    };
   }, { name: 'start-meal', label: 'Start a meal' });
 }
 
@@ -250,12 +354,7 @@ function missLines(ctx, place) {
   const before = ctx.evaluate(place.day);
   const after = evaluateDay(place.day, place.rec || ctx.days.get(place.day), before.outsideCount + (place.outside ? 1 : 0),
     ctx.nowTs, ctx.todayKey, ctx.startKey, ctx.windowMsFor(place.day), isFlexible(place.day, ctx.settings));
-  const hours = Math.round(ctx.windowMsFor(place.day) / HOUR);
-  const text = {
-    early: 'Opening before 16:00 on a workday makes the day a miss.',
-    over: `That is longer than your ${hours}-hour goal, so the day becomes a miss.`,
-    outside: 'Eating outside the window makes the day a miss.',
-  };
+  const text = missWords(ctx, place.day);
   return after.reasons.filter((r) => !before.reasons.includes(r)).map((r) => text[r]);
 }
 
@@ -336,12 +435,16 @@ export function showAddMealSheet(app, { day = null, from = null } = {}) {
   openSheet((api) => {
     const ctx = app.ctx();
     const typeBox = mealTypeSection(ctx, draft, () => draft.minutes);
-    const aheadEl = h('p', { class: 'small', 'data-testid': 'add-meal-ahead' });
-    const finishNoteEl = h('p', { class: 'small', 'data-testid': 'add-meal-finish-note' });
-    const effectEl = h('p', { class: 'gap', 'data-testid': 'add-meal-effect' });
-    const missEl = h('div', { 'data-testid': 'add-meal-miss' });
-    const hintEl = h('p', { class: 'small', 'data-testid': 'add-meal-hint' });
-    const lastBox = h('div');
+    const aheadEl = errLine('', 'add-meal-ahead');
+    const finishNoteEl = errLine('', 'add-meal-finish-note');
+    const effectEl = effectLine('add-meal-effect');
+    // What the meal does stands in the body under the times that decide it;
+    // why it cannot go there stands over Save, in sight wherever the form is scrolled.
+    const effectBody = h('div', { class: 'effect-home' });
+    const effectFoot = h('div', { class: 'effect-home' });
+    const missEl = missSlot('add-meal-miss');
+    const hintEl = errLine('', 'add-meal-hint');
+    const lastBox = h('div', { class: 'last-meal' });
     let lastShown = null;
 
     // The wheels report a settled time; the lines below follow without redrawing the sheet.
@@ -349,30 +452,37 @@ export function showAddMealSheet(app, { day = null, from = null } = {}) {
       const c = app.ctx();
       const start = startTs();
       const ahead = start > now() + MIN;
-      aheadEl.textContent = ahead ? 'That time is still ahead.' : '';
-      finishNoteEl.textContent = finishProblem();
-      hintEl.textContent = '';
+      say(aheadEl, ahead ? 'That time is still ahead.' : '');
+      say(finishNoteEl, finishProblem());
+      say(hintEl, '');
       const place = ahead || finishProblem() ? null : placeNow();
       const ok = place && !place.error;
-      effectEl.textContent = !place ? '' : place.error ? placeError(c, place) : placeText(c, place, start);
-      missEl.replaceChildren(...(ok ? missLines(c, place) : []).map((t) => h('p', { class: 'statement clay gap-s' }, t)));
+      effectEl.set(!place ? '' : place.error ? placeError(c, place) : placeText(c, place, start), { error: !!(place && place.error) });
+      (place && place.error ? effectFoot : effectBody).append(effectEl);
+      missEl.set(ok ? missLines(c, place) : []);
       const showLast = !!(ok && place.canClose);
       if (showLast !== lastShown) {
         lastShown = showLast;
+        lastBox.hidden = !showLast;
         lastBox.replaceChildren(...(showLast
-          ? [h('section', { class: 'section' }, choice({
+          ? [choice({
             label: 'Last meal of the day?', options: [{ value: true, label: 'Yes' }, { value: false, label: 'No' }], value: lastAnswer(), cols: 2, name: 'last-meal',
             onChange: (v) => { draft.last = v; refresh(); },
-          }))]
+          })]
           : []));
       }
     };
 
     // The Finished at wheel takes what is rolled as it is (hour, then minute); only a start or a length moves it.
+    const lengths = h('div', { class: 'presets lengths', role: 'group', 'aria-label': 'How long it took' },
+      LENGTHS.map(([mins, label]) => button(label, () => { draft.length = mins; followStart(); }, { kind: 'secondary', name: `added-length-${mins}` })));
     const finishField = timeField({
       label: 'Finished at',
       minutes: minutesOfDay(finishTs()),
       name: 'added-finish',
+      // How long it took sits beside the wheel it sets.
+      // Its label stands on the line of Finished at (sheets.css), so the four sit beside the wheel's centre.
+      aside: h('div', { class: 'length-aside' }, h('div', { class: 'label field-label', 'aria-hidden': 'true' }, 'How long it took'), lengths),
       onChange: (m) => {
         draft.until = floorToMinute(now());
         const length = Math.round((timeOnOrAfter(startTs(), m) - startTs()) / MIN);
@@ -389,12 +499,6 @@ export function showAddMealSheet(app, { day = null, from = null } = {}) {
       finishField.set(minutesOfDay(finishTs()));
       refresh();
     };
-    const startField = timeField({
-      label: 'Started at',
-      minutes: draft.minutes,
-      name: 'added-start',
-      onChange: (m) => { draft.minutes = m; typeBox.refresh(); followStart(); },
-    });
     const moveStart = (ts) => {
       const key = dayKey(ts);
       draft.minutes = minutesOfDay(ts);
@@ -409,18 +513,29 @@ export function showAddMealSheet(app, { day = null, from = null } = {}) {
       typeBox.refresh();
       followStart();
     };
-    const ago = h('div', { class: 'presets gap-s', role: 'group', 'aria-label': 'Quick times' },
-      AGO.map(([mins, label]) => button(label, () => moveStart(floorToMinute(now() - mins * MIN)), { kind: 'secondary', name: `added-start-${mins}` })));
-    const lengths = h('div', { class: 'presets gap-s', role: 'group', 'aria-label': 'How long it took' },
-      LENGTHS.map(([mins, label]) => button(label, () => { draft.length = mins; followStart(); }, { kind: 'secondary', name: `added-length-${mins}` })));
+    // Today has quick times beside the wheel; another day has none, and the
+    // wheel keeps the column of the Finished at wheel under it (sheets.css),
+    // so the two wheels of the form line up.
+    const ago = draft.day === today
+      ? h('div', { class: 'presets', role: 'group', 'aria-label': 'Quick times' },
+        AGO.map(([mins, label]) => button(label, () => moveStart(floorToMinute(now() - mins * MIN)), { kind: 'secondary', name: `added-start-${mins}` })))
+      : null;
+    const startField = timeField({
+      label: 'Started at',
+      minutes: draft.minutes,
+      name: 'added-start',
+      aside: ago,
+      onChange: (m) => { draft.minutes = m; typeBox.refresh(); followStart(); },
+    });
 
     const save = async () => {
       const start = startTs();
       const finish = finishTs();
-      if (start > now() + MIN) { hintEl.textContent = 'That time is still ahead.'; return null; }
-      if (finishProblem()) { hintEl.textContent = finishProblem(); return null; }
+      if (start > now() + MIN) { say(hintEl, 'That time is still ahead.'); return null; }
+      if (finishProblem()) { say(hintEl, finishProblem()); return null; }
       const place = placeNow();
-      if (place.error) { hintEl.textContent = placeError(app.ctx(), place); return null; }
+      // The refusal shows once, as the hint; the next change brings the effect back.
+      if (place.error) { effectEl.set(''); say(hintEl, placeError(app.ctx(), place)); return null; }
       const res = await store.addFinishedMeal(place, {
         name: draft.name, startedAt: start, finishedAt: finish,
         hungerBefore: draft.hungerBefore, stop: draft.stop, fullnessNow: draft.fullnessNow, fullness20: draft.fullness20,
@@ -433,30 +548,39 @@ export function showAddMealSheet(app, { day = null, from = null } = {}) {
       return null;
     };
 
-    const node = h('div', {},
-      sheetHead(api, 'Add a meal'),
-      h('p', { class: 'quiet' }, 'For a meal you already ate. No timer.'),
-      fixed
-        ? h('p', { class: 'statement gap', 'data-testid': 'add-meal-day' }, fmtDayLong(fixed))
-        : h('section', { class: 'section gap' }, choice({
-          label: 'Day', options: [{ value: today, label: 'Today' }, { value: yesterday, label: 'Yesterday' }], value: draft.day, cols: 2, name: 'added-day',
-          onChange: (v) => { draft.day = v; draft.until = floorToMinute(now()); draft.refused = ''; api.rerender(); },
-        })),
-      h('section', { class: 'section' }, draft.day === today ? ago : null, startField, aheadEl),
-      h('section', { class: 'section' }, h('div', { class: 'label field-label' }, 'How long it took'), lengths, finishField, finishNoteEl),
-      typeBox,
-      h('section', { class: 'section' }, hungerScale(draft)),
-      h('section', { class: 'section' }, stopChoice(draft)),
-      h('section', { class: 'section' }, fullnessScale(draft, 'fullnessNow', 'Fullness right after')),
-      h('section', { class: 'section' }, fullnessScale(draft, 'fullness20', 'Fullness at 20 minutes')),
-      lastBox,
-      effectEl,
-      missEl,
-      hintEl,
-      h('div', { class: 'gap' }, button('Save meal', save, { block: true, name: 'save-added-meal' })),
-    );
+    const built = {
+      head: sheetHead(api, 'Add a meal'),
+      body: form(
+        h('p', { class: 'form-intro' }, 'For a meal you already ate. No timer.'),
+        fixed
+          ? h('p', { class: 'form-fixed', 'data-testid': 'add-meal-day' }, fmtDayLong(fixed))
+          : choice({
+            label: 'Day', options: [{ value: today, label: 'Today' }, { value: yesterday, label: 'Yesterday' }], value: draft.day, cols: 2, name: 'added-day',
+            onChange: (v) => { draft.day = v; draft.until = floorToMinute(now()); draft.refused = ''; api.rerender(); },
+          }),
+        field(startField, aheadEl),
+        field(finishField, finishNoteEl),
+        // What the meal does to the window follows the times and the last-meal
+        // answer that decide it; the footer keeps misses, refusals and Save.
+        lastBox,
+        effectBody,
+        formRule(),
+        typeBox,
+        formRule(),
+        hungerScale(draft),
+        stopChoice(draft),
+        fullnessScale(draft, 'fullnessNow', 'Fullness right after'),
+        fullnessScale(draft, 'fullness20', 'Fullness at 20 minutes'),
+      ),
+      actions: [
+        effectFoot,
+        missEl,
+        hintEl,
+        button('Save meal', save, { block: true, name: 'save-added-meal' }),
+      ],
+    };
     refresh();
-    return node;
+    return built;
   }, { name: 'add-meal', label: 'Add a meal' });
 }
 
@@ -467,24 +591,25 @@ export function showFinishMealSheet(app, mealId, { next = null, lead = null } = 
   const draft = { stop: null, fullnessNow: null, minutes: minutesOfDay(now()) };
   openSheet((api) => {
     const meal = store.state.meals.get(mealId);
-    if (!meal) return h('div', {}, sheetHead(api, 'Finished'), h('p', {}, 'This meal was removed.'));
-    return h('div', {},
-      sheetHead(api, 'Finished this meal'),
-      lead ? h('p', { class: 'gap-s', 'data-testid': 'finish-lead' }, lead) : null,
-      h('h2', { class: 'h2' }, meal.name || 'This meal'),
-      h('section', { class: 'section gap' }, stopChoice(draft)),
-      h('section', { class: 'section' }, fullnessScale(draft)),
-      h('section', { class: 'section' },
-        timeField({ label: 'Finished at', minutes: draft.minutes, name: 'finished-at', onChange: (m) => { draft.minutes = m; } })),
-      h('div', { class: 'gap' }, button('Save', async () => {
+    if (!meal) return { head: sheetHead(api, 'Finished'), body: form(h('p', {}, 'This meal was removed.')) };
+    return {
+      head: sheetHead(api, 'Finished this meal'),
+      body: form(
+        lead ? h('p', { class: 'callout', 'data-testid': 'finish-lead' }, lead) : null,
+        formHero(meal.name || 'This meal'),
+        stopChoice(draft),
+        fullnessScale(draft),
+        timeField({ label: 'Finished at', minutes: draft.minutes, name: 'finished-at', onChange: (m) => { draft.minutes = m; } }),
+      ),
+      actions: button('Save', async () => {
         const finishedAt = Math.min(timeOnOrAfter(meal.startedAt, draft.minutes), now());
         await store.finishMeal(mealId, { finishedAt, stop: draft.stop, fullnessNow: draft.fullnessNow });
         await api.close();
         app.flash(`Fullness check at ${fmtTime(finishedAt + store.FULLNESS_DELAY)}.`);
         ringIn((finishedAt + store.FULLNESS_DELAY - now()) / MIN);
         if (next) next();
-      }, { block: true, name: 'save-finish' })),
-    );
+      }, { block: true, name: 'save-finish' }),
+    };
   }, { name: 'finish-meal', label: 'Finished this meal' });
 }
 
@@ -496,14 +621,14 @@ export function showDoneEatingSheet(app, windowKey) {
   const draft = { minutes: minutesOfDay(now()), stop: null, fullnessNow: null };
   openSheet((api) => {
     const rec = store.state.days.get(windowKey);
-    if (!rec || !rec.firstBite) return h('div', {}, sheetHead(api, "I'm done eating"), h('p', {}, 'No window is open.'));
+    if (!rec || !rec.firstBite) return { head: sheetHead(api, "I'm done eating"), body: form(h('p', {}, 'No window is open.')) };
     const lastBite = () => timeOnOrAfter(rec.firstBite, draft.minutes);
     const future = () => lastBite() > now() + MIN;
-    const summaryText = () => (future()
-      ? 'That time is still ahead.'
-      : `Window ${fmtTime(rec.firstBite)} to ${fmtTime(lastBite())}, ${fmtDuration(lastBite() - rec.firstBite)}.`);
-    // The summary follows the wheel without redrawing the sheet.
-    const summary = h('p', { class: 'quiet small gap-s', 'data-testid': 'done-summary' }, summaryText());
+    // The footer follows the wheel without redrawing the sheet: the new
+    // window and a miss its length would make, or, as an error, why it
+    // cannot close yet.
+    const summary = effectLine('done-summary');
+    const misses = missSlot('done-miss');
     const closeBtn = button('Close the window', async () => {
       if (future()) return;
       const last = lastBite();
@@ -511,23 +636,25 @@ export function showDoneEatingSheet(app, windowKey) {
       await store.closeWindow(windowKey, last);
       api.close();
     }, { block: true, name: 'close-window', disabled: future() });
-    return h('div', {},
-      sheetHead(api, "I'm done eating"),
-      open
-        ? h('div', {},
-          h('h2', { class: 'h2' }, `Finish ${open.name || 'this meal'}`),
-          h('section', { class: 'section gap' }, stopChoice(draft)),
-          h('section', { class: 'section' }, fullnessScale(draft)))
-        : null,
-      h('section', { class: 'section' },
-        timeField({ label: 'Last bite at', minutes: draft.minutes, name: 'last-bite', onChange: (m) => {
-          draft.minutes = m;
-          summary.textContent = summaryText();
-          closeBtn.disabled = future();
-        } }),
-        summary),
-      h('div', { class: 'gap' }, closeBtn),
-    );
+    const refresh = () => {
+      const ahead = future();
+      summary.set(ahead ? 'That time is still ahead.' : `Window ${fmtTime(rec.firstBite)} to ${fmtTime(lastBite())}, ${fmtDuration(lastBite() - rec.firstBite)}.`, { error: ahead });
+      // Only the last bite is set here, so only its length can make the miss.
+      misses.set(ahead ? [] : timesMissLines(app.ctx(), windowKey, { ...rec, lastBite: lastBite() }, ['over']));
+      closeBtn.disabled = ahead;
+    };
+    const lastField = timeField({ label: 'Last bite at', minutes: draft.minutes, name: 'last-bite', onChange: (m) => { draft.minutes = m; refresh(); } });
+    refresh();
+    return {
+      head: sheetHead(api, "I'm done eating"),
+      body: form(
+        ...(open
+          ? [formHero(`Finish ${open.name || 'this meal'}`), stopChoice(draft), fullnessScale(draft), formRule()]
+          : []),
+        lastField,
+      ),
+      actions: [summary, misses, closeBtn],
+    };
   }, { name: 'done-eating', label: "I'm done eating" });
 }
 
@@ -545,23 +672,36 @@ export function showFullnessSheet(app, mealId) {
   let hint = '';
   openSheet((api) => {
     const meal = store.state.meals.get(mealId);
-    if (!meal) return h('div', {}, sheetHead(api, 'Fullness check'), h('p', {}, 'This meal was removed.'));
-    return h('div', {},
-      sheetHead(api, 'Fullness check', 'Later'),
-      h('h2', { class: 'h2' }, `20 minutes after ${meal.name || 'your meal'}`),
-      h('p', { class: 'quiet gap-s' }, meal.fullnessNow != null ? `Right after eating: ${meal.fullnessNow}. Target about 7.` : 'Target about 7.'),
-      h('section', { class: 'section gap' }, fullnessScale(draft, 'fullness20', 'Fullness now')),
-      hint ? h('p', { class: 'quiet small' }, hint) : null,
-      h('div', { class: 'gap' }, button('Save', async () => {
-        if (draft.fullness20 == null) { hint = 'Pick a number from 1 to 10.'; api.rerender(); return; }
-        await store.updateMeal(mealId, { fullness20: draft.fullness20, fullness20At: now() });
-        api.close();
-      }, { block: true, name: 'save-fullness' })),
-      h('div', { class: 'gap-s' }, button('Skip this one', async () => {
-        await store.updateMeal(mealId, { fullness20Skipped: true });
-        api.close();
-      }, { kind: 'secondary', name: 'skip-fullness' })),
-    );
+    if (!meal) return { head: sheetHead(api, 'Fullness check'), body: form(h('p', {}, 'This meal was removed.')) };
+    // Asked for a number, the line goes once one is picked.
+    const hintEl = errLine(hint);
+    const rating = scale({
+      n: 10, value: draft.fullness20, label: 'Fullness now', low: '1 empty', high: '10 stuffed', name: 'fullness-20',
+      onChange: (v) => { draft.fullness20 = v; hint = ''; say(hintEl, ''); },
+    });
+    return {
+      head: sheetHead(api, 'Fullness check', 'Later'),
+      body: form(
+        h('div', { class: 'form-lead' },
+          formHero(`20 minutes after ${meal.name || 'your meal'}`),
+          h('p', { class: 'form-note' }, meal.fullnessNow != null ? `Right after eating: ${meal.fullnessNow}. Target about 7.` : 'Target about 7.')),
+        rating,
+      ),
+      actions: [
+        hintEl,
+        // Skip on the left, Save under the thumb on the right; both one height.
+        h('div', { class: 'btn-pair' },
+          button('Skip this one', async () => {
+            await store.updateMeal(mealId, { fullness20Skipped: true });
+            api.close();
+          }, { kind: 'outline', name: 'skip-fullness' }),
+          button('Save', async () => {
+            if (draft.fullness20 == null) { hint = 'Pick a number from 1 to 10.'; api.rerender(); return; }
+            await store.updateMeal(mealId, { fullness20: draft.fullness20, fullness20At: now() });
+            api.close();
+          }, { name: 'save-fullness' })),
+      ],
+    };
   }, { name: 'fullness', label: 'Fullness check' });
 }
 
@@ -575,27 +715,47 @@ export function showMealEditSheet(app, mealId, { lastBite = false } = {}) {
   let confirming = false;
   openSheet((api) => {
     const ctx = app.ctx();
-    return h('div', {},
-      sheetHead(api, 'Meal'),
-      mealTypeSection(ctx, draft),
-      h('section', { class: 'section' },
+    const remove = confirming
+      ? h('div', { class: 'confirm' },
+        h('p', { class: 'confirm-question' }, 'Delete this meal?'),
         h('div', { class: 'btn-pair' },
-          timeField({ label: 'Started', minutes: draft.minutes, name: 'edit-start', onChange: (m) => { draft.minutes = m; } }),
-          timeField({ label: 'Finished', minutes: draft.finishMinutes, name: 'edit-finish', allowUnset: true, fallback: draft.minutes, hint: draft.finishMinutes == null ? 'Still eating' : '', onChange: (m) => { draft.finishMinutes = m; draft.finishExact = null; } })),
-        // Just now sits under the Finished wheel, so it plainly sets when the meal finished.
-        lastBite
-          ? h('div', { class: 'btn-pair gap-s' }, h('span'), button([clockGlyph(), 'Just now'], () => {
-            const ts = floorToMinute(now());
-            draft.finishExact = ts;
-            draft.finishMinutes = minutesOfDay(ts);
-            api.rerender();
-          }, { kind: 'chip', name: 'last-bite-now' }))
-          : null),
-      h('section', { class: 'section' }, hungerScale(draft)),
-      h('section', { class: 'section' }, stopChoice(draft)),
-      h('section', { class: 'section' }, fullnessScale(draft)),
-      h('section', { class: 'section' }, fullnessScale(draft, 'fullness20', 'Fullness at 20 minutes')),
-      h('div', { class: 'gap' }, button('Save', async () => {
+          button('Delete', async () => {
+            const undo = store.undoPoint({ meals: [mealId] });
+            await store.deleteMeal(mealId);
+            await api.close();
+            app.flash('Meal deleted.', { undo });
+          }, { kind: 'danger', name: 'confirm-delete-meal' }),
+          button('Keep', () => { confirming = false; api.rerender(); }, { kind: 'outline' })))
+      : h('div', { class: 'pill-row' }, button('Delete meal', () => { confirming = true; api.rerender(); }, { kind: 'secondary', name: 'delete-meal', icon: 'trash' }));
+    const finishField = timeField({ label: 'Finished', minutes: draft.finishMinutes, name: 'edit-finish', allowUnset: true, fallback: draft.minutes, hint: draft.finishMinutes == null ? 'Still eating' : '', onChange: (m) => { draft.finishMinutes = m; draft.finishExact = null; } });
+    // From Last bite, Just now and the Finished wheel's own Clear share one
+    // row under the pair, ending on the right gutter under Finished.
+    const finishRow = lastBite
+      ? h('div', { class: 'pill-row finish-row' }, button([clockGlyph(), 'Just now'], () => {
+        const ts = floorToMinute(now());
+        draft.finishExact = ts;
+        draft.finishMinutes = minutesOfDay(ts);
+        api.rerender();
+      }, { kind: 'chip', name: 'last-bite-now' }), finishField.querySelector('.time-foot'))
+      : null;
+    return {
+      head: sheetHead(api, 'Meal'),
+      body: form(
+        mealTypeSection(ctx, draft, null, { titled: true }),
+        field(
+          h('div', { class: 'field-pair' },
+            timeField({ label: 'Started', minutes: draft.minutes, name: 'edit-start', onChange: (m) => { draft.minutes = m; } }),
+            finishField),
+          finishRow),
+        formRule(),
+        hungerScale(draft),
+        stopChoice(draft),
+        fullnessScale(draft),
+        fullnessScale(draft, 'fullness20', 'Fullness at 20 minutes'),
+        formRule(),
+        remove,
+      ),
+      actions: button('Save', async () => {
         // Unchanged times keep their exact moment; a changed time stays next to the old one.
         const startedAt = draft.minutes === minutesOfDay(original.startedAt)
           ? original.startedAt
@@ -620,18 +780,7 @@ export function showMealEditSheet(app, mealId, { lastBite = false } = {}) {
         });
         await api.close();
         app.flash('Meal saved.', { undo });
-      }, { block: true, name: 'save-meal-edit' })),
-      h('div', { class: 'gap-s' }, confirming
-        ? h('div', { class: 'btn-row' },
-          h('span', { class: 'small' }, 'Delete this meal?'),
-          button('Delete', async () => {
-            const undo = store.undoPoint({ meals: [mealId] });
-            await store.deleteMeal(mealId);
-            await api.close();
-            app.flash('Meal deleted.', { undo });
-          }, { kind: 'secondary', name: 'confirm-delete-meal' }),
-          button('Keep', () => { confirming = false; api.rerender(); }, { kind: 'secondary' }))
-        : button('Delete meal', () => { confirming = true; api.rerender(); }, { kind: 'secondary', name: 'delete-meal' })),
-    );
+      }, { block: true, name: 'save-meal-edit' }),
+    };
   }, { name: 'edit-meal', label: 'Meal' });
 }

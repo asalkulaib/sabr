@@ -75,15 +75,15 @@ export function stageGlyph(key, { mark = true, live = false } = {}) {
 
 /**
  * A stage icon on its round disc. size: 48, 52 or 56; state: 'passed', 'now'
- * or 'ahead'; live: the icon moves. The disc wears its stage's shade
- * (s-<key>) until the new look lands.
+ * or 'ahead'; live: the icon moves; mark: the icon carries its
+ * data-stage-icon tag (the stages line's six icons).
  */
-export function stageDisc(key, { size = 48, state = null, live = false } = {}) {
+export function stageDisc(key, { size = 48, state = null, live = false, mark = false } = {}) {
   const disc = h('span', {
-    class: ['stage-disc', `s-${key}`, state ? `is-${state}` : ''].filter(Boolean).join(' '),
+    class: ['stage-disc', state ? `is-${state}` : ''].filter(Boolean).join(' '),
     'data-state': state,
     'aria-hidden': 'true',
-  }, stageGlyph(key, { mark: false, live }));
+  }, stageGlyph(key, { mark, live }));
   disc.style.setProperty('--disc', `${size}px`);
   return disc;
 }

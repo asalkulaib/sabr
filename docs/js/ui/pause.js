@@ -3,7 +3,7 @@
 // Fullness still counts: a paused day can be rated.
 
 import { h } from './dom.js';
-import { button, choice, dateField } from './components.js';
+import { button, choice, dateField, errorLine } from './components.js';
 import { openSheet, sheetHead } from './sheet.js';
 import * as store from '../store.js';
 import { addDays, fmtDayShort } from '../core/time.js';
@@ -58,6 +58,22 @@ export async function endPause(app, run) {
 }
 
 /**
+ * The summary under the wheels: its first clause as a figure ("30" and
+ * " days:"), the rest quiet. The text reads exactly as the sentence.
+ */
+function fillSummary(node, text) {
+  const m = /^(\d+)( days?:)(.*)$/.exec(text);
+  if (!m) {
+    node.textContent = text;
+    return;
+  }
+  node.replaceChildren(
+    h('span', { class: 'pause-count' }, m[1]),
+    h('span', { class: 'pause-unit' }, m[2]),
+    h('span', { class: 'pause-rest' }, m[3]));
+}
+
+/**
  * Adds a pause, or changes one (run). From and until roll on date wheels;
  * a reason is optional.
  */
@@ -73,6 +89,7 @@ export function showPauseSheet(app, { run = null, from = null } = {}) {
   const minFrom = draft.from < earliest ? draft.from : earliest;
   const maxFrom = addDays(today, 365);
   let hint = '';
+  const title = run ? 'Change the pause' : 'Pause';
 
   openSheet((api) => {
     const maxTo = addDays(draft.from, MAX_PAUSE_DAYS - 1);
@@ -88,50 +105,59 @@ export function showPauseSheet(app, { run = null, from = null } = {}) {
       ].filter(Boolean).join(' ');
     };
     // The until wheel follows in place; a new start redraws both wheels.
-    const summary = h('p', { class: 'quiet small gap-s', 'data-testid': 'pause-summary' }, summaryText());
-    return h('div', {},
-      sheetHead(api, run ? 'Change the pause' : 'Pause'),
-      h('p', {}, 'Paused days are not tracked for fasting: no windows, no misses, and your streak holds. Fullness still counts.'),
-      h('section', { class: 'section flush gap' },
-        h('div', { class: 'btn-pair' },
-          dateField({ label: 'From', value: draft.from, minKey: minFrom, maxKey: maxFrom, todayKey: today, name: 'pause-from',
-            onChange: (k) => { draft.from = k; api.rerender(); } }),
-          dateField({ label: 'Until', value: draft.to, minKey: draft.from, maxKey: maxTo, todayKey: today, name: 'pause-to',
-            onChange: (k) => { draft.to = k; summary.textContent = summaryText(); } })),
-        summary),
-      h('section', { class: 'section' },
-        choice({ label: 'Why (optional)', options: REASON_OPTIONS, value: draft.reason, cols: 2, name: 'pause-reason', onChange: (v) => { draft.reason = v; } })),
-      hint ? h('p', { class: 'small', 'data-testid': 'pause-hint' }, hint) : null,
-      h('div', { class: 'gap' }, button(run ? 'Save' : 'Pause these days', async () => {
-        const res = await store.pauseDays(draft.from, draft.to, draft.reason, { replacing });
-        if (res.error) { hint = res.error; api.rerender(); return; }
-        await api.close();
-        app.flash(`Paused: ${rangeText(draft.from, draft.to)}.`, { undo: res.undo });
-      }, { block: true, name: 'save-pause' })),
-      run
-        ? h('div', { class: 'gap-s' }, button(run.from > today ? 'Remove this pause' : 'End the pause', async () => {
+    const summary = h('p', { class: 'pause-summary', 'data-testid': 'pause-summary' });
+    fillSummary(summary, summaryText());
+    return {
+      head: sheetHead(api, title),
+      body: h('div', { class: 'pause-form' },
+        h('p', { class: 'pause-lead' }, 'Paused days are not tracked for fasting: no windows, no misses, and your streak holds. Fullness still counts.'),
+        h('div', { class: 'pause-wheels' },
+          h('div', { class: 'field-pair' },
+            dateField({ label: 'From', value: draft.from, minKey: minFrom, maxKey: maxFrom, todayKey: today, name: 'pause-from',
+              onChange: (k) => { draft.from = k; api.rerender(); } }),
+            dateField({ label: 'Until', value: draft.to, minKey: draft.from, maxKey: maxTo, todayKey: today, name: 'pause-to',
+              onChange: (k) => { draft.to = k; fillSummary(summary, summaryText()); } })),
+          summary),
+        h('div', { class: 'pause-reason' },
+          // Four on one line; two by two on a narrow phone, where Ramadan would touch its pill.
+          choice({ label: 'Why (optional)', options: REASON_OPTIONS, value: draft.reason, cols: matchMedia('(max-width: 359px)').matches ? 2 : 4, name: 'pause-reason', onChange: (v) => { draft.reason = v; } }))),
+      actions: [
+        errorLine(hint, { testid: 'pause-hint' }),
+        button(run ? 'Save' : 'Pause these days', async () => {
+          const res = await store.pauseDays(draft.from, draft.to, draft.reason, { replacing });
+          if (res.error) { hint = res.error; api.rerender(); return; }
           await api.close();
-          await endPause(app, run);
-        }, { kind: 'secondary', name: 'end-pause-sheet' }))
-        : null,
-    );
-  }, { name: 'pause', label: run ? 'Change the pause' : 'Pause' });
+          app.flash(`Paused: ${rangeText(draft.from, draft.to)}.`, { undo: res.undo });
+        }, { block: true, name: 'save-pause' }),
+        run
+          ? button(run.from > today ? 'Remove this pause' : 'End the pause', async () => {
+            await api.close();
+            await endPause(app, run);
+          }, { kind: 'outline', block: true, name: 'end-pause-sheet' })
+          : null,
+      ].filter(Boolean),
+    };
+  }, { name: 'pause', label: title });
 }
 
-/** The pauses section on More: those running or ahead, and Add a pause. */
+/** The Pauses group on More: those running or ahead, and Add a pause. */
 export function pausesSection(ctx, app) {
   const runs = pausesAhead(ctx);
-  return h('section', { class: 'section', 'data-block': 'pauses' },
-    h('div', { class: 'label' }, 'Pauses'),
-    h('p', { class: 'small gap-s' }, 'For travel, illness or Ramadan. Fasting is not tracked on paused days and your streak holds; fullness still counts.'),
-    runs.length
-      ? h('ul', { class: 'list gap-s' }, runs.map((r) => h('li', {},
-        h('button', { type: 'button', class: 'item', 'data-pause': r.from, onclick: () => showPauseSheet(app, { run: r }) },
-          h('span', {},
-            h('span', { class: 'item-title' }, pauseWord(r.reason) || 'Paused'),
-            h('br'),
-            h('span', { class: 'item-meta' }, rangeText(r.from, r.to))),
-          h('span', { class: 'item-side' }, r.from <= ctx.todayKey ? 'Now' : 'Ahead')))))
-      : null,
-    h('div', { class: 'gap-s' }, button('Add a pause', () => showPauseSheet(app), { kind: 'secondary', name: 'add-pause' })));
+  return h('div', { class: 'more-group', 'data-block': 'pauses' },
+    h('h2', { class: 'group-title' }, 'Pauses'),
+    h('section', { class: 'section pauses-card' },
+      h('p', { class: 'more-body' }, 'For travel, illness or Ramadan. Fasting is not tracked on paused days and your streak holds; fullness still counts.'),
+      runs.length
+        ? h('ul', { class: 'list pause-list' }, runs.map((r) => {
+          const now = r.from <= ctx.todayKey;
+          return h('li', {},
+            h('button', { type: 'button', class: 'item', 'data-pause': r.from, onclick: () => showPauseSheet(app, { run: r }) },
+              h('span', {},
+                h('span', { class: 'item-title' }, pauseWord(r.reason) || 'Paused'),
+                h('br'),
+                h('span', { class: 'item-meta' }, rangeText(r.from, r.to))),
+              h('span', { class: 'item-side' }, h('span', { class: now ? 'status-tag now' : 'status-tag ahead' }, now ? 'Now' : 'Ahead'))));
+        }))
+        : null,
+      button('Add a pause', () => showPauseSheet(app), { kind: 'outline', block: true, name: 'add-pause', icon: 'plus' })));
 }

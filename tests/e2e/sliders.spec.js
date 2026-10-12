@@ -101,6 +101,30 @@ test('the tabs are one sliding track: tap or drag to switch, and the pill follow
   await pillOn(track, tab('week'));
 });
 
+test('at 320 wide every tab name keeps 8px inside the pill on each side', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 700 });
+  await openAt(page, '2026-09-26T23:00');
+  const track = page.locator('#tabbar .tabs');
+  for (const name of ['today', 'week', 'satiety', 'history', 'more']) {
+    const tab = page.locator(`.tab[data-tab="${name}"]`);
+    await tab.click();
+    await expect(tab).toHaveAttribute('aria-current', 'page');
+    await pillOn(track, tab);
+    // pillOn allows a pixel and a half; measure once the glide has ended.
+    await tab.evaluate((t) => Promise.all(t.parentElement.querySelector('.pill').getAnimations().map((a) => a.finished)));
+    const { pill, label } = await tab.evaluate((t) => {
+      const range = document.createRange();
+      range.selectNodeContents(t.querySelector('span'));
+      const l = range.getBoundingClientRect();
+      const p = t.parentElement.querySelector('.pill').getBoundingClientRect();
+      return { pill: { left: p.left, right: p.right }, label: { left: l.left, right: l.right } };
+    });
+    expect(label.left - pill.left, name).toBeGreaterThanOrEqual(8);
+    expect(pill.right - label.right, name).toBeGreaterThanOrEqual(8);
+  }
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(320);
+});
+
 test('drag along a single line of choices: History moves from 30 to 90 days', async ({ page }) => {
   await openAt(page, '2026-09-26T23:00', '#history');
   await seed(page, WEEK);

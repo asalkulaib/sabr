@@ -1,8 +1,412 @@
-/* The form sheets: start, add, finish and edit a meal, the fullness check, outside, the window times and Begin fast. */
+/* The form sheets: start, add, finish and edit a meal, the fullness check,
+   outside, the window opened, the bite times, the window times and Begin
+   fast (spec 5.3). Every one has the sheet's three parts: a fixed head, a
+   body that alone scrolls, and a fixed footer with what the change will do,
+   any error, and the one main action. In the body, fields sit 24 apart and
+   groups 32 apart, with a hairline only between the groups of a long form. */
 
 @layer screens {
 
-.stanza > p {
+/* ---------- The body: one column of fields ---------- */
+:is([data-sheet='start-meal'], [data-sheet='add-meal'], [data-sheet='finish-meal'], [data-sheet='done-eating'], [data-sheet='fullness'], [data-sheet='edit-meal'], [data-sheet='outside'], [data-sheet='opening'], [data-sheet='first-bite-time'], [data-sheet='last-bite-time'], [data-sheet='outside-bite-time'], [data-sheet='window-times'], [data-sheet='begin-fast']) .form {
+  display: flex;
+  flex-direction: column;
+  row-gap: var(--space-6);
+}
+
+/* The form's own lines sit on the row gap; a shared confirm keeps its own. */
+:is([data-sheet='start-meal'], [data-sheet='add-meal'], [data-sheet='finish-meal'], [data-sheet='done-eating'], [data-sheet='fullness'], [data-sheet='edit-meal'], [data-sheet='outside'], [data-sheet='opening'], [data-sheet='first-bite-time'], [data-sheet='last-bite-time'], [data-sheet='outside-bite-time'], [data-sheet='window-times'], [data-sheet='begin-fast']) .form p:not(.confirm-question) {
   margin: 0;
+}
+
+/* Between the groups of a long form: a hairline, 16 each side (32 apart). */
+:is([data-sheet='start-meal'], [data-sheet='add-meal'], [data-sheet='finish-meal'], [data-sheet='done-eating'], [data-sheet='fullness'], [data-sheet='edit-meal'], [data-sheet='outside'], [data-sheet='opening'], [data-sheet='first-bite-time'], [data-sheet='last-bite-time'], [data-sheet='outside-bite-time'], [data-sheet='window-times'], [data-sheet='begin-fast']) .form-rule {
+  flex: none;
+  height: 1px;
+  margin-block: calc(var(--space-4) - var(--space-6));
+  background: var(--hairline);
+}
+
+/* A field with the lines that belong to it, 8 under it. */
+:is([data-sheet='start-meal'], [data-sheet='add-meal'], [data-sheet='finish-meal'], [data-sheet='done-eating'], [data-sheet='fullness'], [data-sheet='edit-meal'], [data-sheet='outside'], [data-sheet='opening'], [data-sheet='first-bite-time'], [data-sheet='last-bite-time'], [data-sheet='outside-bite-time'], [data-sheet='window-times'], [data-sheet='begin-fast']) .form-field,
+:is([data-sheet='start-meal'], [data-sheet='add-meal'], [data-sheet='finish-meal'], [data-sheet='done-eating'], [data-sheet='fullness'], [data-sheet='edit-meal'], [data-sheet='outside'], [data-sheet='opening'], [data-sheet='first-bite-time'], [data-sheet='last-bite-time'], [data-sheet='outside-bite-time'], [data-sheet='window-times'], [data-sheet='begin-fast']) .form-act {
+  display: flex;
+  flex-direction: column;
+  row-gap: var(--space-2);
+}
+
+:is([data-sheet='start-meal'], [data-sheet='add-meal'], [data-sheet='finish-meal'], [data-sheet='done-eating'], [data-sheet='fullness'], [data-sheet='edit-meal'], [data-sheet='outside'], [data-sheet='opening'], [data-sheet='first-bite-time'], [data-sheet='last-bite-time'], [data-sheet='outside-bite-time'], [data-sheet='window-times'], [data-sheet='begin-fast']) .form-act {
+  row-gap: var(--space-3);
+}
+
+/* The body's own heading: the meal, "20 minutes after Dinner", "What set it off?". */
+:is([data-sheet='start-meal'], [data-sheet='add-meal'], [data-sheet='finish-meal'], [data-sheet='done-eating'], [data-sheet='fullness'], [data-sheet='edit-meal'], [data-sheet='outside'], [data-sheet='opening'], [data-sheet='first-bite-time'], [data-sheet='last-bite-time'], [data-sheet='outside-bite-time'], [data-sheet='window-times'], [data-sheet='begin-fast']) .form-hero {
+  font-weight: 900;
+  font-size: var(--t-title-2-size);
+  line-height: var(--t-title-2-lh);
+  letter-spacing: var(--t-title-2-track);
+  color: var(--text-display);
+  text-wrap: balance;
+}
+
+:is([data-sheet='start-meal'], [data-sheet='add-meal'], [data-sheet='finish-meal'], [data-sheet='done-eating'], [data-sheet='fullness'], [data-sheet='edit-meal'], [data-sheet='outside'], [data-sheet='opening'], [data-sheet='first-bite-time'], [data-sheet='last-bite-time'], [data-sheet='outside-bite-time'], [data-sheet='window-times'], [data-sheet='begin-fast']) .form-lead {
+  display: flex;
+  flex-direction: column;
+  row-gap: var(--space-3);
+}
+
+:is([data-sheet='start-meal'], [data-sheet='add-meal'], [data-sheet='finish-meal'], [data-sheet='done-eating'], [data-sheet='fullness'], [data-sheet='edit-meal'], [data-sheet='outside'], [data-sheet='opening'], [data-sheet='first-bite-time'], [data-sheet='last-bite-time'], [data-sheet='outside-bite-time'], [data-sheet='window-times'], [data-sheet='begin-fast']) .form-note {
+  font-weight: 600;
+  font-size: var(--t-callout-size);
+  line-height: var(--t-callout-lh);
+  color: var(--text-quiet);
+}
+
+:is([data-sheet='start-meal'], [data-sheet='add-meal'], [data-sheet='finish-meal'], [data-sheet='done-eating'], [data-sheet='fullness'], [data-sheet='edit-meal'], [data-sheet='outside'], [data-sheet='opening'], [data-sheet='first-bite-time'], [data-sheet='last-bite-time'], [data-sheet='outside-bite-time'], [data-sheet='window-times'], [data-sheet='begin-fast']) .form-intro {
+  font-weight: 600;
+  font-size: var(--t-body-size);
+  line-height: var(--t-body-lh);
+  color: var(--text-quiet);
+}
+
+[data-sheet='outside-bite-time'] .form-intro {
+  font-size: var(--t-callout-size);
+  line-height: var(--t-callout-lh);
+}
+
+/* A fixed day where Add a meal would offer Today or Yesterday. */
+:is([data-sheet='start-meal'], [data-sheet='add-meal'], [data-sheet='finish-meal'], [data-sheet='done-eating'], [data-sheet='fullness'], [data-sheet='edit-meal'], [data-sheet='outside'], [data-sheet='opening'], [data-sheet='first-bite-time'], [data-sheet='last-bite-time'], [data-sheet='outside-bite-time'], [data-sheet='window-times'], [data-sheet='begin-fast']) .form-fixed {
+  font-weight: 800;
+  font-size: var(--t-headline-size);
+  line-height: var(--t-headline-lh);
+  color: var(--text-display);
+}
+
+/* ---------- The footer: consequences, errors, the action ---------- */
+/* What the change will do, as an effect card; empty, it takes no room. */
+:is([data-sheet='start-meal'], [data-sheet='add-meal'], [data-sheet='finish-meal'], [data-sheet='done-eating'], [data-sheet='fullness'], [data-sheet='edit-meal'], [data-sheet='outside'], [data-sheet='opening'], [data-sheet='first-bite-time'], [data-sheet='last-bite-time'], [data-sheet='outside-bite-time'], [data-sheet='window-times'], [data-sheet='begin-fast']) .effect-slot > .glyph {
+  display: none;
+}
+
+:is([data-sheet='start-meal'], [data-sheet='add-meal'], [data-sheet='finish-meal'], [data-sheet='done-eating'], [data-sheet='fullness'], [data-sheet='edit-meal'], [data-sheet='outside'], [data-sheet='opening'], [data-sheet='first-bite-time'], [data-sheet='last-bite-time'], [data-sheet='outside-bite-time'], [data-sheet='window-times'], [data-sheet='begin-fast']) .effect-slot:has(> .effect:empty) {
+  display: none;
+}
+
+/* Words that say why it cannot be done read as an error line instead. */
+:is([data-sheet='start-meal'], [data-sheet='add-meal'], [data-sheet='finish-meal'], [data-sheet='done-eating'], [data-sheet='fullness'], [data-sheet='edit-meal'], [data-sheet='outside'], [data-sheet='opening'], [data-sheet='first-bite-time'], [data-sheet='last-bite-time'], [data-sheet='outside-bite-time'], [data-sheet='window-times'], [data-sheet='begin-fast']) .effect-slot.is-error {
+  display: flex;
+  align-items: flex-start;
+  column-gap: var(--space-2);
+}
+
+:is([data-sheet='start-meal'], [data-sheet='add-meal'], [data-sheet='finish-meal'], [data-sheet='done-eating'], [data-sheet='fullness'], [data-sheet='edit-meal'], [data-sheet='outside'], [data-sheet='opening'], [data-sheet='first-bite-time'], [data-sheet='last-bite-time'], [data-sheet='outside-bite-time'], [data-sheet='window-times'], [data-sheet='begin-fast']) .effect-slot.is-error > .glyph {
+  display: block;
+  flex: none;
+  width: var(--glyph);
+  height: var(--glyph);
+  margin-top: calc((var(--t-callout-lh) - var(--glyph)) / 2);
+  color: var(--text-display);
+}
+
+:is([data-sheet='start-meal'], [data-sheet='add-meal'], [data-sheet='finish-meal'], [data-sheet='done-eating'], [data-sheet='fullness'], [data-sheet='edit-meal'], [data-sheet='outside'], [data-sheet='opening'], [data-sheet='first-bite-time'], [data-sheet='last-bite-time'], [data-sheet='outside-bite-time'], [data-sheet='window-times'], [data-sheet='begin-fast']) .effect-slot.is-error > .effect {
+  padding: 0;
+  font-weight: 800;
+  font-size: var(--t-callout-size);
+  line-height: var(--t-callout-lh);
+  background: none;
+}
+
+/* Footer lines break evenly, never leaving one word on a line of its own.
+   Local until the shared lines carry it (spec 4.2). */
+:is([data-sheet='start-meal'], [data-sheet='add-meal'], [data-sheet='finish-meal'], [data-sheet='done-eating'], [data-sheet='fullness'], [data-sheet='edit-meal'], [data-sheet='outside'], [data-sheet='opening'], [data-sheet='first-bite-time'], [data-sheet='last-bite-time'], [data-sheet='outside-bite-time'], [data-sheet='window-times'], [data-sheet='begin-fast']) :is(.miss-line, .error-line, .effect-slot) {
+  text-wrap: pretty;
+}
+
+/* With an effect card showing, the keys of the lines under it stand under
+   the card's words, so the footer keeps one left edge for its words. */
+:is([data-sheet='start-meal'], [data-sheet='add-meal'], [data-sheet='finish-meal'], [data-sheet='done-eating'], [data-sheet='fullness'], [data-sheet='edit-meal'], [data-sheet='outside'], [data-sheet='opening'], [data-sheet='first-bite-time'], [data-sheet='last-bite-time'], [data-sheet='outside-bite-time'], [data-sheet='window-times'], [data-sheet='begin-fast']) .sheet-actions:has(.effect-slot:not(.is-error) > .effect:not(:empty)) :is(.miss-line, .error-line) {
+  padding-inline-start: var(--inset-pad);
+}
+
+/* A line of misses is drawn again for each new set; its holder takes no room. */
+:is([data-sheet='start-meal'], [data-sheet='add-meal'], [data-sheet='finish-meal'], [data-sheet='done-eating'], [data-sheet='fullness'], [data-sheet='edit-meal'], [data-sheet='outside'], [data-sheet='opening'], [data-sheet='first-bite-time'], [data-sheet='last-bite-time'], [data-sheet='outside-bite-time'], [data-sheet='window-times'], [data-sheet='begin-fast']) .miss-slot {
+  display: contents;
+}
+
+/* Add a meal moves its effect card between the body and the footer; the holder takes no room. */
+[data-sheet='add-meal'] .effect-home {
+  display: contents;
+}
+
+/* ---------- Time blocks ---------- */
+/* Quick times stand beside the wheel, one stack as tall as it, each pill as
+   wide as the widest, so the column reads as one control and the wheel stays
+   the larger thing. The stack ends on the right gutter, as the Close pill,
+   the tracks and the buttons do, and the wheels of a sheet stay in one
+   column. */
+:is([data-sheet='start-meal'], [data-sheet='add-meal'], [data-sheet='finish-meal'], [data-sheet='done-eating'], [data-sheet='fullness'], [data-sheet='edit-meal'], [data-sheet='outside'], [data-sheet='opening'], [data-sheet='first-bite-time'], [data-sheet='last-bite-time'], [data-sheet='outside-bite-time'], [data-sheet='window-times'], [data-sheet='begin-fast']) .wheel-row .presets {
+  justify-self: end;
+  width: max-content;
+  align-items: stretch;
+}
+
+/* Just now, alone beside its wheel, ends on the same gutter. */
+:is([data-sheet='start-meal'], [data-sheet='add-meal'], [data-sheet='finish-meal'], [data-sheet='done-eating'], [data-sheet='fullness'], [data-sheet='edit-meal'], [data-sheet='outside'], [data-sheet='opening'], [data-sheet='first-bite-time'], [data-sheet='last-bite-time'], [data-sheet='outside-bite-time'], [data-sheet='window-times'], [data-sheet='begin-fast']) .wheel-row > :is(.chip, .btn-2) {
+  justify-self: end;
+}
+
+/* Add a meal: How long it took, one stack beside the Finished at wheel, as
+   the quick times stand beside Started at. Four pills fill the wheel's five
+   rows, so the stack's label stands on the line of Finished at, at the
+   stack's left edge. Both stacks share one box, so the two asides of the
+   form share their left and right edges. */
+[data-sheet='add-meal'] [data-time='added-finish'] {
+  position: relative;
+}
+
+[data-sheet='add-meal'] .length-aside {
+  justify-self: end;
+}
+
+[data-sheet='add-meal'] .length-aside > .field-label {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: calc(2 * var(--space-16) + var(--space-4));
+}
+
+[data-sheet='add-meal'] .wheel-row .presets {
+  width: calc(2 * var(--space-16) + var(--space-4));
+}
+
+/* Add a meal on another day: Started at has no quick times, and its wheel
+   keeps the column of the Finished at wheel under it, so the form's wheels
+   line up. At 320 both are centred (below). */
+@media (min-width: 360px) {
+  [data-sheet='add-meal'] [data-time='added-start'] > .wheel {
+    display: inline-grid;
+    justify-self: start;
+  }
+}
+
+/* Meal edit from Last bite: Just now and Clear on one row under the pair,
+   ending on the right gutter under Finished. The wheel's own foot joins the
+   row; its pills keep their height and the row its gap. */
+[data-sheet='edit-meal'] .finish-row {
+  justify-content: flex-end;
+}
+
+[data-sheet='edit-meal'] .finish-row > .time-foot {
+  display: contents;
+}
+
+[data-sheet='edit-meal'] .finish-row > .time-foot > * {
+  margin-top: 0;
+}
+
+/* ---------- Start a meal ---------- */
+/* Inside an open window there is nothing to say: it takes no room. */
+[data-sheet='start-meal'] .meal-context:empty {
+  display: none;
+}
+
+[data-sheet='start-meal'] .meal-context {
+  font-weight: 800;
+  font-size: var(--t-headline-size);
+  line-height: var(--t-headline-lh);
+  color: var(--text-display);
+}
+
+/* Three lines to eat by, on their own soft card. */
+[data-sheet='start-meal'] .coach {
+  display: flex;
+  flex-direction: column;
+  row-gap: var(--space-1);
+  padding: var(--inset-pad);
+  background: var(--bg-raised);
+  border-radius: var(--r-panel);
+}
+
+[data-sheet='start-meal'] .coach p {
+  font-weight: 800;
+  font-size: var(--t-callout-size);
+  line-height: var(--t-callout-lh);
+  color: var(--text-display);
+}
+
+/* What the meal is: three on the first line, Dinner and Other on the second,
+   so the pill changes width as it crosses lines. */
+:is([data-sheet='start-meal'], [data-sheet='add-meal'], [data-sheet='finish-meal'], [data-sheet='done-eating'], [data-sheet='fullness'], [data-sheet='edit-meal'], [data-sheet='outside'], [data-sheet='opening'], [data-sheet='first-bite-time'], [data-sheet='last-bite-time'], [data-sheet='outside-bite-time'], [data-sheet='window-times'], [data-sheet='begin-fast']) .meal-type,
+:is([data-sheet='start-meal'], [data-sheet='add-meal'], [data-sheet='finish-meal'], [data-sheet='done-eating'], [data-sheet='fullness'], [data-sheet='edit-meal'], [data-sheet='outside'], [data-sheet='opening'], [data-sheet='first-bite-time'], [data-sheet='last-bite-time'], [data-sheet='outside-bite-time'], [data-sheet='window-times'], [data-sheet='begin-fast']) .meal-name {
+  display: flex;
+  flex-direction: column;
+  row-gap: var(--space-4);
+}
+
+:is([data-sheet='start-meal'], [data-sheet='add-meal'], [data-sheet='finish-meal'], [data-sheet='done-eating'], [data-sheet='fullness'], [data-sheet='edit-meal'], [data-sheet='outside'], [data-sheet='opening'], [data-sheet='first-bite-time'], [data-sheet='last-bite-time'], [data-sheet='outside-bite-time'], [data-sheet='window-times'], [data-sheet='begin-fast']) .meal-name {
+  row-gap: var(--space-2);
+}
+
+:is([data-sheet='start-meal'], [data-sheet='add-meal'], [data-sheet='finish-meal'], [data-sheet='done-eating'], [data-sheet='fullness'], [data-sheet='edit-meal'], [data-sheet='outside'], [data-sheet='opening'], [data-sheet='first-bite-time'], [data-sheet='last-bite-time'], [data-sheet='outside-bite-time'], [data-sheet='window-times'], [data-sheet='begin-fast']) [data-block='meal-type'] .choice {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+
+:is([data-sheet='start-meal'], [data-sheet='add-meal'], [data-sheet='finish-meal'], [data-sheet='done-eating'], [data-sheet='fullness'], [data-sheet='edit-meal'], [data-sheet='outside'], [data-sheet='opening'], [data-sheet='first-bite-time'], [data-sheet='last-bite-time'], [data-sheet='outside-bite-time'], [data-sheet='window-times'], [data-sheet='begin-fast']) [data-block='meal-type'] .choice > button:nth-of-type(-n + 3) {
+  grid-column: span 2;
+}
+
+:is([data-sheet='start-meal'], [data-sheet='add-meal'], [data-sheet='finish-meal'], [data-sheet='done-eating'], [data-sheet='fullness'], [data-sheet='edit-meal'], [data-sheet='outside'], [data-sheet='opening'], [data-sheet='first-bite-time'], [data-sheet='last-bite-time'], [data-sheet='outside-bite-time'], [data-sheet='window-times'], [data-sheet='begin-fast']) [data-block='meal-type'] .choice > button:nth-of-type(n + 4) {
+  grid-column: span 3;
+}
+
+/* A name typed before, as a pill; a long one ends in an ellipsis. */
+:is([data-sheet='start-meal'], [data-sheet='add-meal'], [data-sheet='finish-meal'], [data-sheet='done-eating'], [data-sheet='fullness'], [data-sheet='edit-meal'], [data-sheet='outside'], [data-sheet='opening'], [data-sheet='first-bite-time'], [data-sheet='last-bite-time'], [data-sheet='outside-bite-time'], [data-sheet='window-times'], [data-sheet='begin-fast']) .meal-name .btn-2 {
+  max-width: 100%;
+}
+
+:is([data-sheet='start-meal'], [data-sheet='add-meal'], [data-sheet='finish-meal'], [data-sheet='done-eating'], [data-sheet='fullness'], [data-sheet='edit-meal'], [data-sheet='outside'], [data-sheet='opening'], [data-sheet='first-bite-time'], [data-sheet='last-bite-time'], [data-sheet='outside-bite-time'], [data-sheet='window-times'], [data-sheet='begin-fast']) .meal-name .clip {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ---------- I'm done eating ---------- */
+[data-sheet='done-eating'] .form-hero {
+  font-size: var(--t-title-3-size);
+  line-height: var(--t-title-3-lh);
+  letter-spacing: var(--t-title-3-track);
+}
+
+/* ---------- Outside the window: the slip line ---------- */
+[data-sheet='outside'] .slip {
+  font-weight: 900;
+  font-size: var(--t-title-2-size);
+  line-height: var(--t-title-2-lh);
+  letter-spacing: var(--t-title-2-track);
+  color: var(--text-display);
+  text-wrap: balance;
+}
+
+/* It swaps in with a short crossfade. */
+[data-sheet='outside'] .sheet-body.enter > * {
+  animation-duration: var(--dur-base);
+}
+
+/* ---------- Window opened ---------- */
+/* Opened by mistake: a card of its own, 40 under Save. */
+[data-sheet='opening'] .mistake {
+  display: flex;
+  flex-direction: column;
+  row-gap: var(--space-3);
+  margin-top: var(--space-4);
+  padding: var(--inset-pad);
+  background: var(--bg-raised);
+  border-radius: var(--r-panel);
+}
+
+[data-sheet='opening'] .mistake-title {
+  font-weight: 900;
+  font-size: var(--t-headline-size);
+  line-height: var(--t-headline-lh);
+  color: var(--text-display);
+}
+
+[data-sheet='opening'] .stack-actions {
+  display: flex;
+  flex-direction: column;
+  row-gap: var(--space-3);
+}
+
+[data-sheet='opening'] .stack-actions .btn {
+  min-height: var(--btn-h-2);
+}
+
+/* ---------- Begin fast: the fast as its ring ---------- */
+[data-sheet='begin-fast'] .fast-hero {
+  display: grid;
+  grid-template-columns: var(--ring-inline) minmax(0, 1fr);
+  column-gap: var(--space-4);
+  align-items: center;
+}
+
+[data-sheet='begin-fast'] .fast-ring {
+  width: var(--ring-inline);
+  height: var(--ring-inline);
+}
+
+[data-sheet='begin-fast'] .fast-words {
+  display: flex;
+  flex-direction: column;
+  row-gap: var(--space-1);
+}
+
+[data-sheet='begin-fast'] .fast-label {
+  font-weight: 800;
+  font-size: var(--t-footnote-size);
+  line-height: var(--t-footnote-lh);
+  color: var(--fast-text);
+}
+
+[data-sheet='begin-fast'] .fast-summary {
+  font-weight: 800;
+  font-size: var(--t-headline-size);
+  line-height: var(--t-headline-lh);
+  font-variant-numeric: lining-nums tabular-nums;
+  color: var(--text-display);
+}
+
+/* ---------- A narrow phone (320) ---------- */
+/* Quick times go under their wheel as a row, and two wheels side by side
+   take narrower columns, so nothing is cut. A wheel standing over its quick
+   times has its lens across the column, as a lone wheel does. */
+@media (max-width: 359px) {
+  :is([data-sheet='start-meal'], [data-sheet='add-meal'], [data-sheet='finish-meal'], [data-sheet='done-eating'], [data-sheet='fullness'], [data-sheet='edit-meal'], [data-sheet='outside'], [data-sheet='opening'], [data-sheet='first-bite-time'], [data-sheet='last-bite-time'], [data-sheet='outside-bite-time'], [data-sheet='window-times'], [data-sheet='begin-fast']) .wheel-row {
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: var(--space-3);
+    justify-items: stretch;
+  }
+
+  :is([data-sheet='start-meal'], [data-sheet='add-meal'], [data-sheet='finish-meal'], [data-sheet='done-eating'], [data-sheet='fullness'], [data-sheet='edit-meal'], [data-sheet='outside'], [data-sheet='opening'], [data-sheet='first-bite-time'], [data-sheet='last-bite-time'], [data-sheet='outside-bite-time'], [data-sheet='window-times'], [data-sheet='begin-fast']) .wheel-row > .wheel {
+    display: grid;
+    justify-content: center;
+  }
+
+  :is([data-sheet='start-meal'], [data-sheet='add-meal'], [data-sheet='finish-meal'], [data-sheet='done-eating'], [data-sheet='fullness'], [data-sheet='edit-meal'], [data-sheet='outside'], [data-sheet='opening'], [data-sheet='first-bite-time'], [data-sheet='last-bite-time'], [data-sheet='outside-bite-time'], [data-sheet='window-times'], [data-sheet='begin-fast']) .wheel-row > :is(.chip, .btn-2, .length-aside) {
+    justify-self: center;
+  }
+
+  [data-sheet='add-meal'] .length-aside > .field-label {
+    position: static;
+    width: auto;
+    text-align: center;
+  }
+
+  /* Four lengths under the wheel: two by two, never three and one. */
+  [data-sheet='add-meal'] .wheel-row .presets.lengths {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    justify-self: center;
+    width: calc(2 * var(--space-16) + var(--space-4));
+  }
+
+  :is([data-sheet='start-meal'], [data-sheet='add-meal'], [data-sheet='finish-meal'], [data-sheet='done-eating'], [data-sheet='fullness'], [data-sheet='edit-meal'], [data-sheet='outside'], [data-sheet='opening'], [data-sheet='first-bite-time'], [data-sheet='last-bite-time'], [data-sheet='outside-bite-time'], [data-sheet='window-times'], [data-sheet='begin-fast']) .wheel-row .presets {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    justify-self: stretch;
+    width: auto;
+    max-width: 100%;
+  }
+
+  :is([data-sheet='start-meal'], [data-sheet='add-meal'], [data-sheet='finish-meal'], [data-sheet='done-eating'], [data-sheet='fullness'], [data-sheet='edit-meal'], [data-sheet='outside'], [data-sheet='opening'], [data-sheet='first-bite-time'], [data-sheet='last-bite-time'], [data-sheet='outside-bite-time'], [data-sheet='window-times'], [data-sheet='begin-fast']) .field-pair .wheel {
+    --wheel-col: calc(var(--space-12) + var(--space-2));
+    --wheel-sep: var(--space-3);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-sheet='outside'] .sheet-body.enter > * {
+    animation: none;
+  }
 }
 }

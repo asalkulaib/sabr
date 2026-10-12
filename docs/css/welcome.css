@@ -1,4 +1,77 @@
-/* The first-run welcome ([data-sheet="welcome"]). */
+/* The first-run welcome ([data-sheet="welcome"]): a white page, one title
+   per step, the actions always in the footer. */
 
 @layer screens {
+
+[data-sheet='welcome'] .welcome-step {
+  color: var(--text-quiet);
+}
+
+[data-sheet='welcome'] .welcome-page {
+  padding-top: var(--space-2);
+}
+
+[data-sheet='welcome'] .welcome-title {
+  font-size: var(--t-title-1-size);
+  line-height: var(--t-title-1-lh);
+  letter-spacing: var(--t-title-1-track);
+  color: var(--text-display);
+}
+
+[data-sheet='welcome'] .welcome-lead {
+  margin: var(--space-3) 0 0;
+  font-weight: 600;
+  font-size: var(--t-body-size);
+  line-height: var(--t-body-lh);
+  color: var(--text-body);
+}
+
+/* Step 1: Sabr's three rings as empty tracks, centred over the goal. The
+   picture carries ray room round it, which the margins take back. */
+[data-sheet='welcome'] .welcome-rings {
+  margin: calc(var(--space-8) - var(--ring-ray-room)) auto calc(-1 * var(--ring-ray-room));
+}
+
+/* The goal, as on More (more.css styles the controls); here only the room
+   above it. */
+[data-sheet='welcome'] .goal-controls {
+  margin-top: var(--space-8);
+}
+
+/* Step 2: two wheels side by side, each under its label. */
+[data-sheet='welcome'] .welcome-times {
+  margin-top: var(--space-8);
+}
+
+[data-sheet='welcome'] .welcome-times + .caption {
+  margin: var(--space-4) 0 0;
+}
+
+/* Step 3: the Home Screen steps, with badges. */
+[data-sheet='welcome'] .steps {
+  margin-top: var(--space-6);
+}
+
+[data-sheet='welcome'] .steps > li {
+  font-weight: 600;
+  font-size: var(--t-body-size);
+  line-height: var(--t-body-lh);
+  color: var(--text-body);
+}
+
+[data-sheet='welcome'] .steps.badges > li::before {
+  margin-top: calc((var(--t-body-lh) - var(--badge)) / 2);
+}
+
+[data-sheet='welcome'] .steps b {
+  font-weight: 800;
+  color: var(--text-display);
+}
+
+/* Reduce Motion: the tracks stand drawn. */
+@media (prefers-reduced-motion: reduce) {
+  [data-sheet='welcome'] .welcome-track {
+    animation: none;
+  }
+}
 }

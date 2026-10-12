@@ -261,6 +261,40 @@ export async function shot(page, name, { full = false } = {}) {
   await save(`${SCREENS_DIR}/${name}.png`, await page.screenshot({ fullPage: full }));
   expect(await audit(page), `contrast on ${name}`).toEqual([]);
   expect(await underMessage(page), `message over the sheet on ${name}`).toEqual([]);
+  expect(await smallTargets(page), `targets under 44px on ${name}`).toEqual([]);
+}
+
+/**
+ * Every button, chip, legend chip and track option on show is at least 44px
+ * tall, by its own box or by a hit area drawn as its ::after (spec 4.4, 7).
+ */
+export async function smallTargets(page) {
+  return page.evaluate(() => {
+    const HIT = 44 - 0.5;
+    const px = (v) => (/^-?[\d.]+px$/.test(v) ? parseFloat(v) : null);
+    const out = [];
+    for (const el of document.querySelectorAll('button, .btn-2, .chip, .legend-pick, [role="radio"]')) {
+      if (el.closest('[hidden], [inert]') && !el.closest('#sheet-root')) continue;
+      const cs = getComputedStyle(el);
+      if (cs.visibility === 'hidden' || cs.display === 'none') continue;
+      const r = el.getBoundingClientRect();
+      if (!r.width || !r.height) continue;
+      if (r.bottom < 0 || r.top > innerHeight) continue; // off screen: checked where it shows
+      if (r.height >= HIT) continue;
+      const a = getComputedStyle(el, '::after');
+      let hit = 0;
+      if (a.content !== 'none' && a.position === 'absolute') {
+        const h = px(a.height);
+        const top = px(a.top);
+        const bottom = px(a.bottom);
+        hit = h != null && h > 0 ? h : top != null && bottom != null ? r.height - top - bottom : 0;
+      }
+      if (hit >= HIT) continue;
+      const name = el.dataset.action || el.dataset.value || el.dataset.tab || el.getAttribute('aria-label') || el.textContent.trim().slice(0, 24);
+      out.push(`${el.tagName.toLowerCase()}.${[...el.classList].join('.')} "${name}" ${Math.round(r.height)}px`);
+    }
+    return out;
+  });
 }
 
 /**

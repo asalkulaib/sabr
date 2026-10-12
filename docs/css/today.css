@@ -1,332 +1,919 @@
-/* Today: the rings and their words, the window, the stage panel, the week row and the Fast complete note. */
+/* Today: one hero on the page (the rings and their readout, or the state of
+   the day), supporting cards under it, the week row on top. Every rule is
+   rooted in .today. */
 
 @layer screens {
 
-/* First bite and Begin fast: two equal ways in. */
-.start-actions .btn.big {
-  padding: 0 var(--s2);
-  font-size: 17px;
-}
-
-/* ---------- Countdown ---------- */
-.countdown {
-  font-family: var(--font-display);
-  font-weight: 900;
-  font-size: 60px;
-  line-height: 1;
-  letter-spacing: -0.02em;
-  text-align: center;
-  color: var(--win-text);
-  font-variant-numeric: tabular-nums lining-nums;
-}
-
-.countdown-caption {
-  text-align: center;
-  margin-top: var(--s2);
-}
-
-/* ---------- The rings ---------- */
-/* The rings on the left, the time fasted, the stage and the other rings'
-   words beside them. */
-.ring-wrap {
+/* ---------- The week row ---------- */
+.today .week-row {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  column-gap: var(--s3);
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+
+/* A day: its name over its mark. Today's name sits on an ink pill. */
+.today .week-day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  row-gap: var(--space-1);
+  width: 100%;
+  min-height: var(--row-h);
+  padding: var(--space-1) 0;
+  color: var(--text-quiet);
+  border-radius: var(--r-control);
+  transition: background-color var(--dur-fast) var(--ease-out);
+}
+
+.today .week-day .wd {
+  font-family: var(--font-ui);
+  font-weight: 800;
+  font-size: var(--t-footnote-size);
+  line-height: var(--t-footnote-lh);
+  letter-spacing: var(--t-footnote-track);
+  border-radius: var(--r-pill);
+}
+
+.today .week-day[aria-current='date'] .wd {
+  padding: 0 var(--space-2);
+  color: var(--on-select);
+  background: var(--select);
+}
+
+/* On a narrow phone, the row bleeds into the gutters so each day keeps a
+   44 wide target, and today's pill hugs its name so it stays in its column. */
+@media (max-width: 359px) {
+  .today .week-row {
+    margin-inline: calc(-1 * var(--space-3));
+  }
+
+  .today .week-day[aria-current='date'] .wd {
+    padding: 0 var(--space-1);
+  }
+}
+
+.today .week-day .cell {
+  width: var(--ring-mark);
+  height: var(--ring-mark);
+}
+
+.today .week-day:active {
+  background: var(--shade);
+}
+
+.today .week-day:focus-visible {
+  outline-offset: calc(-1 * var(--focus-w));
+}
+
+.today .week-today > .legend {
+  margin-top: var(--space-2);
+}
+
+/* ---------- The hero: one order in every mode ---------- */
+/* The context line: what state the day is in. */
+.today .hero-context {
+  margin-bottom: var(--space-3);
+  color: var(--text-quiet);
+}
+
+.today .hero-context.ctx-win {
+  color: var(--win-text);
+}
+
+.today .hero-context.ctx-ink {
+  color: var(--text-display);
+}
+
+/* The first card under a hero sits a step further off than cards do. */
+.today .hero + .section:not(.hero) {
+  margin-top: var(--space-6);
+}
+
+.today .hero > .miss-line,
+.today .ring-hero > .miss-line,
+.today .hero-primary,
+.today .hero .phase-bar,
+.today .band-wrap {
+  margin-top: var(--space-4);
+}
+
+.today .hero .phase-bar {
+  background: var(--bg-raised);
+}
+
+.today .phase-bar.miss {
+  align-items: flex-start;
+}
+
+.today .phase-bar.miss > .key {
+  margin-top: calc((var(--t-callout-lh) - var(--ring-key)) / 2);
+}
+
+.today .hero .phase-bar + .phase-bar {
+  margin-top: var(--space-2);
+}
+
+/* The actions under a hero, one pattern in every mode: the primary full
+   width, then 48 outlines two to a row; an odd last one takes the row. */
+.today .hero-actions {
+  margin-top: var(--space-2);
+}
+
+.today .hero-actions > .btn:last-child:nth-child(odd) {
+  grid-column: 1 / -1;
+}
+
+/* With nothing on record, Start a meal and Begin fast keep their pair
+   (.start-actions) but take no box: Start a meal spans the group, and
+   Begin fast and Add a meal share the row under it. */
+.today .hero-actions.with-start {
+  margin-top: var(--space-4);
+}
+
+.today .hero-actions > .start-actions {
+  display: contents;
+}
+
+.today .hero-actions > .start-actions > .btn.win {
+  grid-column: 1 / -1;
+}
+
+.today .hero-actions > .start-actions > .btn.outline {
+  min-height: var(--btn-h-2);
+  padding: 0 var(--space-3);
+  font-size: var(--t-callout-size);
+  line-height: var(--t-callout-lh);
+}
+
+/* With no primary over them (paused, no eating), they stand off the words. */
+.today .paused-text + .hero-actions,
+.today .statement + .hero-actions {
+  margin-top: var(--space-4);
+}
+
+/* On a narrow phone each action takes a row, so no label is cut. */
+@media (max-width: 359px) {
+  .today .hero-actions {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ---------- The rings and their readout ---------- */
+/* The rings at the left, the readout beside them: it is their legend. */
+.today .ring-wrap {
+  display: grid;
+  grid-template-columns: var(--ring-hero) minmax(0, 1fr);
+  column-gap: var(--space-4);
   align-items: center;
 }
 
-.ring-wrap.compact .rings {
-  width: 144px;
+.today .ring-wrap.compact {
+  grid-template-columns: var(--ring-md) minmax(0, 1fr);
 }
 
-.ring-side {
+/* Below 375 wide the hero rings are drawn at 120 (today-parts.js), so the
+   readout keeps room for its lead figure. */
+@media (max-width: 374px) {
+  .today .ring-wrap:not(.compact) {
+    grid-template-columns: var(--ring-md) minmax(0, 1fr);
+  }
+}
+
+/* The stage the fast is in, in the middle of the rings, in ink. */
+.today .rings .stage-icon {
+  stroke: var(--ink);
+}
+
+.today .ring-readout {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   min-width: 0;
 }
 
-.ring-side .label {
-  font-size: 11.5px;
+.today .ring-row {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  max-width: 100%;
+  min-width: 0;
 }
 
-.ring-side .stat-fast,
-.ring-stat.stat-fast .label {
+.today .ring-row + .ring-row {
+  margin-top: var(--space-2);
+}
+
+/* The lead row stands a little apart from the two under it. */
+.today .ring-row:first-child + .ring-row {
+  margin-top: var(--space-3);
+}
+
+/* Each ring's name in its own colour, beside its key; a striped window ring
+   names itself in the colour of a miss. */
+.today .ring-readout .legend-item {
+  font-family: var(--font-ui);
+  font-weight: 800;
+  font-size: var(--t-footnote-size);
+  line-height: var(--t-footnote-lh);
+}
+
+.today [data-ring-row='fast'] > .legend-item {
   color: var(--fast-text);
 }
 
-.ring-stat.stat-win .label {
+.today [data-ring-row='win'] > .legend-item {
   color: var(--win-text);
 }
 
-.ring-stat.stat-full .label {
+.today [data-ring-row='win'] > .legend-item.is-miss,
+.today [data-ring-row='win'] > .value.is-miss {
+  color: var(--miss-text);
+}
+
+.today [data-ring-row='full'] > .legend-item {
   color: var(--full-text);
 }
 
-.ring-goal {
-  font-weight: 700;
-  font-size: 13px;
-  line-height: 1.3;
-  color: var(--text-quiet);
-}
-
-.ring-col {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.ring-col .stage-chip {
-  margin-top: 0;
-  padding-right: 12px;
-  font-size: 13.5px;
-  white-space: nowrap;
-}
-
-.ring-side .ring-goal {
-  margin-bottom: var(--s3);
-}
-
-.ring-stat + .ring-stat {
-  margin-top: 4px;
-}
-
-.ring-stat-text {
+/* The window's and fullness' words. */
+.today .ring-row > .value {
   font-weight: 800;
-  font-size: 14px;
-  line-height: 1.3;
+  font-size: var(--t-headline-size);
+  line-height: var(--t-headline-lh);
   color: var(--text-display);
 }
 
-.ring-wrap.compact .ring-time {
-  font-size: 30px;
-}
-
-.ring-legend .legend {
-  column-gap: var(--s3);
-}
-
-.ring-time {
+/* The lead figure: the time fasted, in the fast's red; the window's time
+   left, in its green. A long figure steps down (--fig-size, set in JS). */
+.today .ring-row > [data-testid='fasting-for'],
+.today .ring-row > .countdown.value {
   font-family: var(--font-display);
   font-weight: 900;
-  font-size: 38px;
-  line-height: 1.05;
-  letter-spacing: -0.01em;
+  font-size: var(--t-display-size);
+  line-height: var(--t-display-lh);
+  letter-spacing: var(--t-display-track);
+  white-space: nowrap;
+}
+
+.today .ring-row > [data-testid='fasting-for'] {
   color: var(--fast-text);
-  font-variant-numeric: tabular-nums lining-nums;
+}
+
+.today .ring-row > .countdown.value {
+  color: var(--win-text);
+}
+
+/* Small units sit on the figure's line without making it taller. */
+.today .ring-readout .unit {
+  line-height: 0;
+}
+
+.today [data-testid='fasting-for'] .fig {
+  font-size: var(--fig-size, inherit);
+}
+
+.today .ring-wrap.compact [data-testid='fasting-for'] {
+  font-size: var(--t-title-1-size);
+  line-height: var(--t-title-1-lh);
+  letter-spacing: var(--t-title-1-track);
+}
+
+.today .ring-goal,
+.today .countdown-caption {
+  font-weight: 700;
+  font-size: var(--t-callout-size);
+  line-height: var(--t-callout-lh);
+  color: var(--text-quiet);
+}
+
+.today .ring-goal.reached {
+  font-weight: 800;
+  color: var(--text-display);
+}
+
+/* Grace: the hours are up, the minutes of grace lead. */
+.today .grace-lead {
+  margin: 0;
+}
+
+.today .grace-intro {
+  display: block;
+  font-weight: 800;
+  font-size: var(--t-callout-size);
+  line-height: var(--t-callout-lh);
+  color: var(--text-display);
+}
+
+.today .grace-lead .value,
+.today .over-lead .value {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: var(--t-display-size);
+  line-height: var(--t-display-lh);
+  letter-spacing: var(--t-display-track);
+  white-space: nowrap;
+}
+
+.today .grace-lead .value {
+  color: var(--text-display);
+}
+
+.today .grace-tail {
+  display: block;
+  font-weight: 700;
+  font-size: var(--t-callout-size);
+  line-height: var(--t-callout-lh);
+  color: var(--text-quiet);
+}
+
+/* Over: the words under the striped key, then how far over. */
+.today .over-lead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: var(--space-2);
+  margin: 0;
+  color: var(--miss-text);
+}
+
+.today .over-words {
+  font-weight: 800;
+  font-size: var(--t-headline-size);
+  line-height: var(--t-headline-lh);
+}
+
+.today .over-lead .value {
+  flex-basis: 100%;
+}
+
+/* ---------- The stage chip ---------- */
+/* Navigation to the stages: a white pill with the stage's moving icon. */
+.today .stage-chip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  column-gap: var(--space-2);
+  max-width: 100%;
+  min-height: var(--hit);
+  margin-top: var(--space-3);
+  padding: 0 var(--space-3) 0 var(--space-2);
+  font-family: var(--font-ui);
+  font-weight: 800;
+  font-size: var(--t-callout-size);
+  line-height: var(--t-callout-lh);
+  white-space: nowrap;
+  color: var(--text-display);
+  background: var(--bg-raised-2);
+  border: 2px solid var(--edge);
+  border-radius: var(--r-pill);
+  transition:
+    background-color var(--dur-fast) var(--ease-out),
+    transform var(--dur-press) var(--ease-out);
+}
+
+.today .stage-chip > svg:first-child {
+  flex: none;
+  width: var(--icon-chip);
+  height: var(--icon-chip);
+}
+
+.today .stage-chip .stage-icon {
+  stroke: var(--ink);
+  stroke-width: 2;
+}
+
+.today .stage-chip .glyph-chevron {
+  height: var(--chevron-sm-h);
+  color: var(--text-quiet);
+}
+
+.today .stage-chip:active {
+  background: var(--shade);
+  transform: scale(var(--press-scale));
+}
+
+/* ---------- Time tiles ---------- */
+.today .time-pills {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  column-gap: var(--space-2);
+  margin-top: var(--space-6);
+}
+
+.today .time-pill-value {
+  font-weight: 900;
+  font-size: var(--t-title-2-size);
+  line-height: var(--t-title-2-lh);
+  color: var(--text-display);
 }
 
 /* ---------- The window as a band ---------- */
-.chart.band {
+.today .chart.band {
   display: block;
   width: 100%;
   height: auto;
   overflow: visible;
 }
 
-/* ---------- The fast: dial, times and the main button together ---------- */
-.ring-legend .legend {
-  justify-content: center;
-  column-gap: var(--s3);
-}
-
-/* The stage under the time is a button that opens the stages. */
-.stage-chip {
-  display: inline-flex;
-  align-items: center;
-  column-gap: 6px;
-  min-height: 34px;
-  max-width: 100%;
-  margin-top: var(--s2);
-  padding: 0 14px 0 9px;
-  font-family: var(--font-ui);
-  font-weight: 800;
-  font-size: 14px;
-  line-height: 1.2;
-  color: var(--bg);
-  background: var(--ink);
-  border: 0;
-  border-radius: var(--r-pill);
-  transition: background-color 200ms ease-out;
-}
-
-.stage-chip svg {
-  width: 18px;
-  height: 18px;
-  flex: none;
-}
-
-.stage-chip .stage-icon {
-  stroke: var(--bg);
-}
-
-.stage-chip:active {
-  background: var(--text-label);
-}
-
-/* The stage panel: the stage's disc beside its name. */
-.stage-head {
-  display: flex;
-  align-items: center;
-  column-gap: var(--s3);
-}
-
-.stage-title {
-  font-size: 21px;
-}
-
-/* When the fast began and when it reaches its goal, side by side. */
-.time-pills {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  column-gap: var(--s2);
-  margin-top: var(--s4);
-}
-
-/* The window open: the rings beside the countdown. */
-.window-wrap .countdown {
-  text-align: left;
-  font-size: 52px;
-}
-
-.window-wrap .countdown-caption {
-  margin-top: 2px;
-  text-align: left;
-  font-weight: 800;
-  font-size: 13.5px;
-  color: var(--text-quiet);
-}
-
-.ring-side .stat-win {
-  color: var(--win-text);
-}
-
-.time-pill-value {
-  font-weight: 900;
-  font-size: 19px;
-  line-height: 30px;
-  color: var(--text-display);
-}
-
-/* The meal being eaten, on a soft green card. */
-.eating-now {
-  padding: var(--s3) var(--s3) var(--s3);
-  background: var(--win-soft);
+/* ---------- The meal being eaten ---------- */
+.today .eating-now {
+  margin-top: var(--space-4);
+  padding: var(--inset-pad);
   border-radius: var(--r-panel);
 }
 
-.eating-now.outside {
+/* A meal after the window is never on green: grey, with the stripes of a miss. */
+.today .eating-now.outside {
   background: var(--bg-raised);
 }
 
-.eating-line {
+.today .eating-line {
+  display: flex;
+  align-items: flex-start;
+  column-gap: var(--space-2);
+  margin: 0;
   font-weight: 900;
-  font-size: 17px;
+  font-size: var(--t-headline-size);
+  line-height: var(--t-headline-lh);
   color: var(--text-display);
 }
 
-/* The 16:00 warning: a miss in words, before it happens. */
-[data-testid='firm-reminder'] {
-  font-weight: 800;
-  font-size: 15px;
-  color: var(--miss-text);
+/* Lines that wrap keep their last words together. */
+.today .phase-bar > span,
+.today .miss-line > span,
+.today .result-line > span,
+.today .eating-line > span,
+.today .plan-row .item-title,
+.today .day-off-line > span {
+  text-wrap: balance;
 }
 
-/* The fast just ended, at the top of Today: its ring, its length, and a
-   cross to put it away. In soft red when it reached the goal. */
-.screen .section.fast-done {
+.today .eating-line > .key {
+  margin-top: calc((var(--t-headline-lh) - var(--glyph)) / 2);
+}
+
+.today .eating-finish {
+  margin-top: var(--space-3);
+}
+
+.today .eating-another {
+  margin-top: var(--space-2);
+}
+
+/* ---------- Fast complete ---------- */
+/* A callout row over the hero: the fast's key, its words and length at
+   headline size, Close at the right; the goal reached on a line under it. */
+.today .fast-done {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  column-gap: var(--s3);
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: var(--space-3);
   align-items: center;
-  padding: var(--s3) var(--s3) var(--s3) var(--s2);
+  padding: var(--space-3) var(--space-4);
 }
 
-.screen .section.fast-done.reached {
-  background: var(--fast-soft);
-}
-
-.fast-done .rings {
-  width: 76px;
-}
-
-.fast-done .label {
-  color: var(--fast-text);
-}
-
-.fast-done .display {
-  font-size: 36px;
-}
-
-.done-goal {
+.today .done-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: var(--space-2);
+  margin: 0;
   font-weight: 800;
-  font-size: 14px;
+  font-size: var(--t-headline-size);
+  line-height: var(--t-headline-lh);
+  color: var(--text-display);
 }
 
-.fast-done .close-x {
-  align-self: start;
-  color: var(--fast-text);
+.today .done-line > .key {
+  flex: none;
 }
 
-/* ---------- The week on Today ---------- */
-.week-row {
+/* Ink even when reached: the soft red card and the words say it. */
+.today .done-length {
+  font-weight: 900;
+  color: var(--text-display);
+  white-space: nowrap;
+}
+
+.today .done-length .unit {
+  font-size: var(--t-footnote-size);
+}
+
+.today .done-goal {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding-left: calc(var(--ring-key) + var(--space-2));
+  font-weight: 700;
+  font-size: var(--t-callout-size);
+  line-height: var(--t-callout-lh);
+  color: var(--text-display);
+}
+
+/* ---------- Before: the plan ---------- */
+.today .plan-line {
+  margin: 0;
+  font-weight: 800;
+  font-size: var(--t-headline-size);
+  line-height: var(--t-headline-lh);
+  color: var(--text-display);
+}
+
+.today .plan-drinks {
+  margin: var(--space-2) 0 0;
+  font-weight: 700;
+  font-size: var(--t-callout-size);
+  line-height: var(--t-callout-lh);
+  color: var(--text-quiet);
+}
+
+.today .plan-drinks:first-child {
+  margin-top: 0;
+}
+
+/* Late night, a day off, Pause today: rows with chevrons. */
+.today .plan-rows {
+  margin-top: var(--space-4);
+  border-top: 1px solid var(--hairline);
+}
+
+.today .plan-rows > * + * {
+  border-top: 1px solid var(--hairline);
+}
+
+.today .day-off-line {
   display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
-  margin-top: var(--s2);
-  padding: 0 calc(var(--panel-x) - 8px);
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: var(--space-3);
+  align-items: center;
+  min-height: var(--row-h);
+  padding: var(--space-2) 0;
+  font-weight: 700;
+  font-size: var(--t-callout-size);
+  line-height: var(--t-callout-lh);
+  color: var(--text-display);
 }
 
-.week-day {
+/* ---------- Before: nothing on record ---------- */
+.today .empty-hero,
+.today .paused-hero {
+  display: grid;
+  grid-template-columns: var(--ring-md) minmax(0, 1fr);
+  column-gap: var(--space-4);
+  align-items: center;
+}
+
+.today .empty-title,
+.today .paused-until {
+  margin-top: var(--space-1);
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: var(--t-title-1-size);
+  line-height: var(--t-title-1-lh);
+  letter-spacing: var(--t-title-1-track);
+  color: var(--text-display);
+}
+
+.today .empty-plan {
+  margin: var(--space-1) 0 0;
+  font-weight: 700;
+  font-size: var(--t-callout-size);
+  line-height: var(--t-callout-lh);
+  color: var(--text-body);
+}
+
+/* The empty tracks in each ring's own soft tint: nothing yet, in the
+   rings' colours, never a grey that reads as switched off. */
+.today .empty-rings circle:nth-child(1) {
+  stroke: var(--fast-soft);
+}
+
+.today .empty-rings circle:nth-child(2) {
+  stroke: var(--win-soft);
+}
+
+.today .empty-rings circle:nth-child(3) {
+  stroke: var(--full-soft);
+}
+
+/* The goal: its name, then the fast's and the window's hours as a small
+   GoalPair, figures at title 2. Across the hero, under the rings. */
+.today .goal-tile {
+  margin-top: var(--space-4);
+}
+
+.today .goal-tile .goal-ratio {
+  font-variant-numeric: lining-nums tabular-nums;
+}
+
+.today .goal-tile .goal-pair {
+  margin-top: var(--space-2);
+}
+
+.today .goal-tile .goal-pair-figure {
+  font-size: var(--t-title-2-size);
+  line-height: var(--t-title-2-lh);
+  letter-spacing: var(--t-title-2-track);
+}
+
+/* The rings' names under the empty rings, one to a row. */
+.today .empty-rings-col > .legend {
+  flex-direction: column;
+  row-gap: var(--space-1);
+  margin-top: var(--space-3);
+}
+
+.today .hero-hint {
+  margin: var(--space-4) 0 0;
+  font-weight: 600;
+  font-size: var(--t-callout-size);
+  line-height: var(--t-callout-lh);
+  color: var(--text-quiet);
+}
+
+/* ---------- Paused ---------- */
+.today .paused-text {
+  margin: var(--space-4) 0 0;
+}
+
+/* ---------- Forgotten close ---------- */
+.today .forgot-statement {
+  margin: 0;
+}
+
+.today .forgot-question {
+  margin: var(--space-3) 0 0;
+}
+
+.today .forgot-wheel {
+  margin-top: var(--space-4);
+}
+
+.today .forgot-error {
+  margin-top: var(--space-3);
+}
+
+/* ---------- No eating ---------- */
+.today [data-block='no-eating'] .statement {
+  margin: 0;
+}
+
+/* ---------- Window closed ---------- */
+.today .closed-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--tile-min);
+  column-gap: var(--space-4);
+  align-items: center;
+}
+
+/* The window's length, ink: the result line says success or miss. */
+.today .closed-length {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: var(--t-title-1-size);
+  line-height: var(--t-title-1-lh);
+  letter-spacing: var(--t-title-1-track);
+  color: var(--text-display);
+}
+
+.today .closed-card.hero .closed-length {
+  font-size: var(--t-display-size);
+  line-height: var(--t-display-lh);
+  letter-spacing: var(--t-display-track);
+}
+
+/* First bite and Last bite, stacked: compact tiles. */
+.today .closed-times {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  row-gap: 5px;
-  min-height: 50px;
-  padding: 4px 0 6px;
-  font-family: var(--font-ui);
-  font-weight: 500;
-  font-size: 11px;
-  line-height: 1.3;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  row-gap: var(--space-2);
+}
+
+.today .closed-times .note.tap {
+  min-width: 0;
+  min-height: var(--hit);
+  padding: var(--space-2) calc(var(--space-4) + var(--space-3)) var(--space-2) var(--space-3);
+}
+
+.today .closed-times .note.tap .tap-value {
+  font-size: var(--t-headline-size);
+  line-height: var(--t-headline-lh);
+}
+
+.today .closed-times .note.tap::after {
+  right: var(--space-3);
+}
+
+.today .closed-times .tp-qual {
+  display: block;
+  font-weight: 800;
+  font-size: var(--t-footnote-size);
+  line-height: var(--t-footnote-lh);
   color: var(--text-quiet);
-  border-radius: var(--r-control);
-  transition: background-color 250ms ease-out;
 }
 
-.week-day .cell {
-  width: 32px;
-  height: 32px;
+.today .result-line {
+  display: flex;
+  align-items: flex-start;
+  column-gap: var(--space-2);
+  margin: var(--space-4) 0 0;
+  font-weight: 800;
+  font-size: var(--t-headline-size);
+  line-height: var(--t-headline-lh);
+  color: var(--text-display);
 }
 
-/* Every day name keeps room for the line under today's, so the marks stay level. */
-.week-day .wd {
-  border-bottom: 2px solid transparent;
+.today .result-line > .key {
+  margin-top: calc((var(--t-headline-lh) - var(--glyph)) / 2);
 }
 
-.week-day[aria-current='date'] {
-  color: var(--ink);
+.today .result-miss {
+  margin-top: var(--space-4);
 }
 
-/* Today's name sits on an ink pill. */
-.week-day[aria-current='date'] .wd {
-  padding: 0 7px;
-  color: var(--bg);
-  background: var(--ink);
-  border-color: transparent;
-  border-radius: var(--r-pill);
+.today .closed-card .phase-bar,
+.today .closed-actions {
+  margin-top: var(--space-4);
 }
 
-.week-day:active {
-  background: var(--shade);
+/* Two weights: Add a meal and Start a meal as the 48 outline pair, sized
+   for a half-width cell, then the corrections as 44 tertiary pills. */
+.today .closed-actions > .btn-pair > .btn {
+  padding: 0 var(--space-3);
+  font-size: var(--t-callout-size);
+  line-height: var(--t-callout-lh);
+  letter-spacing: var(--t-callout-track);
 }
 
-.week-legend {
-  padding: 0 var(--panel-x);
+/* Both labels are short, so the pair stays side by side at 320 too. */
+@media (max-width: 359px) {
+  .today .closed-actions > .btn-pair {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: var(--space-2);
+  }
 }
 
-.week-legend .legend {
+.today .closed-actions > .btn-pair + .pill-row {
+  margin-top: var(--space-3);
+}
+
+/* The words keep one line; when the pill no longer fits beside them, it
+   takes the line under them. */
+.today .reopen-bar {
+  flex-wrap: wrap;
+  justify-content: space-between;
+  row-gap: var(--space-2);
+}
+
+.today .reopen-bar > span {
+  flex: 1 1 auto;
+}
+
+.today .closed-card .eating-now {
+  margin-top: var(--space-4);
+}
+
+.today .next-window {
+  max-width: none;
+  margin: var(--space-4) 0 0;
+  padding-top: var(--space-4);
+  font-weight: 700;
+  font-size: var(--t-callout-size);
+  line-height: var(--t-callout-lh);
+  color: var(--text-quiet);
+  border-top: 1px solid var(--hairline);
+}
+
+/* ---------- Window open ---------- */
+.today .phase-figure {
+  font-weight: 900;
+}
+
+/* ---------- The stage card ---------- */
+.today .stage-card-today.with-ring .time-pills {
+  margin-top: var(--space-4);
+}
+
+/* With the rings, the chip names the stage: a quiet count under the hairline. */
+.today .stage-card-today .stage-count {
+  margin: var(--space-6) 0 var(--space-2);
+  padding-top: var(--space-6);
+  border-top: 1px solid var(--hairline);
+  color: var(--text-quiet);
+}
+
+.today .stage-count + .stage-lines {
   margin-top: 0;
-  column-gap: var(--s3);
+}
+
+.today .stage-head {
+  display: flex;
+  align-items: center;
+  column-gap: var(--space-3);
+}
+
+.today .stage-head .label {
+  color: var(--text-quiet);
+}
+
+.today .stage-title {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: var(--t-title-3-size);
+  line-height: var(--t-title-3-lh);
+  letter-spacing: var(--t-title-3-track);
+  color: var(--text-display);
+}
+
+.today .stage-lines {
+  margin-top: var(--space-4);
+}
+
+.today .stage-line {
+  display: flex;
+  align-items: center;
+  min-height: var(--space-10);
+  padding: var(--space-2) 0;
+  text-wrap: balance;
+  font-weight: 800;
+  font-size: var(--t-headline-size);
+  line-height: var(--t-headline-lh);
+  color: var(--text-display);
+}
+
+.today .stage-line + .stage-line {
+  border-top: 1px solid var(--hairline);
+}
+
+.today .stage-text {
+  max-width: 34ch;
+  margin: var(--space-3) 0 0;
+}
+
+.today .stage-about {
+  margin-top: var(--space-4);
+}
+
+/* ---------- The Satiety pointer ---------- */
+.today .pointer-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: var(--space-3);
+  align-items: center;
+  min-height: var(--space-16);
+  padding: var(--space-3) var(--card-pad);
+}
+
+.today .pointer-label {
+  display: flex;
+  align-items: center;
+  column-gap: var(--space-2);
+  font-weight: 800;
+  font-size: var(--t-footnote-size);
+  line-height: var(--t-footnote-lh);
+  color: var(--full-text);
+}
+
+.today .pointer-text {
+  margin: 0;
+  font-weight: 800;
+  font-size: var(--t-callout-size);
+  line-height: var(--t-callout-lh);
+  color: var(--text-display);
+}
+
+/* ---------- Streak: a stat on the page ---------- */
+/* Streak and Best: two columns on one caption line and one figure line. */
+.today .stat-row[data-block='streak'] {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: start;
+  margin-top: var(--space-6);
+  padding: var(--space-4) 0;
+  background: none;
+  border-top: 1px solid var(--hairline);
+  border-radius: 0;
+}
+
+/* ---------- Check-in ---------- */
+.today .checkin-field + .checkin-field,
+.today .checkin-note + .checkin-field {
+  margin-top: var(--space-4);
+}
+
+.today .checkin-note {
+  margin: 0;
+  font-weight: 600;
+  font-size: var(--t-callout-size);
+  line-height: var(--t-callout-lh);
+  color: var(--text-quiet);
+}
+
+/* ---------- Reduce Motion ---------- */
+/* Pressing still fills; nothing scales. */
+@media (prefers-reduced-motion: reduce) {
+  .today .stage-chip {
+    transition-property: background-color;
+  }
+
+  .today .stage-chip:active {
+    transform: none;
+  }
 }
 }

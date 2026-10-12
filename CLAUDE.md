@@ -8,7 +8,7 @@ Sabr (صبر, patience) is the owner's second app: every feature and rule of Fas
 
 - The owner doesn't write code. Do all the technical work yourself (code, tests, deploys) and explain only what they must do, such as steps on the iPhone or a login, one step at a time in plain words. No code walkthroughs. Use they/them for the owner.
 - Before a big change, say what you will build and ask anything unclear first, with clear options and a recommendation. When the owner asks whether you understood, confirm before acting.
-- Check every visual change in screenshots at 390×844 before it goes live. `tests/e2e/screens.spec.js` shoots every screen into `test-results/screens/` and audits text contrast. Go live only when the owner says so.
+- Check every visual change in screenshots at 390×844 before it goes live. The screens specs (WebKit only) shoot every state into `test-results/screens/`: one `tests/e2e/screens-<group>.spec.js` per screen group, named by prefix (T Today, ST stages sheet, F form sheets, W Week and Day, H History, Weight and the import page, SA Satiety, M More, Help, Goal, Pause, Reset, Tempted and the welcome), and `screens.spec.js` for the few states no group shoots. Each state is shot once, under one name. `shot()` in `tests/e2e/helpers.js` audits text contrast (4.5:1, 3:1 at 24px), checks that a message never covers an open sheet's controls, and that every button, chip, legend chip and track option is at least 44px tall or has a 44px hit area. Add a new state to its group's spec. Go live only when the owner says so.
 - The repository is public. Never commit personal data or the owner's email address; commits use the no-reply address set in this repo's git config.
 
 ## Where things live
@@ -18,6 +18,8 @@ Sabr (صبر, patience) is the owner's second app: every feature and rule of Fas
 - The owner's data lives only in IndexedDB (database `sabr`) on their iPhone, never in this repo. It shares the asalkulaib.github.io origin with Fast, so every stored name differs from Fast's: the database, the service worker cache (`sabr-`) and the `sabr.` localStorage keys.
 - Restore accepts backups from Sabr and from Fast (same format), so the owner can move their data over when they ask.
 - Plain HTML, CSS and JavaScript modules: no framework, no build step. `docs/js/core/` holds the pure rules (ported unchanged from Fast, with their tests), `docs/js/ui/` the screens.
+- Shared UI code: `components.js` (buttons, tracks, wheels, rows, legends and `key()`, `missLine`, `errorLine`, `goalPair`), `shared.js` (header, time tiles, notices), `sheet.js` (sheets: fixed head, scrolling body, optional fixed footer), `rings.js` (every ring: `ringsSvg`, `resultRing`, `miniRing`, `weekRing`, `progressRing`, `emptyRings`; sizes in `RING`), `icons.js` (stage icons and discs, stop marks, glyphs, stripes), `palette.js` (the colours for SVG drawing), `dom.js`. Today's parts (rings hero, readout, stage panel, week row) are in `today-parts.js`.
+- CSS, in cascade layers, linked in this order by `docs/index.html` (`docs/import/index.html` links fonts, tokens, base, components and history): `fonts.css` (generated), `tokens.css` (`@layer tokens, base, components, screens;` then every token), `base.css` (reset, type classes, layout, focus, utilities), `components.css` (everything shared), then the screen files in `@layer screens`: `today.css`, `stages.css` (`[data-sheet="stages"]`), `sheets.css` (the meal, window and fast form sheets), `week.css` (Week and Day), `history.css` (History, Weight, the import page), `satiety.css` (Satiety and the fullness card), `more.css` (More, Help, Goal, Pause, Reset, Restore, Tempted and the time sheets), `welcome.css`. A screen file only uses selectors rooted in its own screen class or `data-sheet`; component CSS never names a screen. Any screen rule beats any component rule, whatever the selector. No `@import`; `tools/release.mjs` precaches every file it finds.
 
 ## Every change
 
@@ -29,21 +31,49 @@ Sabr (صبر, patience) is the owner's second app: every feature and rule of Fas
 ## Rules the tests hold you to
 
 - Colours only from the palette in `tests/unit/design.test.js`; drawing code takes them from `docs/js/ui/palette.js`, which must match the CSS tokens. Corners only `0` or the radius tokens. No shadows, gradients, blur or glass.
+- Every style comes from a token (`tests/unit/guards.test.js`, the spec's guards): no hex or `rgba(` outside `tokens.css`, `palette.js`, `icon.svg` and the theme colours; no px font size or line height outside `tokens.css`, weights only 600 to 900; margin, padding and gap from `--space-*` and the aliases (only borders and outlines may be a raw 1, 2 or 3px); transitions and animations from `--dur-*`, `--delay-*`, `var(--delay)` and `--ease-*` (never the keyword `ease` or a raw `cubic-bezier(`); every CSS file that animates has its own `prefers-reduced-motion` block, with no keyframes in it; no uppercase; every ring size one of the ring tokens. `tests/unit/tokens.test.js` pins the token values and keeps the ring sizes and the wheel row the same in CSS and JS. `tests/unit/legend.test.js` holds every legend to a `key()` kind.
+- Only `transform` and `opacity` animate, with two exceptions: the sliding pill's width, and ring arcs' `stroke-dashoffset`. Colour may fade at `--dur-fast`.
 - Copy in the app and README: short and direct, with no em dashes, emojis, checkmarks or "it's not X, it's Y".
 - The Content Security Policy blocks inline `style` attributes and `<style>`: set dynamic values with `element.style.setProperty`.
 - Nothing loads from another origin; the font (Nunito) is bundled (`npm run fonts` copies it from `@fontsource/nunito`).
 
 ## Design decisions the owner made (October 2026)
 
-- Direction A, Rings, chosen from three (Rings, Calm, Bold), inspired by Apple Fitness, Whoop and Oura, Zero and Gentler Streak, Nike and Strava. Light theme only. Name Sabr.
-- White page, soft grey cards, ink text, Nunito. Three colours, one meaning each: red the fast, green the eating window, blue fullness. A miss is orange stripes and always has words. Weight is indigo. Every colour-coded visual has a labelled legend.
-- Today leads with three rings (`docs/js/ui/rings.js`, used by `docs/js/ui/stages.js`): outer red fills from the last bite to the fasting goal and laps past it; middle green fills as the window is used, closes full on a successful day, stripes on a miss; inner blue closes when the day is left wanting (`dayFullness` is `before_full`). The owner confirmed these meanings. They show existing facts only, no new rules.
+- Direction A, Rings, chosen from three (Rings, Calm, Bold), inspired by Apple Fitness, Whoop and Oura, Zero and Gentler Streak, Nike and Strava. Light theme only. Name Sabr. Fast's scenery, sand, gold and sun dial are gone by design.
+- White page, soft grey cards, ink text, Nunito, sentence case everywhere (no uppercase). Colour means one thing: red the fast, green the eating window, blue fullness (left wanting), orange stripes with words a miss, indigo weight. Navigation, selection, focus, primary actions, timers and destructive actions are ink; no ring colour is ever used for chrome. Green fills only Start a meal and Finished this meal (ink words). Every colour-coded visual has a labelled legend, and each key takes the exact shape of its mark.
+- One hero per screen, on the white page with no frame: the rings and their readout on Today, the week's ring and "4 of 7" on Week, the day's result ring on a day, the average figure (56) and the full-width chart on History and Weight, the drift on Satiety, the goal (GoalPair and presets) on More, the stages line on the stages sheet, one headline on Tempted. Grey cards hold supporting content only. `.strong` stays on Today's lead block as a test hook and draws nothing; `.hero` styles the lead.
+- Today leads with three rings (`dayRings` and `ringHero` in `docs/js/ui/today-parts.js`, drawn by `rings.js`): outer red fills from the last bite to the fasting goal and laps past it in `--fast-deep`; middle green fills as the window is used, closes full on a successful day, stripes on a miss; inner blue closes when the day is left wanting (`dayFullness` is `before_full`). A closed ring means achieved, a striped ring a miss, a dashed ring still ahead. The owner confirmed these meanings. They show existing facts only, no new rules.
 - The week row on Today and the Week schedule show each day as its window ring, with a blue dot when left wanting.
-- Celebrations are big (owner's choice): when the fast reaches its goal, a window closes on a success or a day is left wanting, the rings spin and that ring's rays burst twice. Each moment once per phone (`sabr.celebrated` in localStorage); a redraw during it carries it on. Reduce Motion stops all movement.
-- The stage icons move (kept from Fast): the stage the fast is in, in the middle of the rings and on the stage button under them.
-- Start a meal and Finished this meal are green with ink words; other main actions are ink.
-- Planned and agreed: a short skippable welcome on first open (goal, planned start times, Add to Home Screen). Not built yet.
-- Fast's scenery, sand, gold and sun dial are gone by design.
+- Rings draw to their value when shown (the first paint of a session, or after an action with `animate`), keyed by role (`key: 'hero'`), not by size. Celebrations are big (owner's choice): when the fast reaches its goal, a window closes on a success or a day is left wanting, only the celebrated ring spins and its own rays burst twice; moments that coincide run fast, window, fullness, 300ms apart. Each moment once per phone (`sabr.celebrated` in localStorage); a redraw during it carries it on.
+- Sheets slide up from the bottom; under Reduce Motion they fade in 150ms. Close is a 44px pill with words. A message (the toast with Undo) shows above sheets, never under them.
+- Every choice, every rating and the tab bar are sliding tracks with an ink pill; the tab bar's pill is ink too (no red). Buttons come in three heights only: 56 primary, 48 secondary outline, 44 tertiary pill; labels never wrap.
+- Overfull is an ink diamond, never orange and never stripes (orange means a miss). Satisfied is a grey square with a quiet edge, Left wanting a blue triangle with a dark edge (`STOP_MARKS` in `icons.js`). Satiety's comfortable zone is a grey band.
+- The stage icons move (kept from Fast): the stage the fast is in, in the middle of the rings and on the stage chip under them. Movement only; Reduce Motion stops them, and everything inside `.rings`, `.stage-chip` and `.stage-stop` is `animation: none` then.
+- Reduce Motion: nothing moves. Spatial motion becomes an opacity fade of 150ms or less; celebrations, ring draws, stage icons, spinners and chart rises stop.
+- The first-run welcome (`docs/js/ui/welcome.js`) sets the goal and planned start times and shows how to add Sabr to the Home Screen. It shows once, only on a fresh install with nothing logged, never after a restored backup or over a fresh weight import, and leaves out the Home Screen step when opened from the Home Screen.
+
+### The owner's answers of 12 October 2026 (all built)
+
+1. Overfull is an ink diamond everywhere (Satiety charts and legends, keys, the fullness card, meal rows, Day).
+2. The tab bar selection is ink.
+3. Sheets slide up; under Reduce Motion, a 150ms fade.
+4. Rings draw to their value when shown (`stroke-dashoffset`), not under Reduce Motion.
+5. When a moment is celebrated, only the celebrated ring spins.
+6. I'm done eating and Window times (Change times) show a miss line, in Add a meal's words and style, when the new times would make the day a miss. They reuse the rules in `docs/js/core`; there are no new rules.
+7. Touching or dragging along the History chart reads the day under the finger, as on Weight. Tapping still selects a day; the readout and Open this day follow.
+8. More has the group titles "Reminders" and "Your data", after "Settings".
+
+Still to ask the owner, not built: an "All meals" tag on Satiety leads while a filter is on; showing one date ("27 Sep") when History's range is a single day; testing Satiety's drift on the rounded value; the copy of a future day before tracking started ("Before tracking started." above "This day has not started yet.").
+
+### Tokens (`docs/css/tokens.css`, the only file with raw values)
+
+- Colour: `--bg`, `--bg-raised` (cards), `--bg-raised-2`, `--text-display`/`--ink`, `--text-body`, `--text-label`, `--text-quiet`, `--text-marginalia` (decoration only), `--track`; the ring colours `--fast`, `--fast-soft`, `--fast-text`, `--fast-deep`, `--win`, `--win-soft`, `--win-text`, `--full`, `--full-soft`, `--full-text`, `--miss`, `--miss-text`, `--weight`, `--weight-soft`, `--weight-text`; ink alphas `--rule-quiet` (hairlines), `--shade` (pressed and track ground), `--edge` (outlines and quiet marks that must be seen, 3:1), `--scrim`; roles `--focus`, `--select`, `--on-select`, `--hairline`. `--night` is for the Home Screen icon only. A mark in a ring colour at 28px or less gets a 1px edge in its `*-text` tone.
+- Type: ten steps, each a `-size`, `-lh` and `-track` triple, used through the `.t-*` classes: hero 56, display 40, title-1 32, title-2 24, title-3 20, headline 17, body 17/26, callout 15, footnote 13, micro 11 (tab labels only). Chart text `--t-chart`, `--t-chart-end`, `--t-chart-word`. Figures are lining and proportional; `.tabular` for numbers that tick or line up. Figures are ink, except a ring's live figure in its readout.
+- Space: `--space-N` is N x 4px (1 to 24). Aliases: `--card-pad` 20 (full-width cards), `--inset-pad` 16 (nested cards and half-width tiles), `--card-gap` 12, `--group-gap` 32, `--sheet-pad` 20, `--hit` 44, `--btn-h` 56, `--btn-h-2` 48, `--track-h` 52, `--tabbar-h` 56, and the safe-area layout values (`--gutter-l`, `--screen-pad-*`, `--sheet-*`, `--flash-*`). Component sizes (`--row-h`, `--tile-h`, `--wheel-row` and the like) are named too. The narrow-phone breakpoints (359px and 374px) are written in the media queries, since those cannot read tokens.
+- Radius: `--r-pill`, `--r-control` 12, `--r-panel` 24, `--r-sheet` 28.
+- Rings: `--ring-key` 14, `--ring-mark` 28, `--ring-inline` 56, `--ring-md` 120, `--ring-hero` 184, `--ring-focus` 224, each with a `-stroke`, the same as `RING` in `rings.js`.
+- Motion: `--ease-out`, `--ease-in`, `--ease-in-out`, `--ease-linear`; `--dur-press` 100, `--dur-fast` 160, `--dur-base` 240, `--dur-glide` 300, `--dur-sheet` 380, `--dur-chart` 600, `--dur-burst` 900, `--dur-spin` 1100, `--dur-reduced` 150, `--dur-spinner`, `--dur-loop-1` to `-8` (the stage icons); `--delay-*` for fixed delays and steps; `--press-scale` 0.97 (buttons, chips, tiles and track labels press to it; rows take the `--shade` fill only).
+- Layers: `--z-sticky` 2, `--z-tabbar` 10, `--z-sheet` 20, `--z-toast` 30.
 
 ## Behaviour decisions carried over from Fast (keep them)
 
@@ -66,6 +96,9 @@ Sabr (صبر, patience) is the owner's second app: every feature and rule of Fas
 - The app redraws once just after starting (it saves the `persisted` setting). `openAt` and `seed` in `tests/e2e/helpers.js` wait for that redraw; anything that reloads the page must wait too.
 - WebKit can run `locator.evaluate` on an element a redraw just removed, so `setTime` and the slider drag helper retry.
 - When cutting CSS, remove exact brace-matched rule blocks, never "from here to the next heading".
+- `shot()` waits for every finite animation to end (`settleMotion`) before it shoots, so ring draws and sheets are at rest. A state shot right after an action that raises a message should wait for the message first.
+- The time tile keeps its label outside the button (tests read the button's text and count the `.label`s); a `::after` overlay makes the whole tile tappable.
+- A ring's draw state is keyed by its role (`key` on `ringsSvg`), so a layout change that resizes a ring never replays its draw.
 
 ## Cloud sessions
 

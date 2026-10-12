@@ -79,7 +79,7 @@ export const STAGES = [
   },
 ];
 
-export const AUTOPHAGY_NOTE = 'Autophagy is how cells clear out and recycle worn parts. Fasting switches it on in cell and animal studies, and early human studies point the same way, but when it starts in people is not known. So Fast does not place it on the clock.';
+export const AUTOPHAGY_NOTE = 'Autophagy is how cells clear out and recycle worn parts. Fasting switches it on in cell and animal studies, and early human studies point the same way, but when it starts in people is not known. So Sabr does not place it on the clock.';
 
 export const VARIATION_NOTE = 'The hours are typical, not exact. They shift with the size of your last meal and how active you are.';
 

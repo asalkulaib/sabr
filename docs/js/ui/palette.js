@@ -34,5 +34,3 @@ export const WEIGHT_TEXT = '#3C3CC0';
 export const GRID = 'rgba(14, 14, 18, 0.12)';
 /** Outlines and quiet marks that must be seen (--edge): 3:1 on white and on the cards. */
 export const EDGE = 'rgba(14, 14, 18, 0.5)';
-/** Legacy name for EDGE, kept until every screen draws with EDGE; removed in Phase 2. */
-export const FAINT = EDGE;

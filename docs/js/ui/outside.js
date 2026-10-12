@@ -1,4 +1,5 @@
 // Eating outside the window: recorded without judgment, with its trigger.
+// No orange here: the sheet records, and Today states the miss.
 
 import { h } from './dom.js';
 import { button, choice, timeField, TRIGGER_OPTIONS } from './components.js';
@@ -6,7 +7,7 @@ import { openSheet, sheetHead } from './sheet.js';
 import * as store from '../store.js';
 import { addDays, at, minutesOfDay, now } from '../core/time.js';
 import { LATE_NIGHT_END_MIN, lateNightDay } from '../core/rules.js';
-import { latestAtOrBefore } from './meal.js';
+import { errLine, form, formHero, latestAtOrBefore, say } from './meal.js';
 import { nextWindowLine } from './shared.js';
 
 /**
@@ -27,10 +28,11 @@ export const AMOUNT_OPTIONS = [
 
 /** After a slip: one line pointing to the next window, nothing else. */
 export function slipLine(app, day, api) {
-  return h('div', {},
-    sheetHead(api, 'Outside the window'),
-    h('p', { class: 'statement', 'data-testid': 'slip-line' }, nextWindowLine(app.ctx(), day)),
-    h('div', { class: 'gap-l' }, button('Done', () => api.close(), { block: true, name: 'done' })));
+  return {
+    head: sheetHead(api, 'Outside the window'),
+    body: form(h('p', { class: 'slip', 'data-testid': 'slip-line' }, nextWindowLine(app.ctx(), day))),
+    actions: button('Done', () => api.close(), { block: true, name: 'done' }),
+  };
 }
 
 /**
@@ -42,22 +44,26 @@ export function showOutsideSheet(app, { day, trigger = null } = {}) {
   let hint = '';
   openSheet((api) => {
     if (saved) return slipLine(app, day, api);
-    return h('div', {},
-      sheetHead(api, 'Outside the window'),
-      h('h2', { class: 'h2' }, 'What set it off?'),
-      h('section', { class: 'section gap' },
-        choice({ options: TRIGGER_OPTIONS, value: draft.trigger, onChange: (v) => { draft.trigger = v; }, cols: 3, name: 'trigger' })),
-      h('section', { class: 'section' },
-        choice({ label: 'How much', options: AMOUNT_OPTIONS, value: draft.amount, onChange: (v) => { draft.amount = v; }, cols: 2, name: 'amount' })),
-      h('section', { class: 'section' },
-        timeField({ label: 'At', minutes: draft.minutes, name: 'outside-at', onChange: (m) => { draft.minutes = m; } })),
-      hint ? h('p', { class: 'quiet small' }, hint) : null,
-      h('div', { class: 'gap' }, button('Save', async () => {
-        if (!draft.trigger) { hint = 'Pick what set it off.'; api.rerender(); return; }
-        await store.addOutside({ day, at: outsideTime(app.ctx(), day, draft.minutes), trigger: draft.trigger, amount: draft.amount, source: 'today' });
-        saved = true;
-        api.replace((a) => slipLine(app, day, a));
-      }, { block: true, name: 'save-outside' })),
-    );
+    // Asked to pick what set it off, the line goes once it is picked.
+    const hintEl = errLine(hint);
+    return {
+      head: sheetHead(api, 'Outside the window'),
+      body: form(
+        h('div', { class: 'form-lead' },
+          formHero('What set it off?'),
+          choice({ options: TRIGGER_OPTIONS, value: draft.trigger, onChange: (v) => { draft.trigger = v; hint = ''; say(hintEl, ''); }, cols: 3, name: 'trigger', ariaLabel: 'What set it off?' })),
+        choice({ label: 'How much', options: AMOUNT_OPTIONS, value: draft.amount, onChange: (v) => { draft.amount = v; }, cols: 2, name: 'amount' }),
+        timeField({ label: 'At', minutes: draft.minutes, name: 'outside-at', onChange: (m) => { draft.minutes = m; } }),
+      ),
+      actions: [
+        hintEl,
+        button('Save', async () => {
+          if (!draft.trigger) { hint = 'Pick what set it off.'; api.rerender(); return; }
+          await store.addOutside({ day, at: outsideTime(app.ctx(), day, draft.minutes), trigger: draft.trigger, amount: draft.amount, source: 'today' });
+          saved = true;
+          api.replace((a) => slipLine(app, day, a));
+        }, { block: true, name: 'save-outside' }),
+      ],
+    };
   }, { name: 'outside', label: 'Outside the window' });
 }

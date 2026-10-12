@@ -148,9 +148,29 @@ function firstShow(key) {
 }
 
 /**
+ * How much of a turn an arc may show and still read as open: its round caps
+ * reach half a stroke past each end, so short of a full turn the arc stops
+ * where a 2px gap stays clear at 12 o'clock. A ring closes only at frac 1.
+ */
+const openMost = (r, w) => 1 - (w + 2) / (2 * Math.PI * r);
+const shownFrac = (frac, r, w) => (frac >= 1 ? 1 : Math.min(frac, openMost(r, w)));
+
+/** True when an arc this long is shorter than its own stroke is wide. */
+const tooShort = (frac, r, w) => frac * 2 * Math.PI * r < w;
+
+/** A disc the width of the stroke at the head of an arc of frac. */
+function headDisc(c, r, w, frac, fill, extra = {}) {
+  const [x, y] = at(c, c, r, frac);
+  return s('circle', { cx: x.toFixed(2), cy: y.toFixed(2), r: w / 2, fill, stroke: 'none', ...extra });
+}
+
+/**
  * One ring. value: { frac, miss, testid, hours }. Past a whole turn the ring
  * laps itself: the full ring, then the current lap, (frac - 1) mod 1, in a
- * deeper shade with a cap that shows where it stands.
+ * deeper shade, butt at 12 o'clock with a disc at its head that shows where
+ * it stands. An arc shorter than its stroke is only that disc (the window,
+ * nothing until it is a stroke long). A miss is
+ * stripes to its value (the whole ring at 1), fading in rather than drawing.
  */
 function oneRing(c, r, w, kind, value, from, step) {
   const k = KIND[kind];
@@ -159,28 +179,44 @@ function oneRing(c, r, w, kind, value, from, step) {
   const tag = { 'data-testid': value.testid || null, 'data-ring': kind, 'data-frac': frac.toFixed(3), 'data-hours': value.hours ?? null };
   if (value.miss) {
     const m = hatch(P.MISS, P.PAGE);
-    const ring = s('circle', { cx: c, cy: c, r, fill: 'none', stroke: m.fill, 'stroke-width': w, class: 'ring-miss', ...tag });
+    let ring;
+    if (frac >= 1) ring = s('circle', { cx: c, cy: c, r, fill: 'none', stroke: m.fill, 'stroke-width': w, class: 'ring-miss', ...tag });
+    else if (frac <= 0) ring = s('circle', { cx: c, cy: c, r, fill: 'none', stroke: 'none', class: 'ring-miss', ...tag });
+    else if (tooShort(frac, r, w)) ring = headDisc(c, r, w, frac, m.fill, { class: 'ring-miss', ...tag });
+    else ring = dashArc(c, c, r, w, m.fill, shownFrac(frac, r, w), { class: 'ring-miss', ...tag });
     out.push(m.defs, from != null ? fadeFrom(ring, step) : ring);
     return out;
   }
-  if (frac <= 0) {
+  // The window shows nothing until it is a stroke long: just opened, its dot
+  // would sit under the fast's head at 12 o'clock and read as one blob.
+  if (frac <= 0 || (kind === 'win' && tooShort(frac, r, w))) {
     out.push(s('circle', { cx: c, cy: c, r, fill: 'none', stroke: 'none', ...tag }));
     return out;
   }
-  // A sliver still shows: the round cap makes a dot at the top.
-  const main = dashArc(c, c, r, w, k.color, Math.max(Math.min(frac, 1), 0.002), { class: 'ring-arc', ...tag });
+  if (tooShort(frac, r, w)) {
+    const dot = headDisc(c, r, w, frac, k.color, { class: 'ring-head', ...tag });
+    out.push(from != null ? fadeFrom(dot, step) : dot);
+    return out;
+  }
+  const main = dashArc(c, c, r, w, k.color, shownFrac(frac, r, w), { class: 'ring-arc', ...tag });
   if (from != null) drawFrom(main, Math.min(from, 1), step);
   out.push(main);
   const lap = frac > 1 ? (frac - 1) % 1 : 0;
-  if (lap > 0.005) {
+  if (lap > 0) {
     const lapFrom = from == null ? null : from > 1 ? (from - 1) % 1 : 0;
     const after = from != null && from < 1 ? 1 : 0;
-    const arc = dashArc(c, c, r, w, k.deep, lap, { class: 'ring-arc ring-lap' });
-    if (lapFrom != null) drawFrom(arc, lapFrom, step, after);
-    const [ex, ey] = at(c, c, r, lap);
-    const cap = s('circle', { class: 'ring-cap', cx: ex.toFixed(2), cy: ey.toFixed(2), r: w / 2, fill: k.deep, stroke: k.color, 'stroke-width': 1.5 });
+    // The lap starts square at 12 o'clock; its head disc reaches half a
+    // stroke past its end, so it stops short enough to leave a gap there.
+    const most = 1 - (w / 2 + 2) / (2 * Math.PI * r);
+    const shownLap = Math.min(lap, most);
+    if (!tooShort(lap, r, w)) {
+      const arc = dashArc(c, c, r, w, k.deep, shownLap, { class: 'ring-arc ring-lap', 'stroke-linecap': 'butt' });
+      if (lapFrom != null) drawFrom(arc, Math.min(lapFrom, most), step, after);
+      out.push(arc);
+    }
+    const cap = headDisc(c, r, w, shownLap, k.deep, { class: 'ring-cap' });
     if (from != null) fadeFrom(cap, step, after + 1);
-    out.push(arc, cap);
+    out.push(cap);
   }
   return out;
 }
@@ -216,9 +252,11 @@ function radii(size, w) {
  * rings: { fast, win, full }, each { frac, miss?, testid?, hours? }; a ring
  * left out is not drawn. centre: (c, size) => an SVG node set in the middle
  * at (c, c), such as the stage icon. animate: a user action changed a ring,
- * so it draws from its old value to the new one.
+ * so it draws from its old value to the new one. key: the picture's role
+ * ('hero', say), so a picture that changes size is still the same rings and
+ * does not draw again from empty; without it, the size is the role.
  */
-export function ringsSvg(rings, { size = RING.hero.size, centre = null, cls = '', animate = false } = {}) {
+export function ringsSvg(rings, { size = RING.hero.size, centre = null, cls = '', animate = false, key = null } = {}) {
   const w = strokeFor(size);
   const box = size + RAY_ROOM * 2;
   const c = box / 2;
@@ -228,7 +266,7 @@ export function ringsSvg(rings, { size = RING.hero.size, centre = null, cls = ''
   for (const kind of ORDER) {
     if (!rings[kind]) continue;
     const v = rings[kind];
-    const from = drawPlan(`${size}:${kind}`, v.miss ? -1 : Math.max(0, v.frac || 0), animate);
+    const from = drawPlan(`${key ?? size}:${kind}`, v.miss ? -1 : Math.max(0, v.frac || 0), animate);
     parts.push(s('g', { class: `ring-${kind} ring-spin spin-${kind}` }, ...oneRing(c, rr[kind], w, kind, v, from == null ? null : Math.max(0, from), step)));
     step += 1;
   }
@@ -344,10 +382,17 @@ export function resultRing(result, size, { leftWanting = false, draw = null } = 
   const parts = [];
   const ring = (stroke, width, extra = {}) => s('circle', { cx: c, cy: c, r, fill: 'none', stroke, 'stroke-width': width, ...extra });
   if (KEPT.includes(result)) {
-    const edge = dashArc(c, c, r, w, P.WIN_TEXT, 1, { 'stroke-linecap': 'butt' });
-    const fill = dashArc(c, c, r, w - 2, P.WIN, 1, { 'stroke-linecap': 'butt' });
-    if (animate) { drawFrom(edge, 0); drawFrom(fill, 0); }
-    parts.push(edge, fill);
+    // A closed ring is one closed circle: two dash ends meeting at 12
+    // o'clock leave a hairline seam in some engines. Only while it draws is
+    // it a dash, and the dash goes once the draw ends.
+    if (animate) {
+      const arcs = [dashArc(c, c, r, w, P.WIN_TEXT, 1, { 'stroke-linecap': 'butt' }), dashArc(c, c, r, w - 2, P.WIN, 1, { 'stroke-linecap': 'butt' })];
+      for (const a of arcs) {
+        drawFrom(a, 0);
+        a.addEventListener('animationend', () => { a.removeAttribute('stroke-dasharray'); a.classList.remove('ring-draw'); }, { once: true });
+      }
+      parts.push(...arcs);
+    } else parts.push(ring(P.WIN_TEXT, w), ring(P.WIN, w - 2));
   } else if (result === 'miss') {
     const m = hatch(P.MISS, P.PAGE);
     const g = s('g', {}, ring(P.MISS_TEXT, w), ring(m.fill, w - 2));

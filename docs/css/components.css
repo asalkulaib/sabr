@@ -88,6 +88,7 @@
 .effect {
   font-size: var(--t-headline-size);
   line-height: var(--t-headline-lh);
+  text-wrap: pretty;
 }
 
 .section .callout,
@@ -204,6 +205,9 @@
 .head {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
+  /* At least a pill's height, so the title stays put when Tempted? comes
+     and goes. */
+  grid-template-rows: minmax(var(--hit), auto);
   align-items: end;
   column-gap: var(--space-3);
   padding-bottom: var(--space-4);
@@ -491,6 +495,11 @@ a.chip {
   gap: var(--space-3);
 }
 
+/* Each wheel there sits centred in its column, so its label does too. */
+.field-pair > .time-wrap > .field-label {
+  text-align: center;
+}
+
 /* Four outline actions, two by two. */
 .btn-grid {
   display: grid;
@@ -544,6 +553,12 @@ a.chip {
 
 .confirm .btn {
   min-height: var(--btn-h-2);
+}
+
+/* Inside a grey card, the question sits on white, like a callout there. */
+.card .confirm,
+.section .confirm {
+  background: var(--bg);
 }
 
 /* A round button with a drawn cross, to put a note away: 44 to touch. */
@@ -722,9 +737,15 @@ a.chip {
   line-height: var(--t-footnote-lh);
 }
 
-/* When the words do not fit across, one column of rows. */
+/* When the words do not fit across, one column of rows, read as a list:
+   marks and words start on one line at the left. */
 .choice.fit.stacked {
   grid-template-columns: minmax(0, 1fr);
+}
+
+.choice.fit.stacked button {
+  justify-content: flex-start;
+  padding: 0 var(--space-4);
 }
 
 /* Until the first measure says flat or stacked, the track is not drawn, so
@@ -1521,11 +1542,6 @@ a.chip {
   pointer-events: none;
 }
 
-.time-pill:has(> button:active) {
-  background: var(--shade);
-  transform: scale(var(--press-scale));
-}
-
 .time-pill:has(> button:focus-visible) {
   outline: var(--focus-w) solid var(--focus);
   outline-offset: var(--focus-gap);
@@ -1550,6 +1566,12 @@ a.chip {
 
 .time-pill.plain::after {
   display: none;
+}
+
+/* Pressed, after the reached and plain looks, so a reached tile greys too. */
+.time-pill:has(> button:active) {
+  background: var(--shade);
+  transform: scale(var(--press-scale));
 }
 
 /* ---------- Notices (3.11) ---------- */
@@ -1581,12 +1603,18 @@ a.chip {
   flex: none;
 }
 
+/* No one-word last line beside the pill. */
+.notice > span {
+  text-wrap: balance;
+}
+
 /* ---------- Miss and error lines (3.10) ---------- */
 .miss-line,
 .error-line {
   display: flex;
   align-items: flex-start;
   column-gap: var(--space-2);
+  text-wrap: pretty;
   font-weight: 800;
   font-size: var(--t-callout-size);
   line-height: var(--t-callout-lh);
@@ -1746,6 +1774,9 @@ html.sheet-open .flash-root {
   justify-content: center;
   row-gap: var(--space-1);
   height: var(--tab-h);
+  min-width: 0;
+  padding-inline: var(--space-2);
+  white-space: nowrap;
   font-family: var(--font-ui);
   font-weight: 800;
   font-size: var(--t-micro-size);
@@ -1783,6 +1814,18 @@ html.sheet-open .flash-root {
 
 .tab[aria-current='page']:focus-visible {
   outline-color: var(--focus-on-ink);
+}
+
+/* Under 360 wide the space between tabs goes to the tabs, and the micro
+   tracking closes, so the longest name keeps --space-2 inside its pill. */
+@media (max-width: 359px) {
+  .tabs {
+    column-gap: 0;
+  }
+
+  .tab {
+    letter-spacing: 0;
+  }
 }
 
 /* ---------- Sheets (3.13) ---------- */
@@ -2379,46 +2422,6 @@ button:active > .stage-disc,
 button:active .stage-disc {
   transform: scale(var(--press-scale));
 }
-
-/* Without a state, a disc wears its stage's shade, from soft grey to ink. */
-.stage-disc:not([data-state]).s-ketones .stage-icon,
-.stage-disc:not([data-state]).s-brain .stage-icon,
-.stage-disc:not([data-state]).s-sparing .stage-icon {
-  stroke: var(--bg);
-}
-
-.s-digesting {
-  background: var(--bg-raised);
-}
-
-.s-settling {
-  background: var(--track);
-}
-
-.s-switch {
-  background: var(--fast-soft);
-}
-
-/* The stages past a day are dark, with light words. */
-.s-ketones {
-  background: var(--fast-text);
-}
-
-.s-brain {
-  background: var(--fast-deep);
-}
-
-.s-sparing {
-  background: var(--ink);
-}
-
-.stage-disc[data-state] {
-  background: none;
-}
-
-.stage-disc.is-passed[data-state] { background: var(--fast-soft); }
-.stage-disc.is-now[data-state] { background: var(--fast); }
-.stage-disc.is-ahead[data-state] { background: var(--bg); }
 
 /* Now, on the stages line. */
 .now-tag {

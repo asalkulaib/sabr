@@ -2,14 +2,15 @@
 // against fasting. Each event records time, trigger and outcome.
 
 import { h, live } from './dom.js';
-import { button, choice, scale, TRIGGER_OPTIONS } from './components.js';
+import { button, choice, missLine, scale, TRIGGER_OPTIONS } from './components.js';
+import { RING, progressRing } from './rings.js';
 import { openSheet } from './sheet.js';
 import * as store from '../store.js';
 import { HOUR, MIN, at, fmtDuration, fmtMinutes, fmtTime, fmtTimer, fmtWhen, minutesOfDay, now } from '../core/time.js';
 import { CUTOFF_MIN, cutoffApplies, isFlexible, isWorkday, lateNightDay, longFastAhead, plannedStartMin } from '../core/rules.js';
 import { energySplit } from '../core/review.js';
 import { showStartMealSheet } from './meal.js';
-import { nextWindowLine, note } from './shared.js';
+import { nextWindowLine } from './shared.js';
 
 export const SURF_MS = 10 * MIN;
 const CHECKPOINTS = [0, 3, 6, 9];
@@ -97,21 +98,20 @@ function surfSig(id, nowTs) {
   return `${st.done}|${st.checkpoint}`;
 }
 
+// Where the urge timer stood when each flow last drew (render() notes it), so the
+// tick redraws as soon as the timer moves on, and only then: even before the
+// first tick (the app reopened after the timer ended), and after any step change.
+const drawnSig = new Map();
+
 function showFlow(app, id) {
-  // What the sheet last drew, so the tick redraws it as soon as the timer moves on,
-  // even when that happens before the first tick (the app reopened after the timer ended).
-  let drawnSig = '';
   let flow = null;
-  flow = openSheet((api) => {
-    drawnSig = surfSig(id, now());
-    return render(app, api, id);
-  }, {
+  flow = openSheet((api) => render(app, api, id), {
     full: true,
     name: 'temptation',
     label: 'Tempted',
     tick: (nowTs) => {
       const sig = surfSig(id, nowTs);
-      if (sig && sig !== drawnSig && flow) flow.rerender();
+      if (sig && sig !== drawnSig.get(id) && flow) flow.rerender();
     },
   });
 }
@@ -151,17 +151,92 @@ function gains(ctx, sit) {
   return out;
 }
 
+/** A step's small label above its headline. */
+const kicker = (...text) => h('div', { class: 'label kicker' }, ...text);
+
+/**
+ * A step laid out: the fixed head (Back on the left when there is one,
+ * Close on the right), the body, and the dock of actions. focus: a step
+ * that is only a headline sits at the optical centre.
+ */
+function stepView(head, body, actions = null, { focus = false, step } = {}) {
+  return {
+    head,
+    body: h('div', { class: focus ? 'tempt-step focus' : 'tempt-step', 'data-step': step }, ...[].concat(body).filter(Boolean)),
+    actions: actions ? [].concat(actions).filter(Boolean) : null,
+  };
+}
+
+/** Two outline actions side by side, sized for half the column. */
+const pair = (...buttons) => {
+  for (const b of buttons) b.classList.add('sm');
+  return h('div', { class: 'btn-pair' }, ...buttons);
+};
+
+/** The urge timer: an ink ring that drains as the ten minutes run, the time inside it. */
+function urgeTimer(t) {
+  const ring = progressRing({ size: RING.focus.size, stroke: RING.focus.stroke, frac: 1 });
+  const left = (ts) => Math.max(0, t.surfEndsAt - ts);
+  return h('div', { class: 'urge-ring' },
+    ring,
+    h('div', { class: 'urge-centre' },
+      live('div', { class: 'timer tabular', 'data-testid': 'urge-timer' }, (ts) => {
+        ring.set(left(ts) / SURF_MS);
+        return fmtTimer(t.surfEndsAt - ts);
+      }),
+      h('div', { class: 'urge-ends' }, `Ends ${fmtTime(t.surfEndsAt)}`)));
+}
+
+// The prompt each urge timer last drew, so a redraw with the same words does not fade them again.
+const drawnPrompt = new Map();
+
+/**
+ * The prompt under the timer. When its words change, the new ones fade in
+ * over the old as those fade out, both in one cell; the old leave when done.
+ * It follows the clock through the live hook, and manages its own children,
+ * so the hook always reports the same value and never repaints them.
+ */
+function urgePrompt(id, promptAt) {
+  const el = h('p', { class: 'urge-prompt' });
+  const show = (text) => {
+    const fade = drawnPrompt.get(id) !== text;
+    for (const old of el.querySelectorAll('.prompt-text:not(.prompt-out)')) {
+      if (!fade) { old.remove(); continue; }
+      old.classList.add('prompt-out');
+      old.setAttribute('aria-hidden', 'true');
+      const gone = () => old.remove();
+      old.addEventListener('animationend', gone, { once: true });
+      old.addEventListener('transitionend', gone, { once: true });
+      setTimeout(gone, 1000); // in case no animation runs
+    }
+    el.append(h('span', { class: fade ? 'prompt-text prompt-in' : 'prompt-text' }, text));
+    drawnPrompt.set(id, text);
+  };
+  show(promptAt(Date.now()));
+  el.__live = (ts) => {
+    const text = promptAt(ts);
+    if (text !== drawnPrompt.get(id)) show(text);
+    return 'prompt';
+  };
+  el.__shown = 'prompt';
+  return el;
+}
+
 function render(app, api, id) {
+  drawnSig.set(id, surfSig(id, now()));
   const t = store.state.temptations.get(id);
   const ctx = app.ctx();
-  if (!t) return h('div', {}, h('p', {}, 'This was removed.'), button('Close', () => api.close(), { kind: 'secondary' }));
+  if (!t) {
+    return stepView(h('div', { class: 'sheet-head' }, h('span'), button('Close', () => api.close(), { kind: 'secondary', name: 'close-flow' })),
+      h('p', { class: 'tempt-headline' }, 'This was removed.'), null, { focus: true, step: 'removed' });
+  }
   const sit = situation(ctx);
   const today = ctx.todayKey;
   const todayRec = ctx.days.get(today);
 
-  const next = async (patch) => {
+  const next = async (patch, dir = 'forward') => {
     await store.updateTemptation(id, patch);
-    api.replace((a) => render(app, a, id));
+    api.replace((a) => render(app, a, id), { dir });
   };
   const finish = (outcome, step) => next({ outcome, step, endedAt: now() });
   const close = async () => {
@@ -173,9 +248,18 @@ function render(app, api, id) {
     if (t.step === 'ask') return api.close(); // Not sure yet: resumes on the next open
     return next({ step: 'ask' });
   };
+
+  let step = t.step;
+  if (step === 'surf' && t.surfEndsAt && ctx.nowTs >= t.surfEndsAt) step = 'end';
+
+  // The head: Back on the cant step, Close (Not sure yet when asking) always.
+  const backPill = step === 'cant'
+    ? button('Back', () => next({ step: 'gain' }, 'back'), { kind: 'secondary', name: 'back', icon: 'chevron-left' })
+    : null;
+  if (backPill) backPill.classList.add('back');
   const head = h('div', { class: 'sheet-head' },
-    h('div', { class: 'label' }, 'Tempted'),
-    h('button', { type: 'button', class: 'btn-2', 'data-action': 'close-flow', onclick: close }, t.step === 'ask' ? 'Not sure yet' : 'Close'));
+    backPill || h('span', { class: 'head-spacer' }),
+    button(step === 'ask' ? 'Not sure yet' : 'Close', close, { kind: 'secondary', name: 'close-flow' }));
 
   const openNow = async () => {
     const cur = situation(app.ctx());
@@ -197,141 +281,135 @@ function render(app, api, id) {
     await store.addOutside({ day, at: now(), trigger: t.trigger, amount, source: 'temptation' });
     await next({ outcome: amount === 'little' ? 'ate_little' : 'ate_outside', step: 'slip', slipDay: day, endedAt: now() });
   };
-
-  let step = t.step;
-  if (step === 'surf' && t.surfEndsAt && ctx.nowTs >= t.surfEndsAt) step = 'end';
+  const withPeople = () => button("I'm with people", () => next({ step: 'social' }), { kind: 'outline', name: 'with-people' });
+  const cantAvoid = (opts = {}) => button("I can't avoid eating", () => next({ step: 'cant' }), { kind: 'outline', name: 'cant-avoid', ...opts });
 
   switch (step) {
     case 'trigger':
-      return h('div', {}, head,
-        h('h1', { class: 'display' }, 'Hold the line.'),
-        h('p', { class: 'gap' }, "What's pulling at you?"),
-        h('section', { class: 'section gap' },
-          choice({ options: TRIGGER_OPTIONS, value: t.trigger, cols: 3, name: 'trigger', onChange: (v) => next({ trigger: v, step: 'gain' }) })));
+      return stepView(head, [
+        kicker('Tempted'),
+        h('h1', { class: 'tempt-headline' }, 'Hold the line.'),
+        h('p', { class: 'tempt-ask' }, "What's pulling at you?"),
+      ], h('div', { class: 'trigger-track' },
+        choice({ options: TRIGGER_OPTIONS, value: t.trigger, cols: 3, name: 'trigger', ariaLabel: "What's pulling at you?", onChange: (v) => next({ trigger: v, step: 'gain' }) })),
+      { focus: true, step: 'trigger' });
 
     case 'gain': {
       let lead;
       const ahead = longFastAhead(ctx);
+      const leadP = (...parts) => h('h1', { class: 'tempt-lead' }, ...parts);
       if (sit.kind === 'before' && ahead) {
-        lead = h('p', { class: 'statement' }, `Your ${ahead.hours}-hour fast reaches its goal at ${fmtWhen(ahead.at, today)}. `,
+        lead = leadP(`Your ${ahead.hours}-hour fast reaches its goal at ${fmtWhen(ahead.at, today)}. `,
           live('span', {}, (ts) => `That is ${fmtDuration(Math.max(0, ahead.at - ts))} away.`));
       } else if (sit.kind === 'before' && isFlexible(today, ctx.settings)) {
-        lead = h('p', { class: 'statement' }, 'Your window opens when you choose. Every hour you wait adds to the fast.');
+        lead = leadP('Your window opens when you choose. Every hour you wait adds to the fast.');
       } else if (sit.kind === 'before') {
         const plannedMin = plannedStartMin(today, todayRec, ctx.settings);
         const plannedTs = at(today, plannedMin);
         lead = ctx.nowTs < plannedTs
-          ? h('p', { class: 'statement' }, `Your window opens at ${fmtMinutes(plannedMin)}. `,
+          ? leadP(`Your window opens at ${fmtMinutes(plannedMin)}. `,
             live('span', {}, (ts) => `That is ${fmtDuration(Math.max(0, plannedTs - ts))} away.`))
-          : h('p', { class: 'statement' }, 'Your planned time has come. Open the window when you sit down to eat.');
+          : leadP('Your planned time has come. Open the window when you sit down to eat.');
       } else if (sit.kind === 'open') {
-        lead = h('p', { class: 'statement' }, `Your window is open until ${fmtTime(ctx.openRec.firstBite + ctx.windowMsFor(ctx.openRec.day))}. Eat inside it.`);
+        lead = leadP(`Your window is open until ${fmtTime(ctx.openRec.firstBite + ctx.windowMsFor(ctx.openRec.day))}. Eat inside it.`);
       } else {
-        lead = h('p', { class: 'statement' }, nextWindowLine(ctx, sit.lastDay));
+        lead = leadP(nextWindowLine(ctx, sit.lastDay));
       }
-      return h('div', {}, head,
-        h('div', { class: 'label' }, 'What waiting gives you'),
-        h('div', { class: 'gap-s' }, lead),
-        h('section', { class: 'section gap' },
-          h('ul', { class: 'list', 'data-testid': 'gains' }, gains(ctx, sit).map((g) => h('li', {}, g)))),
-        h('div', { class: 'stack gap-l' },
-          button('Ride it out for 10 minutes', () => next({ step: 'surf', surfEndsAt: now() + SURF_MS }), { block: true, name: 'ride-it-out' }),
-          h('div', { class: 'btn-row' },
-            button("I'm with people", () => next({ step: 'social' }), { kind: 'secondary', name: 'with-people' }),
-            button("I can't avoid eating", () => next({ step: 'cant' }), { kind: 'secondary', name: 'cant-avoid' }))));
+      return stepView(head, [
+        kicker('What waiting gives you'),
+        lead,
+        h('ul', { class: 'list gains', 'data-testid': 'gains' }, gains(ctx, sit).map((g) => h('li', {}, g))),
+      ], [
+        button('Ride it out for 10 minutes', () => next({ step: 'surf', surfEndsAt: now() + SURF_MS }), { block: true, name: 'ride-it-out' }),
+        pair(withPeople(), cantAvoid()),
+      ], { step: 'gain' });
     }
 
     case 'surf': {
       const st = surfState(t, ctx.nowTs);
       const cp = st.checkpoint;
-      return h('div', {}, head,
-        h('div', { class: 'label' }, 'Urge surfing', h('sup', { class: 'fn' }, '1')),
-        h('div', { class: 'row gap' },
-          h('div', { class: 'main' }, live('div', { class: 'timer', 'data-testid': 'urge-timer' }, (ts) => fmtTimer(t.surfEndsAt - ts))),
-          h('div', { class: 'margin' }, note('Ends', fmtTime(t.surfEndsAt)))),
-        h('p', { class: 'statement gap-l' },
-          live('span', {}, (ts) => PROMPTS[Math.max(0, Math.min(PROMPTS.length - 1, Math.floor((ts - st.startedAt) / (2 * MIN))))])),
+      const prompt = (ts) => PROMPTS[Math.max(0, Math.min(PROMPTS.length - 1, Math.floor((ts - st.startedAt) / (2 * MIN))))];
+      return stepView(head, [
+        kicker('Urge surfing', h('sup', { class: 'fn' }, '1')),
+        urgeTimer(t),
+        urgePrompt(id, prompt),
         cp != null
-          ? h('section', { class: 'section gap-l' },
+          ? h('section', { class: 'urge-rate' },
             scale({ n: 10, label: cp === 0 ? 'Rate the urge now' : `Rate the urge again, minute ${cp}`, low: '1 faint', high: '10 strong', name: 'urge',
               onChange: async (v) => {
                 await store.updateTemptation(id, { urges: [...(t.urges || []), { min: cp, value: v }] });
                 api.rerender();
               } }))
-          : h('p', { class: 'quiet small gap-l' }, (t.urges || []).length ? `Urge so far: ${(t.urges || []).map((u) => u.value).join(', ')}.` : ''),
-        h('div', { class: 'gap-l' }, button('Stop the timer', () => next({ step: 'end' }), { kind: 'secondary', name: 'stop-timer' })),
-        h('p', { class: 'gloss gap-xl' },
+          : h('p', { class: 'urge-so-far' }, (t.urges || []).length ? `Urge so far: ${(t.urges || []).map((u) => u.value).join(', ')}.` : ''),
+        h('p', { class: 'gloss' },
           h('sup', { class: 'fn' }, '1'), ' ', h('span', { class: 'term' }, 'Urge surfing'),
-          ': noticing a craving rise, peak and pass without acting on it. Most fade within minutes.'));
+          ': noticing a craving rise, peak and pass without acting on it. Most fade within minutes.'),
+      ], button('Stop the timer', () => next({ step: 'end' }), { kind: 'outline', block: true, name: 'stop-timer' }), { step: 'surf' });
     }
 
     case 'end':
-      return h('div', {}, head,
-        h('p', { class: 'statement' }, 'How is it now?'),
-        h('div', { class: 'stack gap-l' },
-          button('It passed. I held.', () => finish('held', 'held'), { block: true, name: 'held' }),
-          h('div', { class: 'btn-row' },
-            button("I'm with people", () => next({ step: 'social' }), { kind: 'secondary', name: 'with-people' }),
-            button("I can't avoid eating", () => next({ step: 'cant' }), { kind: 'secondary', name: 'cant-avoid' }))));
+      return stepView(head, h('h1', { class: 'tempt-headline' }, 'How is it now?'), [
+        button('It passed. I held.', () => finish('held', 'held'), { block: true, name: 'held' }),
+        pair(withPeople(), cantAvoid()),
+      ], { focus: true, step: 'end' });
 
     case 'social':
-      return h('div', {}, head,
-        h('div', { class: 'label' }, 'Practical exits'),
-        h('div', { class: 'stack-lg gap' },
-          h('div', {}, h('p', { class: 'statement' }, 'Hold a drink.'),
-            h('p', { class: 'gap-s' }, 'Water, sparkling water, black coffee, espresso or plain tea. A full glass answers most offers.')),
-          h('div', {}, h('p', { class: 'statement' }, 'Step away.'),
-            h('p', { class: 'gap-s' }, 'Take a call, a short walk, some air. A few minutes changes the room.')),
-          h('div', {}, h('p', { class: 'statement' }, 'Decline politely.'),
-            h('ul', { class: 'plain phrases gap-s' }, PHRASES.map((p) => h('li', {}, p))))),
-        h('div', { class: 'stack gap-l' },
-          button('I held', () => finish('held', 'held'), { block: true, name: 'held' }),
-          button("I can't avoid eating", () => next({ step: 'cant' }), { kind: 'secondary', name: 'cant-avoid' })));
+      return stepView(head, [
+        kicker('Practical exits'),
+        h('div', { class: 'exits' },
+          h('section', { class: 'exit-card' }, h('h3', { class: 'card-title' }, 'Hold a drink.'),
+            h('p', {}, 'Water, sparkling water, black coffee, espresso or plain tea. A full glass answers most offers.')),
+          h('section', { class: 'exit-card' }, h('h3', { class: 'card-title' }, 'Step away.'),
+            h('p', {}, 'Take a call, a short walk, some air. A few minutes changes the room.')),
+          h('section', { class: 'exit-card' }, h('h3', { class: 'card-title' }, 'Decline politely.'),
+            h('ul', { class: 'plain phrases' }, PHRASES.map((p) => h('li', {}, p))))),
+      ], [
+        button('I held', () => finish('held', 'held'), { block: true, name: 'held' }),
+        cantAvoid({ block: true }),
+      ], { step: 'social' });
 
     case 'cant': {
       const blocks = [];
       if (sit.kind === 'open') {
-        blocks.push(h('p', { class: 'statement' }, `Your window is open until ${fmtTime(ctx.openRec.firstBite + ctx.windowMsFor(ctx.openRec.day))}. Eat inside it.`));
+        blocks.push(h('p', { class: 'tempt-lead' }, `Your window is open until ${fmtTime(ctx.openRec.firstBite + ctx.windowMsFor(ctx.openRec.day))}. Eat inside it.`));
       }
       if (sit.kind === 'before' || sit.kind === 'late') {
         const clock = `${Math.round(ctx.windowMsFor(today) / (60 * MIN))}-hour clock`;
         const workdayEarly = cutoffApplies(today, todayRec, ctx.settings) && minutesOfDay(ctx.nowTs) < CUTOFF_MIN;
-        blocks.push(h('section', { class: 'section flush' },
-          h('p', { class: 'statement' }, 'Open the window now'),
-          h('p', { class: 'gap-s' }, `This starts your ${clock}. Everything you eat fits by ${fmtTime(ctx.nowTs + ctx.windowMsFor(today))}.`),
-          workdayEarly ? h('p', { class: 'gap-s' }, 'Today is a workday and it is before 16:00, so today will count as a miss.') : null,
-          h('div', { class: 'gap' }, button(`Start the ${clock}`, openNow, { block: true, name: 'open-now' }))));
+        blocks.push(h('section', { class: 'exit-card' },
+          h('h3', { class: 'card-title' }, 'Open the window now'),
+          h('p', {}, `This starts your ${clock}. Everything you eat fits by ${fmtTime(ctx.nowTs + ctx.windowMsFor(today))}.`),
+          workdayEarly ? missLine('Today is a workday and it is before 16:00, so today will count as a miss.') : null,
+          button(`Start the ${clock}`, openNow, { block: true, name: 'open-now' })));
       }
       if (sit.kind === 'after' || sit.kind === 'late') {
-        blocks.push(h('section', { class: blocks.length ? 'section' : 'section flush' },
-          h('p', { class: 'statement' }, 'Eat very little'),
-          h('p', { class: 'gap-s' }, 'A small portion. Protein only. Then close it again.'),
-          sit.kind === 'late' ? h('p', { class: 'quiet small gap-s' }, 'This counts against last night.') : null,
-          h('div', { class: 'gap' }, button('Log a small portion', () => ateOutside('little'), { kind: blocks.length ? 'outline' : 'primary', block: true, name: 'eat-little' })),
-          h('div', { class: 'gap-s' }, button('I ate more than that', () => ateOutside('meal'), { kind: 'secondary', name: 'ate-more' }))));
+        const second = blocks.some((b) => b.querySelector && b.querySelector('[data-action="open-now"]'));
+        blocks.push(h('section', { class: 'exit-card' },
+          h('h3', { class: 'card-title' }, 'Eat very little'),
+          h('p', {}, 'A small portion. Protein only. Then close it again.'),
+          sit.kind === 'late' ? h('p', { class: 'caption' }, 'This counts against last night.') : null,
+          button('Log a small portion', () => ateOutside('little'), { kind: second ? 'outline' : 'primary', block: true, name: 'eat-little' }),
+          button('I ate more than that', () => ateOutside('meal'), { kind: 'outline', block: true, name: 'ate-more' })));
       }
-      return h('div', {}, head,
-        h('div', { class: 'label' }, "If you can't avoid it"),
-        h('div', { class: 'gap' }, blocks),
-        h('div', { class: 'gap' }, button('Back', () => next({ step: 'gain' }), { kind: 'secondary', name: 'back' })));
+      return stepView(head, [
+        kicker("If you can't avoid it"),
+        h('div', { class: 'exits' }, blocks),
+      ], null, { step: 'cant' });
     }
 
     case 'ask': {
       const options = [button('I held', () => finish('held', 'held'), { block: true, name: 'held' })];
-      if (sit.kind !== 'after') options.push(button('I opened the window', openNow, { kind: 'secondary', name: 'opened' }));
+      if (sit.kind !== 'after') options.push(button('I opened the window', openNow, { kind: 'outline', block: true, name: 'opened' }));
       if (sit.kind === 'after' || sit.kind === 'late') {
-        options.push(button('I ate a little', () => ateOutside('little'), { kind: 'secondary', name: 'ate-little' }));
-        options.push(button('I ate outside the window', () => ateOutside('meal'), { kind: 'secondary', name: 'ate-outside' }));
+        options.push(button('I ate a little', () => ateOutside('little'), { kind: 'outline', block: true, name: 'ate-little' }));
+        options.push(button('I ate outside the window', () => ateOutside('meal'), { kind: 'outline', block: true, name: 'ate-outside' }));
       }
-      return h('div', {}, head,
-        h('p', { class: 'statement' }, 'How did it end?'),
-        h('div', { class: 'stack gap-l' }, options));
+      return stepView(head, h('h1', { class: 'tempt-headline' }, 'How did it end?'), options, { focus: true, step: 'ask' });
     }
 
     case 'slip':
-      return h('div', {}, head,
-        h('p', { class: 'statement', 'data-testid': 'slip-line' }, nextWindowLine(ctx, t.slipDay || sit.lastDay || today)),
-        h('div', { class: 'gap-l' }, button('Done', () => api.close(), { block: true, name: 'done' })));
+      return stepView(head, h('h1', { class: 'tempt-slip', 'data-testid': 'slip-line' }, nextWindowLine(ctx, t.slipDay || sit.lastDay || today)),
+        button('Done', () => api.close(), { block: true, name: 'done' }), { focus: true, step: 'slip' });
 
     case 'held':
     default: {
@@ -339,10 +417,10 @@ function render(app, api, id) {
       if (sit.kind === 'before') line = isFlexible(today, ctx.settings) ? 'Your window opens when you choose.' : `Your window opens at ${fmtMinutes(plannedStartMin(today, todayRec, ctx.settings))}.`;
       else if (sit.kind === 'open') line = `Your window is open until ${fmtTime(ctx.openRec.firstBite + ctx.windowMsFor(ctx.openRec.day))}.`;
       else line = nextWindowLine(ctx, sit.lastDay);
-      return h('div', {}, head,
-        h('h1', { class: 'display' }, 'Held.'),
-        h('p', { class: 'gap' }, line),
-        h('div', { class: 'gap-l' }, button('Done', () => api.close(), { block: true, name: 'done' })));
+      return stepView(head, [
+        h('h1', { class: 'tempt-held' }, 'Held.'),
+        h('p', { class: 'tempt-line' }, line),
+      ], button('Done', () => api.close(), { block: true, name: 'done' }), { focus: true, step: 'held' });
     }
   }
 }

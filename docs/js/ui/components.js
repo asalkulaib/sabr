@@ -591,13 +591,14 @@ const RESULT_KEYS = { 'day-success': 'success', 'day-miss': 'miss', 'day-open': 
  * ring-win, ring-full; day-success, day-miss, day-open, day-ahead,
  * day-paused, left-wanting; bar-fast, bar-fast-short, bar-win, bar-miss,
  * bar-selected, band-paused, line-trend, line-average, line-weight,
- * line-meal, latest-square, zone; band-used, band-left, band-grace, band-over;
+ * line-meal, latest-square, zone; line-fast and line-win (History's Line
+ * view, with { square, dense }); band-used, band-left, band-grace, band-over;
  * track-window, track-open; stop-before_full, stop-full, stop-stuffed,
  * unrated; progress-fast. Small marks keep a 1px edge in their darker tone,
  * so each reaches 3:1. Ink parts carry k-ink, so a chosen legend chip can
  * turn them white.
  */
-export function key(kind, { size = 14 } = {}) {
+export function key(kind, { size = 14, square = null, dense = false } = {}) {
   const sized = (svg) => {
     if (size !== 14) {
       svg.style.setProperty('width', `${size}px`);
@@ -615,7 +616,8 @@ export function key(kind, { size = 14 } = {}) {
   if (kind === 'sun') return box(s('circle', { cx: 7, cy: 7, r: 5, fill: FAST, stroke: P.FAST_TEXT, 'stroke-width': 1 }));
   if (kind === 'outside') return box(s('path', { d: 'M3 3 L11 11 M11 3 L3 11', stroke: P.MISS_TEXT, 'stroke-width': 2.2, 'stroke-linecap': 'round', fill: 'none' }));
   if (kind === 'stage') return box(s('circle', { class: 'k-ink', cx: 7, cy: 7, r: 6, fill: INK }));
-  if (kind === 'cutoff') return box(s('line', { class: 'k-ink-line', x1: 7, y1: 0, x2: 7, y2: 14, stroke: INK, 'stroke-width': 1.5, 'stroke-dasharray': '2 2' }));
+  // The 16:00 line as the day track draws it: --edge, dashed 3 3.
+  if (kind === 'cutoff') return box(s('line', { x1: 7, y1: 0.5, x2: 7, y2: 13.5, stroke: P.EDGE, 'stroke-width': 1.5, 'stroke-dasharray': '3 3' }));
   const ring = { 'ring-fast': P.FAST, 'ring-win': P.WIN, 'ring-full': P.FULL }[kind];
   if (ring) return box(s('circle', { cx: 7, cy: 7, r: 5.5, fill: 'none', stroke: ring, 'stroke-width': 3 }));
   if (RESULT_KEYS[kind] || kind === 'left-wanting') {
@@ -646,7 +648,24 @@ export function key(kind, { size = 14 } = {}) {
   if (kind === 'line-meal') return box(line(P.EDGE, 1.5));
   if (kind === 'progress-fast') return box(s('rect', { x: 0, y: 5, width: 14, height: 4, rx: 2, fill: P.FAST }));
   if (kind === 'latest-square') return box(s('rect', { class: 'k-ink', x: 3, y: 3, width: 8, height: 8, fill: INK }));
-  if (kind === 'zone') return box(s('rect', { x: 1.5, y: 1.5, width: 11, height: 11, fill: P.EDGE, 'fill-opacity': 0.12, stroke: P.EDGE, 'stroke-width': 1 }));
+  // The comfortable zone is a band across the chart, so its key is a short
+  // band too (--shade with an --edge rim), never a square like a mark.
+  if (kind === 'zone') return box(s('rect', { x: 0.5, y: 3.5, width: 13, height: 7, fill: P.EDGE, 'fill-opacity': 0.12, stroke: P.EDGE, 'stroke-width': 1 }));
+  // History's Line view: the day line in its ring colour, with the square a
+  // day carries on it (square: goal, short, win or miss). dense: the 90-day
+  // chart, where the line is thinner and fainter, a goal square is a small
+  // 2.5 square with no edge and a miss a 5 one.
+  if (kind === 'line-fast' || kind === 'line-win') {
+    const colour = kind === 'line-win' ? P.WIN : P.FAST;
+    const looks = { goal: [P.FAST, P.FAST_TEXT, 1], short: [P.FAST_SOFT, P.FAST_TEXT, 1.5], win: [P.WIN, P.WIN_TEXT, 1] };
+    const stripes = square === 'miss' ? hatch() : null;
+    const [fill, edge, width] = stripes ? [stripes.fill, P.MISS_TEXT, 1] : square ? looks[square] : [];
+    const plain = square === 'goal' && dense;
+    const side = plain ? 2.5 : square === 'miss' && dense ? 5 : 7;
+    return box(stripes ? stripes.defs : null,
+      line(colour, dense ? 1.5 : 2, { 'stroke-opacity': dense ? 0.45 : null }),
+      square ? s('rect', { x: 7 - side / 2, y: 7 - side / 2, width: side, height: side, fill, stroke: plain ? 'none' : edge, 'stroke-width': plain ? null : width }) : null);
+  }
   if (kind === 'unrated' || kind.startsWith('stop-')) {
     const mark = stopMark(kind === 'unrated' ? null : kind.slice(5), { x: 7, y: 7, r: 5 });
     mark.removeAttribute('data-stop');
@@ -664,41 +683,10 @@ export const KEY_KINDS = [
   ...Object.keys(RESULT_KEYS), 'left-wanting',
   'bar-fast', 'bar-fast-short', 'bar-win', 'bar-miss', 'bar-selected', 'band-paused',
   'line-trend', 'line-average', 'line-weight', 'line-meal', 'latest-square', 'zone',
+  'line-fast', 'line-win',
   'band-used', 'band-left', 'band-grace', 'band-over', 'track-window', 'track-open',
   'stop-before_full', 'stop-full', 'stop-stuffed', 'unrated', 'progress-fast',
 ];
-
-// The names screens passed before key() existed, and the key each now draws,
-// matched to the mark the screen draws. Removed in Phase 2, once every screen
-// passes its own kind.
-export const LEGACY_KEYS = {
-  success: 'day-success', outline: 'day-open', dashed: 'day-ahead', dot: 'left-wanting', paused: 'day-paused',
-  bar: 'track-open', used: 'band-used', left: 'band-left', grace: 'band-grace',
-  'rock-line': 'line-weight', trend: 'line-trend', avg: 'line-average', pick: 'latest-square', 'goal-met': 'bar-fast',
-  miss: 'miss', zone: 'zone', 'stage-now': 'stage', 'line-faint': 'line-meal',
-};
-
-// Where one old name stands for different marks on different screens, the
-// legend's testid (and, on History, the words) picks the mark that screen
-// draws, so a key never takes another ring's colour. Removed with LEGACY_KEYS.
-const LEGACY_IN = {
-  // Week strip: the open window, pale green with a green edge.
-  'strip-legend': { bar: 'track-open' },
-  // History: Feast bars are solid green, Fast bars pale red; paused days are
-  // a grey band; the selected day is an ink bar.
-  'history-legend': {
-    bar: (label) => (label === 'Hours in the window' ? 'bar-win' : 'bar-fast-short'),
-    paused: 'band-paused',
-    pick: 'bar-selected',
-  },
-};
-
-/** The key() kind a legend item's old name draws, in the legend testid names. */
-export function legacyKind(name, testid, label) {
-  const own = Object.hasOwn(LEGACY_IN, testid || '') && Object.hasOwn(LEGACY_IN[testid], name) ? LEGACY_IN[testid][name] : null;
-  if (own) return typeof own === 'function' ? own(label) : own;
-  return Object.hasOwn(LEGACY_KEYS, name) ? LEGACY_KEYS[name] : name;
-}
 
 /**
  * A legend: each colour or mark beside the word for what it means, so no mark
@@ -709,7 +697,7 @@ export function legacyKind(name, testid, label) {
  */
 export function legend(items, testid, { focus = null, onPick = null } = {}) {
   return h('div', { class: 'legend', 'data-testid': testid || null }, items.filter(Boolean).map(([mark, label, series]) => {
-    const icon = typeof mark === 'string' ? key(legacyKind(mark, testid, label)) : mark;
+    const icon = typeof mark === 'string' ? key(mark) : mark;
     // With a series and onPick, the item is a button: tap to show only that
     // series, tap again to show everything.
     if (!onPick || series == null) return h('span', { class: 'legend-item' }, icon, label);

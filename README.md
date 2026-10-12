@@ -6,11 +6,11 @@ Live app: https://asalkulaib.github.io/sabr/
 
 ## The look
 
-Rings. The page is white, each section sits on a soft grey card, and the words are ink. Three colours each mean one thing: red is the fast, green the eating window, blue fullness. Today leads with three rings, one inside the other. The outer red ring fills as the fast goes on and closes at your fasting goal; past it, it laps itself in a deeper red. The green ring fills as you use the window and closes full on a successful day. The blue ring closes when every meal of the day was left wanting. A miss is orange stripes and always has words. Weight is indigo. Every coloured mark has a legend that names it.
+Rings. The page is white and the words are ink. Each screen has one lead, set on the page with no frame: the rings on Today, the week's ring and its count on Week, the day's ring on a day, the average and its chart on History and Weight, the drift on Satiety, and your goal on More. What supports it sits on soft grey cards. Three colours each mean one thing: red is the fast, green the eating window, blue fullness. Today leads with three rings, one inside the other. The outer red ring fills as the fast goes on and closes at your fasting goal; past it, it laps itself in a deeper red. The green ring fills as you use the window and closes full on a successful day. The blue ring closes when every meal of the day was left wanting. A miss is orange stripes and always has words. Weight is indigo. Every coloured mark has a legend that names it. Ink is for everything you choose or press: the selected option, the main button, the focus ring and the screen you are on.
 
-Big moments are celebrated: when the fast reaches its goal, the window closes on a success or a day is left wanting, the rings spin and that ring's rays burst. Each moment is celebrated once. With Reduce Motion on, nothing moves; the words and colours still say it.
+Rings draw to their value when they appear and when something you do changes them. Big moments are celebrated: when the fast reaches its goal, the window closes on a success or a day is left wanting, that ring spins and its rays burst. Each moment is celebrated once. Sheets slide up from the bottom. With Reduce Motion on, nothing moves and sheets fade; the words and colours still say it.
 
-Nunito sets every word and number. Big figures have large digits and small units, as in 15h 10m, 5 of 7 or 104.7 kg. What you tap is a pill or an outlined card. Every choice and rating is a sliding track with an ink pill under your choice; the tabs at the foot have icons, with a soft red capsule under the screen you are on.
+Nunito sets every word and number, in sentence case. Big figures have large digits and small units, as in 15h 10m, 5 of 7 or 104.7 kg. What you tap is a pill, an outlined tile or a row with an arrow at its end. Every choice and rating is a sliding track with an ink pill under your choice; the tabs at the foot have icons, with an ink pill under the screen you are on.
 
 ## Use it on your iPhone
 
@@ -19,6 +19,10 @@ Nunito sets every word and number. Big figures have large digits and small units
 3. Scroll down and tap Add to Home Screen.
 4. Keep Open as Web App switched on and tap Add.
 5. From now on, open Sabr from its Home Screen icon. The Home Screen app keeps its own data, separate from Safari.
+
+## First open
+
+On first open, a short welcome sets your goal and planned start times and shows how to add Sabr to the Home Screen. Skip it any time. It shows once, only on a fresh install with nothing logged, and never after a restored backup. Opened from the Home Screen, it leaves out the Home Screen step.
 
 ## The rules Sabr follows
 
@@ -49,7 +53,7 @@ Before your window, Today offers Start a meal. Begin fast appears beside it only
 
 Until you tap a meal, Sabr picks one from the start time: breakfast from 05:00, lunch from 11:00, dinner from 16:00 and a snack from 22:00. A snack follows the same rules as any meal. The choice is saved as the meal's name, so it shows in the Meals list and the export, and older meals typed as, say, "dinner" open as Dinner when you edit them.
 
-Each meal is tracked on its own: its start, its finish, hunger before, how you finished and the 20-minute check. One meal at a time: Start another meal first asks how the open one finished. I'm done eating closes the window. After closing, a meal within your goal's hours reopens the window; later, it counts as eating outside the window, so the day is a miss, and its satiety is still tracked.
+Each meal is tracked on its own: its start, its finish, hunger before, how you finished and the 20-minute check. One meal at a time: Start another meal first asks how the open one finished. I'm done eating closes the window; when the last bite you set would make the day a miss (past the goal and its grace), the sheet says so in orange before you save. After closing, a meal within your goal's hours reopens the window; later, it counts as eating outside the window, so the day is a miss, and its satiety is still tracked.
 
 ## Add a meal you already ate
 
@@ -74,6 +78,7 @@ Every time in Sabr is set on a rolling 24-hour wheel, like the iPhone clock. The
 
 - On Today, tap Last bite (before your window) or First bite and Last bite (after it) to change that time. On Last bite, Just now moves it to this minute; the sheet shows the window's new length before you save, so you can see if it stretches the window.
 - While the window is open, tap Opened to move the opening time, or remove a window opened by mistake.
+- After the window, Change times sets the first and last bite together. When the new times would make the day a miss (opening before 16:00 on a workday, or a window past its goal), the sheet says so in orange, in the same words Add a meal uses, before you save.
 - Any day can be corrected from Week: tap the day.
 - After a change is saved, the message above the tabs offers Undo for 10 seconds. Removing a window, a meal or an entry can be undone the same way.
 
@@ -81,7 +86,7 @@ Every time in Sabr is set on a rolling 24-hour wheel, like the iPhone clock. The
 
 Satiety has its own tab, laid out after your earlier satiety page. It has three views, and it opens on the last one you used:
 
-- Insights (the default) has four tiles: satiety drift (how much fullness rises in the 20 minutes after a meal), meals landed in the comfortable zone (6 to 8), meals complete, and meals stopped past full. Four charts follow, each led by its number: Where you land (average fullness 20 minutes after a meal), The 20-minute lag (the average rise, then a line per way of finishing, from fullness right after to 20 minutes on), How often you stop where (meals left wanting, the goal, out of all rated meals) and Arriving hungry (average hunger before a meal). Then come findings from your own meals once ten are rated, and a table view.
+- Insights (the default) leads with your satiety drift as a big figure (how much fullness rises in the 20 minutes after a meal), with what drives it in rows under it: meals landed in the comfortable zone (6 to 8), meals complete, and meals stopped past full. Four charts follow, each led by its number: Where you land (average fullness 20 minutes after a meal), The 20-minute lag (the average rise, then a line per way of finishing, from fullness right after to 20 minutes on), How often you stop where (meals left wanting, the goal, out of all rated meals) and Arriving hungry (average hunger before a meal). Then come findings from your own meals once ten are rated, and a table view.
 - Now shows the fullness check waiting, with its countdown and Score my fullness now; any meal in progress, with Finished this meal; and how the day's eating ended.
 - Meals lists the last 30 days by day, newest first. Each meal reads hunger before → fullness right after → fullness at 20 minutes, followed by the drift. Tap one to edit it.
 
@@ -91,7 +96,7 @@ Add a meal, at the top of every view, adds a meal you already ate (see Add a mea
 
 On Satiety and History, tap a legend item to show only that one; the rest fade out. On Satiety you can also tap a mark, line or bar, and the choice applies to every chart and the meal list at once. Tap the item again, or Show all, to see everything; leaving the tab also resets it. (On the History chart, tapping a day still reads that day.)
 
-Every colour-coded visual has a legend that names each colour in words: the week row, the rings and the window band on Today, the Week schedule, the History chart, the weight chart and the Satiety charts. Orange stripes always mean a miss. Grey means a paused day on the schedule and the chart; soft green is window time still ahead on the band, and soft blue the comfortable zone on Satiety. On Satiety each way of finishing also has its own shape: a triangle for left wanting, a square for satisfied and a diamond for overfull.
+Every colour-coded visual has a legend that names each colour in words: the week row, the rings and the window band on Today, the Week schedule, the History chart, the weight chart and the Satiety charts. Orange stripes always mean a miss. Grey means a paused day on the schedule and the chart; soft green is window time still ahead on the band, and a grey band the comfortable zone on Satiety. On Satiety each way of finishing also has its own shape and tone: a blue triangle for left wanting, a grey square for satisfied and an ink diamond for overfull. Overfull is never orange: orange means a miss.
 
 ## Fullness (شبع)
 
@@ -132,9 +137,15 @@ Autophagy is described as uncertain instead of being given an hour: the evidence
 
 ## History
 
-History has three views: Fast, Feast and Weight. Weight opens your 7-day weight average, its chart and the import (see below). Fast and Feast chart, day by day, either your fasts or your eating windows, as bars or a line, over 7, 30 or 90 days. It is one card: those switches on one slim line, then the average as a big figure with the dates it covers, then the chart, so the chart is on the first screen. Over 7 days each bar carries its hours. A day's fast runs from your last bite before it to that day's first bite. Fasts that reached your fasting goal are red, and the rest soft red; windows are green. Missed days show in orange stripes, even after a long fast; the selected day is solid ink. A solid line shows the 7-day trend and a dashed line the average. A legend names every mark: goal reached, short of the goal (or hours in the window), miss, selected day, trend, average and paused. Paused days are shaded and left out. Tap a day to read its value and trend, then Open this day to edit it. Show as a table lists every value. Sabr remembers your choices.
+History has three views: Fast, Feast and Weight. Weight opens your 7-day weight average, its chart and the import (see below). Fast and Feast chart, day by day, either your fasts or your eating windows, as bars or a line, over 7, 30 or 90 days. The average leads as a big figure with the dates it covers, then the switches on one slim line and the chart, full width on the page, so the chart is on the first screen. Over 7 days each bar carries its hours. A day's fast runs from your last bite before it to that day's first bite. Fasts that reached your fasting goal are red, and the rest soft red; windows are green. Missed days show in orange stripes, even after a long fast; the selected day is solid ink. A solid line shows the 7-day trend and a dashed line the average. A legend names every mark: goal reached, short of the goal (or hours in the window), miss, selected day, trend, average and paused. Paused days are shaded and left out. Tap a day, or touch and drag along the chart, to read the day under your finger with its trend, then Open this day to edit it. Show as a table lists every value. Sabr remembers your choices.
 
 Weight shows your 7-day average as a big figure: the average of every weigh-in in the 7 days up to your latest, a single one included, so nothing goes stale. Beside it, the day it runs up to and how many weigh-ins it holds; under it, the change from the 7 days before. Over time charts that same 7-day average on each day you weighed in, over 1 month, 3 months, 6 months, This year or All; Sabr remembers your choice. A week with no weigh-in breaks the line, and a note under the chart says what each point is. Touch or drag along the chart and the box at the top follows the day under your finger: its 7-day average, the day, its weigh-ins and the change from the 7 days before. Back to latest, in that box, returns to your newest weigh-in, as does leaving Weight or changing the time frame. Show as a table lists every point.
+
+## More
+
+More opens with your goal: the fast and the window as two figures, the presets 16:8, 18:6, 20:4 and 23:1, and Custom. Under it, the settings come in groups. Settings holds what makes a day a success and the planned window start. Reminders holds the reminder times, the calendar file and Alarms. Pauses lists the pauses running or ahead, with Add a pause. Your data holds Backup, Export and Storage, with Back up now as the one main button. Then the Help page (the weight Shortcut and the Home Screen), Reset all history, and the version. Each time is a row with its value in a pill; tap it to roll a new time, which saves as it settles.
+
+Tempted? at the top of a screen opens a full-screen flow, one question at a time with most buttons at the foot: what is pulling at you, what waiting gives you, a 10-minute urge timer as an ink ring that drains, ways out when you are with people or cannot avoid eating, and how it ended.
 
 ## Pauses
 
@@ -165,8 +176,9 @@ Run it every week with a Personal Automation:
 
 1. In Shortcuts, open the Automation tab and tap +.
 2. Choose Time of Day. Pick a time you usually have the phone in hand, such as 10:00, set Repeat to Weekly and choose Friday.
-3. Choose Run Immediately, then Next, pick Fast Weight and tap Done.
-4. When the notification arrives, open Sabr and tap Import weight. Health is locked while the iPhone is locked, so if the automation ran then, use Run the Fast Weight shortcut under History, Weight instead.
+3. Choose Run Immediately, then Next.
+4. Pick Fast Weight and tap Done.
+5. When the notification arrives, open Sabr and tap Import weight. Health is locked while the iPhone is locked, so if the automation ran then, use Run the Fast Weight shortcut under History, Weight instead.
 
 Why the clipboard: iOS gives a Home Screen web app its own storage, separate from Safari, and a Shortcut can only open links in Safari. Sabr also accepts a link, `https://asalkulaib.github.io/sabr/import/#w=2026-09-25:104.6,...`, but opened from a Shortcut it saves into Safari's copy of Sabr, not the Home Screen app.
 
@@ -174,6 +186,7 @@ If an import fails:
 
 - No weight data on the clipboard: run the Shortcut again, come back to Sabr and tap Import weight.
 - Entries skipped: in the Health app, open Weight and set its unit to kg. In Settings, General, Language and Region, set Calendar to Gregorian.
+- The Paste bubble does not appear: tap Import weight again, or use the paste box that appears on the Weight screen.
 
 ## Alarms
 
