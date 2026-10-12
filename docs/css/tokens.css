@@ -1,0 +1,247 @@
+@layer tokens, base, components, screens;
+
+/* Sabr: Rings. The design tokens, the only place for raw colours, px font
+   sizes, durations and easings. js/ui/palette.js mirrors the colours for
+   drawing. Layers: tokens, then base, components and screens; a later layer
+   wins over an earlier one whatever the selector. */
+
+@layer tokens {
+:root {
+  /* Rings: white page, soft grey cards, ink text. Three ring colours, each
+     with one meaning: red the fast, green the eating window, blue fullness.
+     Orange stripes mark a miss and always come with words; indigo is weight.
+     The same values live in js/ui/palette.js for drawing. */
+  color-scheme: light;
+
+  --bg: #FFFFFF;
+  --bg-raised: #F3F3F6;
+  --bg-raised-2: #FFFFFF;
+  --text-display: #0E0E12;
+  --text-body: #1C1C22;
+  --text-quiet: #5C5C66;
+  --text-label: #4A4A55;
+  --text-marginalia: #9A9AA4;
+  --ink: #0E0E12;
+  --track: #E4E4EA;
+  --rule-quiet: rgba(14, 14, 18, 0.12);
+  --shade: rgba(14, 14, 18, 0.06);
+  --edge: rgba(14, 14, 18, 0.5);
+  --scrim: rgba(14, 14, 18, 0.4);
+
+  --fast: #FF2E63;
+  --fast-soft: #FFE3EA;
+  --fast-text: #C8103F;
+  --fast-deep: #A30B33;
+  --win: #2FCB57;
+  --win-soft: #DDF7E3;
+  --win-text: #117534;
+  --full: #12AEEA;
+  --full-soft: #DCF3FC;
+  --full-text: #05698F;
+  --miss: #FF7A00;
+  --miss-text: #A84D00;
+  --weight: #5B5BF0;
+  --weight-soft: #ECECFE;
+  --weight-text: #3C3CC0;
+  --night: #05060B; /* the Home Screen icon only */
+
+  /* Roles: what components ask for. */
+  --focus: var(--ink);
+  --focus-on-ink: var(--bg);
+  --select: var(--ink);
+  --on-select: var(--bg);
+  --hairline: var(--rule-quiet);
+
+  /* Type: ten steps, each a size, a line height and a tracking. */
+  --t-hero-size: 56px;
+  --t-hero-lh: 56px;
+  --t-hero-track: -0.02em;
+  --t-display-size: 40px;
+  --t-display-lh: 44px;
+  --t-display-track: -0.015em;
+  --t-title-1-size: 32px;
+  --t-title-1-lh: 38px;
+  --t-title-1-track: -0.01em;
+  --t-title-2-size: 24px;
+  --t-title-2-lh: 30px;
+  --t-title-2-track: 0;
+  --t-title-3-size: 20px;
+  --t-title-3-lh: 26px;
+  --t-title-3-track: 0;
+  --t-headline-size: 17px;
+  --t-headline-lh: 22px;
+  --t-headline-track: 0;
+  --t-body-size: 17px;
+  --t-body-lh: 26px;
+  --t-body-track: 0;
+  --t-callout-size: 15px;
+  --t-callout-lh: 22px;
+  --t-callout-track: 0;
+  --t-footnote-size: 13px;
+  --t-footnote-lh: 18px;
+  --t-footnote-track: 0;
+  --t-micro-size: 11px;
+  --t-micro-lh: 14px;
+  --t-micro-track: 0.02em;
+  /* Chart text, in SVG user units. */
+  --t-chart: 12px;
+  --t-chart-end: 13px;
+  --t-chart-word: 15px;
+  --measure: 36em;
+
+  --font-ui: 'Nunito', ui-rounded, -apple-system, 'Helvetica Neue', Arial, sans-serif;
+  --font-display: var(--font-ui);
+  --font-body: var(--font-ui);
+
+  /* Space: a 4pt scale; --space-N is N x 4px. */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --space-24: 96px;
+  --card-pad: 20px;
+  --inset-pad: 16px;
+  --card-gap: 12px;
+  --group-gap: 32px;
+  --sheet-pad: 20px;
+  --hit: 44px;
+  --btn-h: 56px;
+  --btn-h-2: 48px;
+  --track-h: 52px;
+
+  /* Legacy spacing, kept until Phase 2 so screens not yet moved still land
+     on the 4pt scale: each points at the nearest step. */
+  --s1: var(--space-1);
+  --s2: var(--space-2);
+  --s3: var(--space-3);
+  --s4: var(--space-4);
+  --s5: var(--space-6);
+  --s6: var(--space-8);
+  --s7: var(--space-12);
+  --s8: var(--space-16);
+  --s9: var(--space-24);
+  --panel-x: var(--card-pad); /* legacy */
+  --col-gap: var(--space-3); /* legacy */
+  --margin-w: 96px; /* legacy */
+
+  /* Gutters and layout. */
+  --gutter-l: max(16px, env(safe-area-inset-left));
+  --gutter-r: max(16px, env(safe-area-inset-right));
+  --tabbar-h: 56px;
+  --tabbar-pad-b: calc(4px + env(safe-area-inset-bottom));
+  /* The bar's real height: its hairline, the 56 of tabs, and its foot. */
+  --tabbar-total: calc(1px + var(--tabbar-h) + var(--tabbar-pad-b));
+  --screen-pad-top: calc(env(safe-area-inset-top) + 12px);
+  --screen-pad-b: calc(var(--tabbar-total) + var(--space-12));
+  --sheet-foot-pad-b: calc(12px + env(safe-area-inset-bottom));
+  --sheet-max-h: calc(100dvh - env(safe-area-inset-top) - 12px);
+  --sheet-full-pad-top: calc(env(safe-area-inset-top) + 8px);
+  --flash-bottom: calc(var(--tabbar-total) + var(--space-2));
+  --flash-bottom-sheet: calc(env(safe-area-inset-bottom) + 12px);
+  --flash-room: var(--flash-h, 72px);
+  --focus-bar-room: 60px;
+  --focus-lift: 12vh;
+  --content-max: 620px;
+
+  /* Component sizes. */
+  --row-h: 56px; /* list rows, setting rows, notices, the toast */
+  --tile-h: 88px; /* time tiles, stat rows */
+  --tile-min: 132px; /* the narrowest a time tile gets */
+  --field-h: 52px;
+  --paste-h: 64px;
+  --tab-h: 48px;
+  --slim-h: 36px; /* a slim track's option and a legend chip, drawn; 44 to touch */
+  --phase-h: 48px;
+  --now-tag-h: 20px;
+  --badge: 28px;
+  --wheel-row: 40px; /* the same as ROW in js/ui/components.js */
+  --wheel-col: 64px;
+  --wheel-sep: 20px;
+  --wheel-date: 168px;
+  --wheel-option: 200px;
+  --icon-tab: 24px;
+  --icon-chip: 20px;
+  --glyph: 16px;
+  --glyph-lg: 18px;
+  --chevron-w: 8px;
+  --chevron-h: 14px;
+  --chevron-sm-h: 12px;
+  --spinner: 18px;
+  --spinner-stroke: 2.5px;
+  --close-drawn: 32px;
+  --close-cross: 12px;
+  --focus-w: 2px;
+  --focus-gap: 2px;
+  --ring-ray-room: 16px; /* round a ring: its rays overflow instead of shrinking it */
+  /* The chevron's shape, as a mask the row paints in its own colour. */
+  --chevron-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 14'%3E%3Cpath d='M1.5 1.5L6.5 7L1.5 12.5' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+
+  /* Rounded throughout: pills for what you tap whole, controls, soft cards
+     and sheets. Nothing else; 0 is allowed. */
+  --r-pill: 999px;
+  --r-control: 12px;
+  --r-panel: 24px;
+  --r-sheet: 28px;
+
+  /* Rings: size and stroke, the same numbers as RING in js/ui/rings.js. */
+  --ring-key: 14px;
+  --ring-key-stroke: 3px;
+  --ring-mark: 28px;
+  --ring-mark-stroke: 4px;
+  --ring-inline: 56px;
+  --ring-inline-stroke: 6px;
+  --ring-md: 120px;
+  --ring-md-stroke: 12px;
+  --ring-hero: 184px;
+  --ring-hero-stroke: 18px;
+  --ring-focus: 224px;
+  --ring-focus-stroke: 14px;
+
+  /* Motion. */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in: cubic-bezier(0.55, 0, 1, 0.45);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-linear: linear;
+  --dur-press: 100ms;
+  --dur-fast: 160ms;
+  --dur-base: 240ms;
+  --dur-glide: 300ms;
+  --dur-sheet: 380ms;
+  --dur-chart: 600ms;
+  --dur-burst: 900ms;
+  --dur-spin: 1100ms;
+  --dur-reduced: 150ms;
+  --dur-spinner: 800ms;
+  /* The stage icons' loops, as they run today. */
+  --dur-loop-1: 0.6s;
+  --dur-loop-2: 0.9s;
+  --dur-loop-3: 1.1s;
+  --dur-loop-4: 1.2s;
+  --dur-loop-5: 1.4s;
+  --dur-loop-6: 1.5s;
+  --dur-loop-7: 1.6s;
+  --dur-loop-8: 2.2s;
+  --delay-busy: 250ms;
+  --press-scale: 0.97;
+  /* Fixed delays and steps in a sequence. */
+  --delay-none: 0ms;
+  --delay-ring-step: 80ms; /* the rings draw, outer to inner */
+  --delay-celebrate-step: 300ms; /* moments that coincide: fast, win, full */
+  --delay-burst: 650ms; /* the first burst, as the spin settles */
+  --delay-burst-2: 450ms; /* the second burst, after the first */
+  --delay-bar-step: 4ms; /* chart bars rise one after another */
+  --delay-bar-max: 160ms;
+
+  /* Stacking. */
+  --z-sticky: 2;
+  --z-tabbar: 10;
+  --z-sheet: 20;
+  --z-toast: 30;
+}
+}

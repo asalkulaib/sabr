@@ -18,12 +18,13 @@ import { renderWeight } from './ui/weight.js';
 import { renderMore } from './ui/more.js';
 import { renderSatiety } from './ui/satiety.js';
 import { renderHelp } from './ui/help.js';
-import { currentSheet, isSheetOpen, openSheet, sheetHead } from './ui/sheet.js';
+import { closeSheet, currentSheet, isSheetOpen, openSheet, roomForMessage, sheetHead } from './ui/sheet.js';
 import { showFullnessSheet } from './ui/meal.js';
 import { knownOutcome, resumeTemptation, startTemptation, unfinishedTemptation } from './ui/temptation.js';
 import { dueFullness } from './ui/shared.js';
 import { deliverFiles } from './ui/share.js';
 import { importWeightText } from './weight-import.js';
+import { needsWelcome, showWelcome } from './ui/welcome.js';
 import { VERSION } from './version.js';
 
 const view = document.getElementById('view');
@@ -98,9 +99,9 @@ function render(fresh) {
   const ctx = context();
   const y = window.scrollY;
   const node = renderRoute(ctx);
-  const flashNode = flash && flash.until > ctx.nowTs ? flashBar(flash) : null;
-  view.replaceChildren(...[flashNode, node].filter(Boolean));
+  view.replaceChildren(node);
   view.removeAttribute('aria-busy');
+  syncFlash(ctx.nowTs);
   // A soft fade when the screen or the state of the day changes.
   const stateKey = `${route.name}|${route.arg || ''}|${ctx.mode.mode}`;
   if (fresh) {
@@ -121,18 +122,83 @@ function render(fresh) {
   lastSignature = signatureOf(ctx);
 }
 
-/** The message bar above the tabs, with Undo when the change can be reversed. */
+// ---------- The toast ----------
+
+// Messages live in their own host outside the screen, above the tabs and
+// above an open sheet, so a message about a sheet's change shows over it.
+// The host is the live region, there from the start, so VoiceOver reads each
+// message as it arrives (a region inserted with its words is often missed).
+const flashRoot = h('div', { id: 'flash-root', class: 'flash-root', role: 'status', 'aria-live': 'polite' });
+document.body.append(flashRoot);
+let flashShown = null; // the message on screen now
+let flashSized = null;
+
+/** The message bar, with Undo when the change can be reversed. */
 function flashBar(f) {
-  return h('div', { class: 'flash', role: 'status', 'data-flash': '' },
+  return h('div', { class: 'flash', 'data-flash': '' },
     h('span', { 'data-testid': 'flash' }, f.text),
     f.undo ? button('Undo', () => undoLast(), { kind: 'secondary', name: 'undo' }) : null);
 }
 
+/** The screen keeps room under its last line for the message, however tall it grows. */
+function roomForFlash(el) {
+  if (flashSized) flashSized.disconnect();
+  flashSized = null;
+  const root = document.documentElement;
+  if (!el) {
+    document.body.classList.remove('has-flash');
+    root.style.removeProperty('--flash-h');
+    return;
+  }
+  document.body.classList.add('has-flash');
+  const size = () => {
+    const px = Math.ceil(el.offsetHeight) + 16;
+    root.style.setProperty('--flash-h', `${px}px`);
+    // An open sheet makes room at its foot, so the message covers none of it.
+    roomForMessage(px);
+  };
+  size();
+  flashSized = new ResizeObserver(size);
+  flashSized.observe(el);
+}
+
+/** Shows the current message, keeping the one on screen when it has not changed. */
+function syncFlash(nowTs) {
+  const live = flash && flash.until > nowTs ? flash : null;
+  if (live === flashShown) return;
+  flashShown = live;
+  if (!live) {
+    clearFlash();
+    return;
+  }
+  const el = flashBar(live);
+  flashRoot.replaceChildren(el);
+  roomForFlash(el);
+}
+
+/** Fades the message out. */
+function clearFlash() {
+  const el = flashRoot.querySelector('[data-flash]');
+  flashShown = null;
+  roomForFlash(null);
+  if (el) fadeOut(el).then(() => { if (!flashShown) el.remove(); });
+}
+
+/**
+ * Undo, from the message. The message floats above an open sheet, so the sheet
+ * never shows a change that is no longer there: a message raised before this
+ * sheet opened belongs to the screen behind, so the sheet closes first and the
+ * change undone is in view; a message the sheet itself raised (the Goal sheet)
+ * leaves it open, drawn again with the change undone.
+ */
 async function undoLast() {
-  const undo = flash && flash.undo;
-  if (!undo) return;
+  const f = flash;
+  if (!f || !f.undo) return;
   flash = null;
-  await undo();
+  if (currentSheet() && currentSheet() !== f.sheet) await closeSheet();
+  await f.undo();
+  const open = currentSheet();
+  if (open) open.api.rerender();
   showFlash('Undone.');
 }
 
@@ -174,9 +240,8 @@ function tick() {
   if (now() - zoneCheckedAt >= 5 * MIN) followZone();
   const ctx = context();
   if (flash && flash.until <= ctx.nowTs) {
-    const el = view.querySelector('[data-flash]');
     flash = null;
-    if (el) fadeOut(el).then(() => el.remove());
+    clearFlash();
   }
   if (signatureOf(ctx) !== lastSignature && !editing()) render(false);
   else updateLive(view, ctx.nowTs);
@@ -223,7 +288,8 @@ async function followZone() {
 
 /** A short message; with undo, a change that one tap on Undo reverses. */
 function showFlash(text, { ms = 8000, undo = null } = {}) {
-  flash = { text, undo, until: now() + (undo ? Math.max(ms, 10000) : ms) };
+  // The sheet open as it is raised, if any: its Undo belongs to that sheet.
+  flash = { text, undo, sheet: currentSheet(), until: now() + (undo ? Math.max(ms, 10000) : ms) };
   render(false);
 }
 
@@ -296,18 +362,21 @@ async function restoreFrom(file) {
   }
   const info = describeBackup(backupObj);
   const when = info.exportedAt ? fmtDayLong(dayKey(Date.parse(info.exportedAt))) : 'an unknown date';
-  openSheet((api) => h('div', {},
-    sheetHead(api, 'Restore'),
-    h('p', { class: 'statement' }, 'Replace everything on this iPhone with this backup?'),
-    h('p', { class: 'gap' }, `Backup from ${when}: ${info.windows} windows, ${info.meals} meals, ${info.weighIns} weigh-ins and ${info.temptations} temptations.`),
-    info.skipped ? h('p', { class: 'small quiet gap-s' }, `${info.skipped} damaged ${info.skipped === 1 ? 'entry' : 'entries'} will be left out.`) : null,
-    h('div', { class: 'stack gap-l' },
+  openSheet((api) => ({
+    head: sheetHead(api, 'Restore'),
+    body: h('div', {},
+      h('p', { class: 'statement' }, 'Replace everything on this iPhone with this backup?'),
+      h('p', { class: 'gap' }, `Backup from ${when}: ${info.windows} windows, ${info.meals} meals, ${info.weighIns} weigh-ins and ${info.temptations} temptations.`),
+      info.skipped ? h('p', { class: 'small quiet gap-s' }, `${info.skipped} damaged ${info.skipped === 1 ? 'entry' : 'entries'} will be left out.`) : null),
+    actions: [
       button('Replace my data', async () => {
         await store.restore(backupObj);
         await api.close();
         showFlash('Backup restored.');
       }, { block: true, name: 'confirm-restore' }),
-      button('Cancel', () => api.close(), { kind: 'secondary', name: 'cancel-restore' }))),
+      button('Cancel', () => api.close(), { kind: 'outline', block: true, name: 'cancel-restore' }),
+    ],
+  }),
   { name: 'restore', label: 'Restore' });
 }
 
@@ -372,6 +441,10 @@ function fatal(err) {
 }
 
 async function boot() {
+  // iOS Safari draws :active only where a touch listener sits on the element
+  // or above it: one on the document gives every row, tile and pill its
+  // pressed state.
+  document.addEventListener('touchstart', () => {}, { passive: true });
   try {
     await store.load();
   } catch (err) {
@@ -421,6 +494,9 @@ async function boot() {
     history.replaceState(null, '', `${location.pathname}#weight`);
     await importText(payload);
   }
+
+  // A fresh install meets the welcome once, never over a weight import just made.
+  if (needsWelcome(store.state)) showWelcome(app);
 
   prompts(context());
   setInterval(tick, 1000);

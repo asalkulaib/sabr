@@ -104,46 +104,6 @@ function schedule(ctx, app, r) {
     ], 'strip-legend'));
 }
 
-/**
- * The week on Today: Sunday to Saturday, each day's result in the same marks
- * as the schedule, today underlined, and a legend naming only the marks in
- * the row. Tap a day to open it.
- */
-export function weekRow(ctx, app) {
-  const start = weekStart(ctx.todayKey);
-  const byDay = mealsByDay(ctx.meals);
-  const seen = new Set();
-  const cells = Array.from({ length: 7 }, (_, i) => {
-    const day = addDays(start, i);
-    const e = ctx.evaluate(day);
-    const future = day > ctx.todayKey;
-    const result = future && e.result !== 'paused' ? 'future' : e.result;
-    const lw = !future && dayFullness(byDay.get(day) || [], ctx.days.get(day)) === LEFT_WANTING;
-    seen.add(['success', 'miss', 'paused', 'future'].includes(result) ? result : 'open');
-    if (lw) seen.add('wanting');
-    const word = result === 'future' ? 'still ahead' : RESULT_WORD[result] || 'nothing logged';
-    return h('button', {
-      type: 'button',
-      class: 'week-day',
-      'data-day': day,
-      'data-result': result,
-      'aria-current': day === ctx.todayKey ? 'date' : null,
-      'aria-label': [fmtDayShort(day), word, lw ? 'left wanting' : null].filter(Boolean).join(', '),
-      onclick: () => app.go(`day/${day}`),
-    }, h('span', { class: 'wd' }, weekdayShort(day)), resultCell(result, lw));
-  });
-  return h('div', { class: 'week-today', 'data-testid': 'today-week' },
-    h('div', { class: 'week-row' }, cells),
-    h('div', { class: 'week-legend' }, legend([
-      seen.has('success') ? ['success', 'Success'] : null,
-      seen.has('miss') ? [key('miss'), 'Miss'] : null,
-      seen.has('paused') ? ['paused', 'Paused'] : null,
-      seen.has('open') ? ['outline', 'Open or not logged'] : null,
-      seen.has('future') ? ['dashed', 'Still ahead'] : null,
-      seen.has('wanting') ? ['dot', 'Left wanting'] : null,
-    ], 'today-week-legend')));
-}
-
 const TRIGGER_WORD = { hunger: 'hunger', boredom: 'boredom', social: 'social', stress: 'stress', tired: 'tired', other: 'other' };
 const TYPE_WORD = { weights: 'weights', cardio: 'cardio', other: 'other', unspecified: 'type not set' };
 

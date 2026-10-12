@@ -88,20 +88,22 @@ export function clear(el) {
   while (el.firstChild) el.firstChild.remove();
 }
 
-/** Soft fade in (250 to 400 ms, ease-out). */
+/** A soft fade in (--dur-base on --ease-out; shorter under Reduce Motion). */
 export function fadeIn(el) {
   el.classList.remove('fade-out');
   el.classList.add('fade-in');
   return el;
 }
 
+/** A soft fade out: a keyframe fade, or under Reduce Motion a short opacity transition. */
 export function fadeOut(el) {
   return new Promise((resolve) => {
-    if (matchMedia('(prefers-reduced-motion: reduce)').matches) return resolve();
     el.classList.remove('fade-in');
     el.classList.add('fade-out');
     const done = () => resolve();
-    el.addEventListener('animationend', done, { once: true });
+    // Only its own fade counts, not one ending inside it.
+    el.addEventListener('animationend', (e) => { if (e.target === el) done(); });
+    el.addEventListener('transitionend', (e) => { if (e.target === el && e.propertyName === 'opacity') done(); });
     setTimeout(done, 400);
   });
 }

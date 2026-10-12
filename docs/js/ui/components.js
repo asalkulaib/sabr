@@ -2,6 +2,8 @@
 
 import * as P from './palette.js';
 import { h, s } from './dom.js';
+import { glyph, hatch, stopMark } from './icons.js';
+import { resultRing } from './rings.js';
 import { addDays, durationParts, fmtDayShort, minutesOfDay, now } from '../core/time.js';
 
 let uid = 0;
@@ -89,6 +91,8 @@ export function sliding(track, buttons, { key = null, line = false, pick, curren
       return buttons.find((b) => x < b.offsetLeft + b.offsetWidth) || buttons[buttons.length - 1];
     };
     track.addEventListener('pointerdown', (e) => {
+      // A track stacked into one column picks by tap only: dragging reads x.
+      if (track.classList.contains('stacked')) return;
       if (e.button === 0) drag = { id: e.pointerId, x: e.clientX, moved: false };
     });
     track.addEventListener('pointermove', (e) => {
@@ -117,9 +121,12 @@ export function sliding(track, buttons, { key = null, line = false, pick, curren
     track.addEventListener('click', (e) => { if (swallow) e.stopPropagation(); }, true);
   }
   // A choice made elsewhere: glide to it.
-  const sync = () => {
+  const sync = (relayout = false) => {
     const b = buttons.find(isChosen) || null;
-    if (b === committed) return;
+    if (b === committed) {
+      if (relayout && placed && b) show(b);
+      return;
+    }
     committed = b;
     if (!placed) return;
     if (shown) pill.classList.add('glide');
@@ -189,13 +196,19 @@ export const durationFigure = (ms) => figureParts(durationParts(ms));
  * Text options on one sliding track (one choice). options: [{ value, label,
  * wide }]; a wide option spans two columns. On more than one line the pill
  * glides across lines too. slim: a small switch that sizes to its words,
- * for a chart's own controls.
+ * for a chart's own controls. fit: each option as wide as its words; when
+ * they do not fit across, the track stacks into one column (.stacked) and is
+ * picked by tap only.
  */
-export function choice({ options, value, onChange, label, cols = 3, name, slim = false, ariaLabel = null }) {
+export function choice({ options, value, onChange, label, cols = 3, name, slim = false, fit = false, ariaLabel = null }) {
   const labelId = nextId('choice');
   const line = slim || (options.length <= cols && !options.some((o) => o.wide));
+  // A fit track drawn again (after a tap, say) starts as it last measured,
+  // so its pill is placed, and glides, on the right boxes from the start.
+  const known = fit && name ? fitShape.get(name) : undefined;
   // Five or more across: smaller words, so each keeps clear of the rounded ends.
-  const cls = ['choice', slim ? 'slim' : cols >= 5 ? 'many' : '', line ? '' : 'grid'].filter(Boolean).join(' ');
+  const cls = ['choice', slim ? 'slim' : cols >= 5 ? 'many' : '', line ? '' : 'grid', fit ? 'fit' : '',
+    known !== undefined ? 'measured' : '', known ? 'stacked' : ''].filter(Boolean).join(' ');
   const grid = h('div', { class: cls, role: 'radiogroup', 'aria-labelledby': label ? labelId : null, 'aria-label': label ? null : ariaLabel });
   grid.style.setProperty('--cols', String(cols));
   let slide = null;
@@ -212,12 +225,43 @@ export function choice({ options, value, onChange, label, cols = 3, name, slim =
   });
   grid.append(...buttons);
   slide = sliding(grid, buttons, { key: name ? `choice:${name}` : null, line, pick: (b) => onChange(options[buttons.indexOf(b)].value) });
+  if (fit) {
+    // Stacks when the words overflow the track, and lies flat again when they
+    // fit. Measured in the next frame, never inside the observer, so the
+    // change of height never loops back into it.
+    let width = -1;
+    const measure = () => {
+      if (!grid.isConnected || !grid.clientWidth) return;
+      const was = grid.classList.contains('stacked');
+      grid.classList.remove('stacked');
+      const over = buttons.some((b) => b.scrollWidth > b.clientWidth + 1) || grid.scrollWidth > grid.clientWidth + 1;
+      grid.classList.toggle('stacked', over);
+      grid.classList.add('measured');
+      if (name) fitShape.set(name, over);
+      const pill = grid.querySelector(':scope > .pill');
+      if (over !== was && pill && pill.classList.contains('glide')) {
+        // The layout changed under the pill: it moves there at once, not in a glide.
+        pill.classList.remove('glide');
+        slide.sync(true);
+        void pill.offsetWidth;
+        requestAnimationFrame(() => pill.classList.add('glide'));
+      } else slide.sync(true);
+    };
+    new ResizeObserver(() => {
+      if (grid.clientWidth === width) return;
+      width = grid.clientWidth;
+      requestAnimationFrame(measure);
+    }).observe(grid);
+  }
   return h('div', { class: 'choice-wrap' }, label ? h('div', { class: 'label field-label', id: labelId }, label) : null, grid);
 }
 
+// Whether each named fit track last stacked (choice({ fit })).
+const fitShape = new Map();
+
 // ---------- Rolling wheels ----------
 
-const ROW = 36; // px per row; five rows show, the middle one is selected
+const ROW = 40; // px per row (--wheel-row); five rows show, the middle one is selected
 const pad2 = (i) => String(i).padStart(2, '0');
 
 /**
@@ -360,7 +404,8 @@ function wheelColumn({ count, index, label, part, onSettle, text = pad2, keyOf =
  * until it is rolled. With allowUnset, a Clear button sets it back to null.
  */
 /** aside: a control beside the wheel, level with the chosen time (Just now). */
-export function timeField({ minutes, onChange, label, hint, name, fallback = null, allowUnset = false, aside = null }) {
+/** srLabel: the label is read out but not shown (the sheet's title already says it). */
+export function timeField({ minutes, onChange, label, hint, name, fallback = null, allowUnset = false, aside = null, srLabel = false }) {
   const id = nextId('time');
   let value = minutes;
   const start = minutes ?? fallback ?? minutesOfDay(now());
@@ -396,8 +441,8 @@ export function timeField({ minutes, onChange, label, hint, name, fallback = nul
     }, 'Clear')
     : null;
 
-  const wrap = h('div', { class: 'time-wrap', dataset: { time: name || '' } },
-    label ? h('div', { class: 'label field-label', id }, label) : null,
+  const wrap = h('div', { class: 'time-wrap time-block', dataset: { time: name || '' } },
+    label ? h('div', { class: srLabel ? 'label field-label sr-only' : 'label field-label', id }, label) : null,
     aside ? h('div', { class: 'wheel-row' }, wheel, aside) : wheel,
     h('div', { class: 'time-foot' }, hintEl, clearBtn),
   );
@@ -486,12 +531,18 @@ export function textField({ value, onInput, label, placeholder, name }) {
 }
 
 /**
- * kind: 'primary', the one solid action on a screen; 'outline', an action
- * beside it; 'secondary', a quiet text action; 'chip', a small pill for a
- * quick value such as Just now. label may be text or nodes (an icon and text).
+ * kind: 'primary', the one solid action on a screen (ink, 56); 'win', Start
+ * a meal and Finished this meal (green, 56); 'outline', an action beside it
+ * (48); 'danger', something that cannot be undone (ink with a trash glyph,
+ * never red); 'secondary', a tertiary pill (44); 'chip', a small pill for a
+ * quick value such as Just now. icon: a glyph from icons.js drawn before the
+ * label. label may be text or nodes (an icon and text).
  */
-export function button(label, onClick, { kind = 'primary', block = false, big = false, name, disabled = false } = {}) {
-  const cls = kind === 'secondary' ? 'btn-2' : kind === 'chip' ? 'chip' : ['btn', kind === 'outline' ? 'outline' : '', block ? 'block' : '', big ? 'big' : ''].filter(Boolean).join(' ');
+export function button(label, onClick, { kind = 'primary', block = false, big = false, name, disabled = false, icon = null } = {}) {
+  const cls = kind === 'secondary' ? 'btn-2' : kind === 'chip' ? 'chip'
+    : ['btn', { outline: 'outline', win: 'win', danger: 'danger' }[kind] || '', block ? 'block' : '', big ? 'big' : ''].filter(Boolean).join(' ');
+  const mark = icon || (kind === 'danger' ? 'trash' : null);
+  if (mark) label = [glyph(mark, kind === 'danger' && mark === 'trash' ? { size: 18 } : {}), typeof label === 'string' ? h('span', {}, label) : label];
   // While an action is still saving, further taps are ignored (no double
   // records). The action itself starts inside the tap, so iOS still allows
   // the clipboard and the share sheet.
@@ -509,64 +560,156 @@ export function button(label, onClick, { kind = 'primary', block = false, big = 
     }
   };
   const b = h('button', { type: 'button', class: cls, dataset: { action: name || '' }, disabled, onclick: run }, label);
-  if (kind !== 'secondary') {
-    // Keep the pressed fill visible briefly on touch devices.
-    b.addEventListener('touchstart', () => b.classList.add('pressed'), { passive: true });
-    const off = () => setTimeout(() => b.classList.remove('pressed'), 180);
-    b.addEventListener('touchend', off);
-    b.addEventListener('touchcancel', off);
-  }
+  // Keep the pressed fill visible briefly on touch devices, for every kind.
+  b.addEventListener('touchstart', () => b.classList.add('pressed'), { passive: true });
+  const off = () => setTimeout(() => b.classList.remove('pressed'), 180);
+  b.addEventListener('touchend', off);
+  b.addEventListener('touchcancel', off);
   return b;
 }
 
 /** A round button with a drawn cross, to put a note away. */
 export function closeButton(onClick, { name, label = 'Close' } = {}) {
   return h('button', { type: 'button', class: 'close-x', 'aria-label': label, dataset: { action: name || '' }, onclick: onClick },
-    s('svg', { viewBox: '0 0 14 14', 'aria-hidden': 'true', focusable: 'false' }, s('path', { d: 'M2 2 L12 12 M12 2 L2 12' })));
+    s('svg', { viewBox: '0 0 32 32', 'aria-hidden': 'true', focusable: 'false' },
+      s('circle', { cx: 16, cy: 16, r: 15 }),
+      s('path', { d: 'M10 10 L22 22 M22 10 L10 22' })));
 }
 
 // ---------- Marks drawn in SVG ----------
 
-const { INK, MISS, FAST, PAGE } = P;
+const { INK, FAST } = P;
 
-let hatches = 0;
+// Orange stripes for a miss: drawn in icons.js, the same pattern everywhere.
+export { hatch };
+
+const RESULT_KEYS = { 'day-success': 'success', 'day-miss': 'miss', 'day-open': 'unlogged', 'day-ahead': 'future', 'day-paused': 'paused' };
 
 /**
- * Orange stripes, the mark of a miss wherever it appears, so a miss never
- * rests on its colour alone. Returns the pattern to put in an SVG and its fill.
+ * A legend key drawn in SVG in the exact shape of the mark it names, 14px by
+ * default (--ring-key). Kinds: miss, sun, outside, stage, cutoff; ring-fast,
+ * ring-win, ring-full; day-success, day-miss, day-open, day-ahead,
+ * day-paused, left-wanting; bar-fast, bar-fast-short, bar-win, bar-miss,
+ * bar-selected, band-paused, line-trend, line-average, line-weight,
+ * line-meal, latest-square, zone; band-used, band-left, band-grace, band-over;
+ * track-window, track-open; stop-before_full, stop-full, stop-stuffed,
+ * unrated; progress-fast. Small marks keep a 1px edge in their darker tone,
+ * so each reaches 3:1. Ink parts carry k-ink, so a chosen legend chip can
+ * turn them white.
  */
-export function hatch(color = MISS, ground = PAGE) {
-  const id = `miss-hatch-${++hatches}`;
-  return {
-    fill: `url(#${id})`,
-    defs: s('defs', {}, s('pattern', { id, width: 5, height: 5, patternUnits: 'userSpaceOnUse', patternTransform: 'rotate(45)' },
-      s('rect', { width: 5, height: 5, fill: ground }),
-      s('line', { x1: 1.25, y1: 0, x2: 1.25, y2: 5, stroke: color, 'stroke-width': 2.5 }))),
+export function key(kind, { size = 14 } = {}) {
+  const sized = (svg) => {
+    if (size !== 14) {
+      svg.style.setProperty('width', `${size}px`);
+      svg.style.setProperty('height', `${size}px`);
+    }
+    return svg;
   };
-}
-
-/** A legend key drawn in SVG, like the mark it names: a miss, now, eating outside, the 16:00 line, the current stage. */
-export function key(kind) {
-  const box = (...kids) => s('svg', { class: 'key', viewBox: '0 0 14 14', 'aria-hidden': 'true', focusable: 'false' }, ...kids);
+  const box = (...kids) => sized(s('svg', { class: 'key', viewBox: '0 0 14 14', 'aria-hidden': 'true', focusable: 'false' }, ...kids));
+  const rect = (fill, extra = {}) => s('rect', { x: 1, y: 3, width: 12, height: 8, rx: 2, fill, ...extra });
+  const line = (stroke, width, extra = {}) => s('line', { x1: 1, y1: 7, x2: 13, y2: 7, stroke, 'stroke-width': width, 'stroke-linecap': 'round', ...extra });
   if (kind === 'miss') {
     const m = hatch();
-    return box(m.defs, s('rect', { x: 1, y: 1, width: 12, height: 12, rx: 3, fill: m.fill, stroke: MISS, 'stroke-width': 1.5 }));
+    return box(m.defs, s('rect', { x: 1, y: 1, width: 12, height: 12, rx: 3, fill: m.fill, stroke: P.MISS_TEXT, 'stroke-width': 1 }));
   }
-  if (kind === 'sun') return box(s('circle', { cx: 7, cy: 7, r: 5, fill: FAST }));
-  if (kind === 'outside') return box(s('path', { d: 'M3 3 L11 11 M11 3 L3 11', stroke: MISS, 'stroke-width': 2.2, 'stroke-linecap': 'round', fill: 'none' }));
-  if (kind === 'stage') return box(s('circle', { cx: 7, cy: 7, r: 6, fill: INK }));
-  if (kind === 'cutoff') return box(s('line', { x1: 7, y1: 0, x2: 7, y2: 14, stroke: INK, 'stroke-width': 1.2, 'stroke-dasharray': '2 2' }));
-  return box();
+  if (kind === 'sun') return box(s('circle', { cx: 7, cy: 7, r: 5, fill: FAST, stroke: P.FAST_TEXT, 'stroke-width': 1 }));
+  if (kind === 'outside') return box(s('path', { d: 'M3 3 L11 11 M11 3 L3 11', stroke: P.MISS_TEXT, 'stroke-width': 2.2, 'stroke-linecap': 'round', fill: 'none' }));
+  if (kind === 'stage') return box(s('circle', { class: 'k-ink', cx: 7, cy: 7, r: 6, fill: INK }));
+  if (kind === 'cutoff') return box(s('line', { class: 'k-ink-line', x1: 7, y1: 0, x2: 7, y2: 14, stroke: INK, 'stroke-width': 1.5, 'stroke-dasharray': '2 2' }));
+  const ring = { 'ring-fast': P.FAST, 'ring-win': P.WIN, 'ring-full': P.FULL }[kind];
+  if (ring) return box(s('circle', { cx: 7, cy: 7, r: 5.5, fill: 'none', stroke: ring, 'stroke-width': 3 }));
+  if (RESULT_KEYS[kind] || kind === 'left-wanting') {
+    const svg = kind === 'left-wanting'
+      ? s('svg', { viewBox: '0 0 14 14', 'aria-hidden': 'true', focusable: 'false' }, s('circle', { cx: 7, cy: 7, r: 4.5, fill: P.FULL, stroke: P.FULL_TEXT, 'stroke-width': 1 }))
+      : resultRing(RESULT_KEYS[kind], 14);
+    svg.removeAttribute('data-result');
+    svg.removeAttribute('width');
+    svg.removeAttribute('height');
+    svg.setAttribute('class', 'key');
+    for (const dot of svg.querySelectorAll('[data-testid]')) dot.removeAttribute('data-testid');
+    return sized(svg);
+  }
+  if (kind === 'bar-fast') return box(rect(P.FAST, { stroke: P.FAST_TEXT, 'stroke-width': 1 }));
+  if (kind === 'bar-fast-short') return box(rect(P.FAST_SOFT, { stroke: P.FAST_TEXT, 'stroke-width': 1.5 }));
+  if (kind === 'bar-win' || kind === 'band-used' || kind === 'track-window') return box(rect(P.WIN, { stroke: P.WIN_TEXT, 'stroke-width': 1 }));
+  if (kind === 'band-left' || kind === 'track-open') return box(rect(P.WIN_SOFT, { stroke: P.WIN_TEXT, 'stroke-width': 1 }));
+  if (kind === 'bar-miss' || kind === 'band-over') {
+    const m = hatch();
+    return box(m.defs, rect(m.fill, { stroke: P.MISS_TEXT, 'stroke-width': 1 }));
+  }
+  if (kind === 'bar-selected') return box(rect(INK, { class: 'k-ink', stroke: INK, 'stroke-width': 1.5 }));
+  if (kind === 'band-paused') return box(rect(P.TRACK, { stroke: P.QUIET, 'stroke-width': 1 }));
+  if (kind === 'band-grace') return box(rect('none', { stroke: P.QUIET, 'stroke-width': 1.5, 'stroke-dasharray': '2 2' }));
+  if (kind === 'line-trend') return box(line(INK, 2.5, { class: 'k-ink-line' }));
+  if (kind === 'line-average') return box(line(P.QUIET, 1.25, { 'stroke-dasharray': '4 4', 'stroke-linecap': 'butt' }));
+  if (kind === 'line-weight') return box(line(P.WEIGHT, 2.5));
+  if (kind === 'line-meal') return box(line(P.EDGE, 1.5));
+  if (kind === 'progress-fast') return box(s('rect', { x: 0, y: 5, width: 14, height: 4, rx: 2, fill: P.FAST }));
+  if (kind === 'latest-square') return box(s('rect', { class: 'k-ink', x: 3, y: 3, width: 8, height: 8, fill: INK }));
+  if (kind === 'zone') return box(s('rect', { x: 1.5, y: 1.5, width: 11, height: 11, fill: P.EDGE, 'fill-opacity': 0.12, stroke: P.EDGE, 'stroke-width': 1 }));
+  if (kind === 'unrated' || kind.startsWith('stop-')) {
+    const mark = stopMark(kind === 'unrated' ? null : kind.slice(5), { x: 7, y: 7, r: 5 });
+    mark.removeAttribute('data-stop');
+    mark.removeAttribute('data-series');
+    return box(mark);
+  }
+  // A kind with no drawing would leave its word with no mark beside it.
+  throw new Error(`key(): no key is drawn for "${kind}"`);
+}
+
+/** Every kind key() draws (tests/unit/legend.test.js holds the screens to it). */
+export const KEY_KINDS = [
+  'miss', 'sun', 'outside', 'stage', 'cutoff',
+  'ring-fast', 'ring-win', 'ring-full',
+  ...Object.keys(RESULT_KEYS), 'left-wanting',
+  'bar-fast', 'bar-fast-short', 'bar-win', 'bar-miss', 'bar-selected', 'band-paused',
+  'line-trend', 'line-average', 'line-weight', 'line-meal', 'latest-square', 'zone',
+  'band-used', 'band-left', 'band-grace', 'band-over', 'track-window', 'track-open',
+  'stop-before_full', 'stop-full', 'stop-stuffed', 'unrated', 'progress-fast',
+];
+
+// The names screens passed before key() existed, and the key each now draws,
+// matched to the mark the screen draws. Removed in Phase 2, once every screen
+// passes its own kind.
+export const LEGACY_KEYS = {
+  success: 'day-success', outline: 'day-open', dashed: 'day-ahead', dot: 'left-wanting', paused: 'day-paused',
+  bar: 'track-open', used: 'band-used', left: 'band-left', grace: 'band-grace',
+  'rock-line': 'line-weight', trend: 'line-trend', avg: 'line-average', pick: 'latest-square', 'goal-met': 'bar-fast',
+  miss: 'miss', zone: 'zone', 'stage-now': 'stage', 'line-faint': 'line-meal',
+};
+
+// Where one old name stands for different marks on different screens, the
+// legend's testid (and, on History, the words) picks the mark that screen
+// draws, so a key never takes another ring's colour. Removed with LEGACY_KEYS.
+const LEGACY_IN = {
+  // Week strip: the open window, pale green with a green edge.
+  'strip-legend': { bar: 'track-open' },
+  // History: Feast bars are solid green, Fast bars pale red; paused days are
+  // a grey band; the selected day is an ink bar.
+  'history-legend': {
+    bar: (label) => (label === 'Hours in the window' ? 'bar-win' : 'bar-fast-short'),
+    paused: 'band-paused',
+    pick: 'bar-selected',
+  },
+};
+
+/** The key() kind a legend item's old name draws, in the legend testid names. */
+export function legacyKind(name, testid, label) {
+  const own = Object.hasOwn(LEGACY_IN, testid || '') && Object.hasOwn(LEGACY_IN[testid], name) ? LEGACY_IN[testid][name] : null;
+  if (own) return typeof own === 'function' ? own(label) : own;
+  return Object.hasOwn(LEGACY_KEYS, name) ? LEGACY_KEYS[name] : name;
 }
 
 /**
  * A legend: each colour or mark beside the word for what it means, so no mark
- * relies on colour alone. items: [key, label], where key is a swatch class
- * ('miss', 'paused', ...) or a node such as an icon. Empty items are skipped.
+ * relies on colour alone. items: [key, label, series?], where key is a key()
+ * kind ('ring-fast', 'day-miss', ...) or a node such as an icon. Empty items
+ * are skipped. With onPick, an item with a series is a chip that shows only
+ * that series.
  */
 export function legend(items, testid, { focus = null, onPick = null } = {}) {
-  return h('div', { class: 'legend', 'data-testid': testid || null }, items.filter(Boolean).map(([key, label, series]) => {
-    const icon = typeof key === 'string' ? h('span', { class: `swatch ${key}`, 'aria-hidden': 'true' }) : key;
+  return h('div', { class: 'legend', 'data-testid': testid || null }, items.filter(Boolean).map(([mark, label, series]) => {
+    const icon = typeof mark === 'string' ? key(legacyKind(mark, testid, label)) : mark;
     // With a series and onPick, the item is a button: tap to show only that
     // series, tap again to show everything.
     if (!onPick || series == null) return h('span', { class: 'legend-item' }, icon, label);
@@ -582,6 +725,93 @@ export function focusLine(text, onClear, testid) {
   return h('div', { class: 'btn-row focus-line gap', 'data-testid': testid },
     h('span', { class: 'small' }, text),
     button('Show all', onClear, { kind: 'secondary', name: 'show-all' }));
+}
+
+/**
+ * A miss in words beside its stripes key. The testid sits on the words, so
+ * code that sets textContent keeps the key; an empty line hides itself.
+ * text may be a list of reasons: each gets its own key, and the words span
+ * reads them as one sentence, joined by spaces.
+ */
+export function missLine(text, { testid } = {}) {
+  let line;
+  let words;
+  if (Array.isArray(text)) {
+    const reasons = text.filter(Boolean);
+    words = h('span', { 'data-testid': testid || null });
+    reasons.forEach((r, i) => {
+      if (i) words.append(' ');
+      words.append(h('span', { class: 'miss-reason' }, key('miss', { size: 16 }), h('span', {}, r)));
+    });
+    line = h('div', { class: 'miss-line multi' }, words);
+  } else {
+    words = h('span', { 'data-testid': testid || null }, text || null);
+    line = h('div', { class: 'miss-line' }, key('miss', { size: 16 }), words);
+  }
+  watchMissLine(line, words, testid);
+  /** New words for a single-sentence line; it eases in when they go from none to some. */
+  line.set = (next) => { words.textContent = next || ''; };
+  return line;
+}
+
+// The words each miss line last showed, by its testid (or by the words when
+// it has none): a line eases in only when its words are new, never because
+// the screen was drawn again with the same ones.
+const missShown = new Map();
+
+function watchMissLine(line, words, testid) {
+  const enter = () => {
+    line.classList.remove('appear');
+    void line.offsetWidth; // restart the entrance
+    line.classList.add('appear');
+  };
+  const t = words.textContent;
+  if (t && missShown.get(testid || t) !== t) enter();
+  if (t) missShown.set(testid || t, t);
+  if (typeof MutationObserver === 'undefined') return;
+  new MutationObserver(() => {
+    const now = words.textContent;
+    const k = testid || now;
+    if (now && missShown.get(k) !== now) enter();
+    if (testid) missShown.set(testid, now);
+    else if (now) missShown.set(now, now);
+  }).observe(words, { childList: true, characterData: true, subtree: true });
+}
+
+/** An error in words beside an alert glyph, in ink (never red or orange). */
+export function errorLine(text, { testid } = {}) {
+  return h('div', { class: 'error-line' }, glyph('alert', { size: 16 }), h('span', { 'data-testid': testid || null, role: 'alert' }, text || null));
+}
+
+/**
+ * The goal as two figures: the fast and the window, each with its ring key
+ * and its word (the legend). node.set({ fastHours, windowHours }) updates it.
+ */
+export function goalPair({ fastHours, windowHours }) {
+  const fastFig = h('div', { class: 'goal-pair-figure' });
+  const winFig = h('div', { class: 'goal-pair-figure' });
+  const node = h('div', { class: 'goal-pair', 'data-testid': 'goal-pair', 'aria-live': 'polite' },
+    h('div', { class: 'goal-pair-item', 'data-ring': 'fast' }, h('div', { class: 'goal-pair-label' }, key('ring-fast'), h('span', {}, 'Fast')), fastFig),
+    h('div', { class: 'goal-pair-item', 'data-ring': 'win' }, h('div', { class: 'goal-pair-label' }, key('ring-win'), h('span', {}, 'Window')), winFig));
+  node.set = ({ fastHours: f, windowHours: w }) => {
+    fastFig.replaceChildren(figureParts([[f, 'h']]));
+    winFig.replaceChildren(figureParts([[w, 'h']]));
+  };
+  node.set({ fastHours, windowHours });
+  return node;
+}
+
+/** Text with compound terms ("7-day", "20-minute") kept on one line; textContent is unchanged. */
+export function nowrapTerms(text) {
+  const frag = document.createDocumentFragment();
+  let at = 0;
+  for (const m of String(text).matchAll(/\b\d+-(?:day|minute|hour|week)\b/g)) {
+    if (m.index > at) frag.append(text.slice(at, m.index));
+    frag.append(h('span', { class: 'nowrap' }, m[0]));
+    at = m.index + m[0].length;
+  }
+  if (at < text.length) frag.append(text.slice(at));
+  return frag;
 }
 
 export const TRIGGER_OPTIONS = [

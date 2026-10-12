@@ -5,7 +5,7 @@ import { button } from './components.js';
 import { DAY, HOME_ZONE, addDays, dayKey, fmtDayLong, fmtDuration, fmtMinutes, fmtWhen, sameClock, zoneAt, zoneName } from '../core/time.js';
 import { isFlexible, isOpen, isWorkday, longFastAhead, plannedStartMin } from '../core/rules.js';
 
-/** Margin note: a small scholar's note. */
+/** A note: a label over its value (a meta pair). */
 export function note(title, value) {
   return h('div', { class: 'note' }, h('b', {}, title), value);
 }
@@ -14,7 +14,24 @@ export function liveNote(title, fn) {
   return h('div', { class: 'note' }, h('b', {}, title), live('span', {}, fn));
 }
 
-/** A margin note you tap to change its time. */
+const TIME_PARTS = /^(Reached )?(\d\d:\d\d)(?: (.+))?$/;
+
+/**
+ * A formatted time split for its tile: 'Reached', the time, then what day
+ * ('yesterday', 'Sun 27 Sep') on a line of its own. The spans join with
+ * literal spaces, so the text reads exactly as it was given.
+ */
+function timeParts(value) {
+  const m = TIME_PARTS.exec(String(value));
+  if (!m) return [h('span', { class: 'tp-time' }, value)];
+  const out = [];
+  if (m[1]) out.push(h('span', { class: 'tp-tag' }, 'Reached'), ' ');
+  out.push(h('span', { class: 'tp-time' }, m[2]));
+  if (m[3]) out.push(' ', h('span', { class: 'tp-qual' }, m[3]));
+  return out;
+}
+
+/** A note you tap to change its time: a time tile, its label inside. */
 export function tapNote(title, value, onClick, name) {
   return h('button', {
     type: 'button',
@@ -22,10 +39,14 @@ export function tapNote(title, value, onClick, name) {
     'data-action': name,
     'aria-label': `${title}, ${value}. Change`,
     onclick: onClick,
-  }, h('b', {}, title), h('span', { class: 'tap-value' }, value));
+  }, h('b', {}, title), h('span', { class: 'tap-value' }, timeParts(value)));
 }
 
-/** A labelled time in a pill you tap to change (when the fast began, when it reaches its goal). */
+/**
+ * A labelled time in a tile you tap to change (when the fast began, when it
+ * reaches its goal). The label sits outside the button; the whole tile is
+ * the button's hit area.
+ */
 export function timePill(title, value, onClick, name, { reached = false } = {}) {
   return h('div', { class: 'time-pill' },
     h('div', { class: 'label', 'aria-hidden': 'true' }, title),
@@ -35,7 +56,7 @@ export function timePill(title, value, onClick, name, { reached = false } = {}) 
       'data-action': name,
       'aria-label': `${title}, ${value}. Change`,
       onclick: onClick,
-    }, value));
+    }, timeParts(value)));
 }
 
 export function dayTypeText(key, rec) {
@@ -57,18 +78,31 @@ export function zoneNoteFor(ctx, ts) {
   return sameClock(zone, zoneAt(ctx.nowTs), ts) ? null : `${zoneName(zone)} time`;
 }
 
-/** zone: a note about the time zone in place of the usual one (a day from another clock). */
-export function header(ctx, app, { title, sub, zone }) {
+/** A Back pill: a tertiary pill with the chevron before its words. */
+function backPill(back) {
+  const b = button(back.label, (e) => back.onClick(e), { kind: 'secondary', name: back.name || 'back', icon: 'chevron-left' });
+  b.classList.add('back');
+  return b;
+}
+
+/**
+ * zone: a note about the time zone in place of the usual one (a day from
+ * another clock). back: { label, name, onClick }, a Back pill on its own row
+ * above the title.
+ */
+export function header(ctx, app, { title, sub, zone, back = null }) {
   const tempted = !ctx.openRec && ctx.mode.mode !== 'paused'
     ? button('Tempted?', () => app.tempted(), { kind: 'secondary', name: 'tempted' })
     : null;
   const away = zone !== undefined ? zone : awayZone(ctx);
+  // The title block stacks from the bottom up: the title, the sub line above it, the Back pill on top.
   return h('header', { class: 'head' },
     h('div', { class: 'head-title' },
-      h('div', { class: 'label' }, title),
+      h('h1', { class: 'label' }, title),
       sub || away
         ? h('div', { class: 'label' }, sub || null, away ? h('span', { 'data-testid': 'zone-note' }, `${sub ? ' · ' : ''}${away}`) : null)
-        : null),
+        : null,
+      back ? h('div', { class: 'head-back' }, backPill(back)) : null),
     tempted,
   );
 }

@@ -15,7 +15,9 @@ const files = [];
 })(root);
 const read = (f) => readFileSync(f, 'utf8');
 const rel = (f) => path.relative(root, f);
-const css = read(path.join(root, 'css', 'app.css'));
+// tokens.css holds every token; the other files are walked through `files`.
+const css = read(path.join(root, 'css', 'tokens.css'));
+const cssFiles = files.filter((f) => f.endsWith('.css'));
 
 // Rings: white page, soft grey cards, ink text; red the fast, green the
 // window, blue fullness, orange stripes a miss, indigo weight.
@@ -31,11 +33,36 @@ const PALETTE = {
   '--night': '#05060B',
 };
 
+// The ink-alpha tokens, checked as plain text: '(' and '.' would be regex syntax.
+const RGBA = {
+  '--rule-quiet': 'rgba(14, 14, 18, 0.12)',
+  '--shade': 'rgba(14, 14, 18, 0.06)',
+  '--edge': 'rgba(14, 14, 18, 0.5)',
+  '--scrim': 'rgba(14, 14, 18, 0.4)',
+};
+
 test('the colour tokens are exactly the brief', () => {
   for (const [name, hex] of Object.entries(PALETTE)) {
     assert.match(css, new RegExp(`${name}:\\s*${hex};`, 'i'), name);
   }
-  assert.match(css, /--rule-quiet:\s*rgba\(14, 14, 18, 0\.12\);/);
+  for (const [name, value] of Object.entries(RGBA)) {
+    assert.ok(css.includes(`${name}: ${value};`), `${name}: ${value}`);
+  }
+});
+
+test('the styles are layered files, linked in order, with app.css gone', () => {
+  const order = ['tokens', 'base', 'components', 'today', 'stages', 'sheets', 'week', 'history', 'satiety', 'more', 'welcome'];
+  assert.match(css, /^@layer tokens, base, components, screens;/);
+  const layerOf = { tokens: 'tokens', base: 'base', components: 'components' };
+  for (const name of order) {
+    const text = read(path.join(root, 'css', `${name}.css`));
+    assert.match(text, new RegExp(`@layer ${layerOf[name] || 'screens'} \\{`), `${name}.css`);
+    assert.doesNotMatch(text, /@import/, `${name}.css`);
+  }
+  assert.ok(!cssFiles.some((f) => f.endsWith('app.css')), 'app.css is gone');
+  const linked = (html) => [...html.matchAll(/<link rel="stylesheet" href="(?:\.\.\/)?css\/([\w-]+)\.css">/g)].map((m) => m[1]);
+  assert.deepEqual(linked(read(path.join(root, 'index.html'))), ['fonts', ...order]);
+  assert.deepEqual(linked(read(path.join(root, 'import', 'index.html'))), ['fonts', 'tokens', 'base', 'components', 'history']);
 });
 
 test('the drawing colours in palette.js match the tokens', async () => {
@@ -43,8 +70,11 @@ test('the drawing colours in palette.js match the tokens', async () => {
   const pairs = { INK: '--ink', PAGE: '--bg', CARD: '--bg-raised', TRACK: '--track', QUIET: '--text-quiet',
     FAST: '--fast', FAST_SOFT: '--fast-soft', FAST_TEXT: '--fast-text', FAST_DEEP: '--fast-deep',
     WIN: '--win', WIN_SOFT: '--win-soft', WIN_TEXT: '--win-text', FULL: '--full', FULL_SOFT: '--full-soft', FULL_TEXT: '--full-text',
-    MISS: '--miss', MISS_TEXT: '--miss-text', WEIGHT: '--weight', WEIGHT_SOFT: '--weight-soft', WEIGHT_TEXT: '--weight-text' };
+    MISS: '--miss', MISS_TEXT: '--miss-text', WEIGHT: '--weight', WEIGHT_SOFT: '--weight-soft', WEIGHT_TEXT: '--weight-text',
+    MARGINALIA: '--text-marginalia' };
   for (const [k, token] of Object.entries(pairs)) assert.equal(P[k].toUpperCase(), PALETTE[token].toUpperCase(), k);
+  assert.equal(P.EDGE, RGBA['--edge']);
+  assert.equal(P.GRID, RGBA['--rule-quiet']);
 });
 
 test('no colour outside the palette anywhere', () => {

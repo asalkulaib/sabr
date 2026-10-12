@@ -1,0 +1,410 @@
+/* Base: reset, page, type classes and their legacy names, layout, focus, utilities, skeletons and fades. */
+
+@layer base {
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  border-radius: 0;
+}
+
+html {
+  background: var(--bg);
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+  background: var(--bg);
+  color: var(--text-body);
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: var(--t-body-size);
+  line-height: var(--t-body-lh);
+  letter-spacing: var(--t-body-track);
+  /* Every figure is lining; static figures are proportional, so a "1" leaves
+     no gap. Numbers that tick or align add .tabular. */
+  font-variant-numeric: lining-nums proportional-nums;
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior-y: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+  color: inherit;
+  letter-spacing: inherit;
+}
+
+button {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+a {
+  color: inherit;
+}
+
+p {
+  margin: 0 0 var(--space-3);
+  text-wrap: pretty;
+}
+
+p:last-child {
+  margin-bottom: 0;
+}
+
+h1,
+h2,
+h3 {
+  margin: 0;
+  font-weight: 900;
+  text-wrap: balance;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+:focus {
+  outline: none;
+}
+
+/* The focus ring: 2px of ink, 2px off, shown at once (it never transitions). */
+:focus-visible {
+  outline: var(--focus-w) solid var(--focus);
+  outline-offset: var(--focus-gap);
+  transition: none;
+}
+
+/* ---------- Type: ten steps ---------- */
+.t-hero,
+.t-display,
+.t-title-1,
+.t-title-2,
+.t-title-3 {
+  font-family: var(--font-display);
+  font-weight: 900;
+  color: var(--text-display);
+}
+
+.t-hero {
+  font-size: var(--t-hero-size);
+  line-height: var(--t-hero-lh);
+  letter-spacing: var(--t-hero-track);
+}
+
+.t-display {
+  font-size: var(--t-display-size);
+  line-height: var(--t-display-lh);
+  letter-spacing: var(--t-display-track);
+}
+
+.t-title-1 {
+  font-size: var(--t-title-1-size);
+  line-height: var(--t-title-1-lh);
+  letter-spacing: var(--t-title-1-track);
+}
+
+.t-title-2 {
+  font-size: var(--t-title-2-size);
+  line-height: var(--t-title-2-lh);
+  letter-spacing: var(--t-title-2-track);
+}
+
+.t-title-3 {
+  font-size: var(--t-title-3-size);
+  line-height: var(--t-title-3-lh);
+  letter-spacing: var(--t-title-3-track);
+}
+
+.t-headline {
+  font-weight: 800;
+  font-size: var(--t-headline-size);
+  line-height: var(--t-headline-lh);
+  letter-spacing: var(--t-headline-track);
+}
+
+.t-body {
+  font-weight: 600;
+  font-size: var(--t-body-size);
+  line-height: var(--t-body-lh);
+  letter-spacing: var(--t-body-track);
+}
+
+.t-callout {
+  font-weight: 600;
+  font-size: var(--t-callout-size);
+  line-height: var(--t-callout-lh);
+  letter-spacing: var(--t-callout-track);
+}
+
+.t-footnote {
+  font-weight: 700;
+  font-size: var(--t-footnote-size);
+  line-height: var(--t-footnote-lh);
+  letter-spacing: var(--t-footnote-track);
+}
+
+.t-micro {
+  font-weight: 800;
+  font-size: var(--t-micro-size);
+  line-height: var(--t-micro-lh);
+  letter-spacing: var(--t-micro-track);
+}
+
+/* Legacy names land on the scale, so markup not yet moved still fits it. */
+
+/* A label: footnote at 800, sentence case. */
+.label {
+  font-family: var(--font-ui);
+  font-weight: 800;
+  font-size: var(--t-footnote-size);
+  line-height: var(--t-footnote-lh);
+  letter-spacing: var(--t-footnote-track);
+  text-transform: none;
+  color: var(--text-label);
+}
+
+.display,
+.figure {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: var(--t-display-size);
+  line-height: var(--t-display-lh);
+  letter-spacing: var(--t-display-track);
+  color: var(--text-display);
+}
+
+/* The number a chart leads with. */
+.figure.lead {
+  font-size: var(--t-hero-size);
+  line-height: var(--t-hero-lh);
+  letter-spacing: var(--t-hero-track);
+}
+
+.h2 {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: var(--t-title-2-size);
+  line-height: var(--t-title-2-lh);
+  letter-spacing: var(--t-title-2-track);
+  color: var(--text-display);
+}
+
+.statement {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: var(--t-title-3-size);
+  line-height: var(--t-title-3-lh);
+  letter-spacing: var(--t-title-3-track);
+  color: var(--text-display);
+}
+
+/* Large digits, small units: 15h 10m, 5 of 7, 104.7 kg. The eye lands on
+   the number first. */
+.unit {
+  font-size: 0.5em;
+  font-weight: 800;
+  letter-spacing: 0;
+  margin-left: 0.06em;
+}
+
+/* A figure stays on one line. */
+.fig {
+  white-space: nowrap;
+}
+
+.num {
+  font-family: var(--font-ui);
+  font-weight: 800;
+  font-variant-numeric: lining-nums tabular-nums;
+}
+
+/* Numbers that tick or line up: timers, wheels, tables, axes. */
+.tabular {
+  font-variant-numeric: lining-nums tabular-nums;
+}
+
+.quiet {
+  color: var(--text-quiet);
+}
+
+.small {
+  font-size: var(--t-callout-size);
+  line-height: var(--t-callout-lh);
+}
+
+.hl {
+  /* What you did, in the colour of the fast: a goal reached. */
+  color: var(--fast-text);
+}
+
+/* A highlighted heading hugs its words instead of filling the column. */
+.display.hl,
+.figure.hl {
+  display: inline-block;
+}
+
+/* A window kept: the window's own green. */
+.win-ok {
+  color: var(--win-text);
+}
+
+/* A miss in words: dark orange, 4.5:1 on white and on the cards. */
+.clay {
+  color: var(--miss-text);
+}
+
+.deco {
+  color: var(--text-marginalia);
+}
+
+/* ---------- Layout ---------- */
+.screen {
+  min-height: 100dvh;
+  max-width: var(--content-max);
+  margin-inline: auto;
+  padding: var(--screen-pad-top) var(--gutter-r) var(--screen-pad-b) var(--gutter-l);
+}
+
+/* While a message shows above the tabs, the page keeps room for it. */
+body.has-flash .screen {
+  padding-bottom: calc(var(--screen-pad-b) + var(--flash-room));
+}
+
+/* A comfortable measure for running text. */
+.screen p,
+.sheet p,
+.screen .list,
+.sheet .list,
+.steps {
+  max-width: var(--measure);
+}
+
+.screen .stat,
+.sheet .phrases {
+  max-width: none;
+}
+
+.stack > * + * {
+  margin-top: var(--space-3);
+}
+
+.stack-lg > * + * {
+  margin-top: var(--space-6);
+}
+
+.gap-s {
+  margin-top: var(--space-2);
+}
+
+.gap {
+  margin-top: var(--space-3);
+}
+
+.gap-l {
+  margin-top: var(--space-6);
+}
+
+.gap-xl {
+  margin-top: var(--space-8);
+}
+
+/* ---------- Fades ---------- */
+.fade-in {
+  animation: fade-in var(--dur-base) var(--ease-out) both;
+}
+
+.fade-out {
+  animation: fade-out var(--dur-fast) var(--ease-in) both;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes fade-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+/* Reduce Motion: short opacity transitions, never keyframes. */
+@media (prefers-reduced-motion: reduce) {
+  .fade-in {
+    animation: none;
+    transition: opacity var(--dur-reduced) var(--ease-out);
+  }
+
+  @starting-style {
+    .fade-in {
+      opacity: 0;
+    }
+  }
+
+  .fade-out {
+    animation: none;
+    opacity: 0;
+    transition: opacity var(--dur-reduced) var(--ease-in);
+  }
+}
+
+/* ---------- Skeletons ---------- */
+.skeleton {
+  background: var(--bg-raised);
+  border-radius: var(--r-control);
+}
+
+.sk-line {
+  height: var(--space-4);
+  margin: var(--space-3) 0;
+}
+
+.sk-title {
+  height: var(--space-10);
+  width: 62%;
+  margin: var(--space-4) 0 var(--space-6);
+}
+
+.sk-block {
+  height: var(--space-16);
+  margin: var(--space-6) 0;
+}
+
+/* Arabic glosses keep their own letter shapes: no spacing, no capitals. */
+.ar {
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+html.locked,
+html.locked body {
+  overflow: hidden;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.nowrap {
+  white-space: nowrap;
+}
+}

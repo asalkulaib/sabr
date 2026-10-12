@@ -1,81 +1,9 @@
 // Screenshots of every screen and state at 390 x 844 for design review, plus
 // a contrast audit of every visible piece of text in each state.
-import { mkdir, writeFile } from 'node:fs/promises';
-import { test, expect, openAt, seed, advance, tap, pick, choose, sheet, setDate, setPick, setTime, settings, ms } from './helpers.js';
+import { test, expect, openAt, seed, advance, tap, pick, choose, sheet, setDate, setPick, setTime, settings, ms, shot, scrollSheet } from './helpers.js';
 import { WEEK } from './seed-data.js';
 
 test.skip(({ browserName }) => browserName !== 'webkit', 'screens are reviewed in WebKit, the engine of iPhone Safari');
-
-const DIR = 'test-results/screens';
-
-/** Every visible text must reach 4.5:1 (3:1 at 24px and above) on its background. */
-async function audit(page) {
-  return page.evaluate(() => {
-    const parse = (c) => {
-      const m = c && c.match(/rgba?\(([^)]+)\)/);
-      if (!m) return null;
-      const [r, g, b, a = 1] = m[1].split(',').map((x) => Number(x.trim()));
-      return { r, g, b, a };
-    };
-    const lum = ({ r, g, b }) => {
-      const f = (v) => { const c = v / 255; return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4; };
-      return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b);
-    };
-    const background = (el) => {
-      // The chosen option of a sliding track sits on its ink pill, a sibling
-      // drawn behind it; the tab you are on sits on a soft red capsule.
-      if (el.closest('.tab[aria-current="page"]')) return { r: 255, g: 227, b: 234, a: 1 };
-      if (el.closest('.choice button[aria-checked="true"], .scale button[aria-checked="true"]')) return { r: 14, g: 14, b: 18, a: 1 };
-      for (let e = el; e; e = e.parentElement) {
-        const c = parse(getComputedStyle(e).backgroundColor);
-        if (c && c.a > 0.5) return c;
-        if (e.classList && e.classList.contains('sheet')) break;
-      }
-      return { r: 255, g: 255, b: 255, a: 1 };
-    };
-    const blend = (fg, bg) => ({ r: fg.r * fg.a + bg.r * (1 - fg.a), g: fg.g * fg.a + bg.g * (1 - fg.a), b: fg.b * fg.a + bg.b * (1 - fg.a) });
-    const bad = [];
-    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
-    while (walker.nextNode()) {
-      const node = walker.currentNode;
-      const text = node.textContent.trim();
-      if (!text) continue;
-      const el = node.parentElement;
-      if (el.closest('[hidden], button[disabled]')) continue;
-      const cs = getComputedStyle(el);
-      if (cs.visibility === 'hidden' || cs.display === 'none' || Number(cs.opacity) === 0) continue;
-      const rect = el.getBoundingClientRect();
-      if (!rect.width || !rect.height) continue;
-      const bg = background(el);
-      const fg = blend(parse(el instanceof SVGElement ? cs.fill : cs.color), bg);
-      const [hi, lo] = [lum(fg), lum(bg)].sort((a, b) => b - a);
-      const ratio = (hi + 0.05) / (lo + 0.05);
-      const size = parseFloat(cs.fontSize);
-      const need = size >= 24 || (Number(cs.fontWeight) >= 700 && size >= 18.66) ? 3 : 4.5;
-      if (ratio + 0.01 < need) bad.push(`${text.slice(0, 40)} (${ratio.toFixed(2)} at ${size}px)`);
-    }
-    return bad;
-  });
-}
-
-/** The project sits in a synced folder that can hold a file for a moment: retry the write. */
-async function save(path, png) {
-  await mkdir(DIR, { recursive: true });
-  for (let i = 0; ; i++) {
-    try {
-      return await writeFile(path, png);
-    } catch (err) {
-      if (i >= 5) throw err;
-      await new Promise((r) => setTimeout(r, 300));
-    }
-  }
-}
-
-async function shot(page, name, { full = false } = {}) {
-  await page.waitForTimeout(450); // let fades settle
-  await save(`${DIR}/${name}.png`, await page.screenshot({ fullPage: full }));
-  expect(await audit(page), `contrast on ${name}`).toEqual([]);
-}
 
 const install = settings({ installedAt: ms('2026-09-20T08:00'), lastBackupAt: ms('2026-09-26T08:00'), lastImportAt: ms('2026-09-26T09:00') });
 
@@ -117,7 +45,7 @@ test('today: fasting stages', async ({ page }) => {
   await shot(page, '01c-today-stages');
   await tap(page, 'about-stages');
   await shot(page, '01d-stages-sheet');
-  await page.locator('[data-sheet="stages"]').evaluate((el) => { el.scrollTop = el.scrollHeight; });
+  await scrollSheet(page, 'stages');
   await shot(page, '01e-stages-sheet-end');
 });
 
@@ -219,13 +147,13 @@ test('add a meal: the form, what it does to the window, a miss in words', async 
   await tap(page, 'add-meal');
   await choose(page, 'meal-type', 'Lunch');
   await pick(page, 'hunger', 6);
-  await sheet(page, 'add-meal').evaluate((el) => { el.scrollTop = 0; });
+  await scrollSheet(page, 'add-meal', 'top');
   await shot(page, '19b-add-meal-sheet');
   await choose(page, 'stop', 'before_full');
   await pick(page, 'fullness-now', 6);
   await pick(page, 'fullness-20', 7);
   await choose(page, 'last-meal', 'true');
-  await sheet(page, 'add-meal').evaluate((el) => { el.scrollTop = el.scrollHeight; });
+  await scrollSheet(page, 'add-meal');
   await shot(page, '19c-add-meal-sheet-end');
   await tap(page, 'save-added-meal');
   await shot(page, '19d-today-after-added-meal');
@@ -237,7 +165,7 @@ test('add a meal: the form, what it does to the window, a miss in words', async 
   await tap(page, 'add-meal');
   await choose(page, 'added-day', '2026-09-26');
   await setTime(page, 'added-start', '20:00');
-  await sheet(page, 'add-meal').evaluate((el) => { el.scrollTop = el.scrollHeight; });
+  await scrollSheet(page, 'add-meal');
   await shot(page, '19f-add-meal-outside');
 });
 
@@ -318,6 +246,17 @@ test('week, day, weight, more, help', async ({ page }) => {
   await tap(page, 'reset-keep');
   await tap(page, 'help');
   await shot(page, '35-help', { full: true });
+});
+
+test('week: a window still open, with its key', async ({ page }) => {
+  await openAt(page, '2026-09-27T17:30');
+  await seed(page, { ...WEEK, settings: install });
+  await tap(page, 'start-meal');
+  await tap(page, 'start-eating');
+  await page.locator('.tab[data-tab="week"]').click();
+  await expect(page.getByTestId('strip-legend')).toContainText('Window still open');
+  await page.getByTestId('strip-legend').scrollIntoViewIfNeeded();
+  await shot(page, '30c-week-window-open');
 });
 
 test('history: fast and feast, bars and line, ranges, table', async ({ page }) => {
@@ -527,7 +466,7 @@ test('the stages one at a time, opened from the stage under the time', async ({ 
   await shot(page, '88-stages-sparing');
   await tap(page, 'more-sparing');
   await shot(page, '88b-stage-more-sparing');
-  await page.locator('[data-sheet="stages"]').evaluate((el) => { el.scrollTop = el.scrollHeight; });
+  await scrollSheet(page, 'stages');
   await shot(page, '88c-stage-more-sparing-end');
   await tap(page, 'stages-back-end');
   await tap(page, 'stage-switch');

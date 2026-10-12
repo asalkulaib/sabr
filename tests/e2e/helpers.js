@@ -1,3 +1,4 @@
+import { mkdir, writeFile } from 'node:fs/promises';
 import { test as base, expect } from '@playwright/test';
 
 export { expect };
@@ -12,10 +13,17 @@ export const MIN = 60_000;
 
 /**
  * Every test also checks that the app never requests anything outside its
- * own origin (no CDN, no analytics).
+ * own origin (no CDN, no analytics). The first-run welcome stays away unless
+ * a spec asks for it with test.use({ welcome: true }).
  */
 export const test = base.extend({
-  page: async ({ page }, use) => {
+  welcome: [false, { option: true }],
+  page: async ({ page, welcome }, use) => {
+    if (!welcome) {
+      await page.addInitScript(() => {
+        try { localStorage.setItem('sabr.welcomed', '1'); } catch { /* storage blocked: the app's own check decides */ }
+      });
+    }
     const outside = [];
     page.on('request', (req) => {
       const url = req.url();
@@ -167,4 +175,145 @@ export async function captureShares(page) {
 
 export async function sharedFiles(page) {
   return page.evaluate(() => window.__shared);
+}
+
+// ---------- Screenshots for design review ----------
+
+export const SCREENS_DIR = 'test-results/screens';
+
+/** Every visible text must reach 4.5:1 (3:1 at 24px and above) on its background. */
+export async function audit(page) {
+  return page.evaluate(() => {
+    const parse = (c) => {
+      const m = c && c.match(/rgba?\(([^)]+)\)/);
+      if (!m) return null;
+      const [r, g, b, a = 1] = m[1].split(',').map((x) => Number(x.trim()));
+      return { r, g, b, a };
+    };
+    const lum = ({ r, g, b }) => {
+      const f = (v) => { const c = v / 255; return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4; };
+      return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b);
+    };
+    const background = (el) => {
+      // The chosen option of a sliding track sits on its ink pill, a sibling
+      // drawn behind it; so does the tab you are on.
+      if (el.closest('.tab[aria-current="page"]')) return { r: 14, g: 14, b: 18, a: 1 };
+      if (el.closest('.choice button[aria-checked="true"], .scale button[aria-checked="true"]')) return { r: 14, g: 14, b: 18, a: 1 };
+      for (let e = el; e; e = e.parentElement) {
+        const c = parse(getComputedStyle(e).backgroundColor);
+        if (c && c.a > 0.5) return c;
+        if (e.classList && e.classList.contains('sheet')) break;
+      }
+      return { r: 255, g: 255, b: 255, a: 1 };
+    };
+    const blend = (fg, bg) => ({ r: fg.r * fg.a + bg.r * (1 - fg.a), g: fg.g * fg.a + bg.g * (1 - fg.a), b: fg.b * fg.a + bg.b * (1 - fg.a) });
+    const bad = [];
+    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+    while (walker.nextNode()) {
+      const node = walker.currentNode;
+      const text = node.textContent.trim();
+      if (!text) continue;
+      const el = node.parentElement;
+      if (el.closest('[hidden], button[disabled]')) continue;
+      const cs = getComputedStyle(el);
+      if (cs.visibility === 'hidden' || cs.display === 'none' || Number(cs.opacity) === 0) continue;
+      const rect = el.getBoundingClientRect();
+      if (!rect.width || !rect.height) continue;
+      const bg = background(el);
+      const fg = blend(parse(el instanceof SVGElement ? cs.fill : cs.color), bg);
+      const [hi, lo] = [lum(fg), lum(bg)].sort((a, b) => b - a);
+      const ratio = (hi + 0.05) / (lo + 0.05);
+      const size = parseFloat(cs.fontSize);
+      const need = size >= 24 || (Number(cs.fontWeight) >= 700 && size >= 18.66) ? 3 : 4.5;
+      if (ratio + 0.01 < need) bad.push(`${text.slice(0, 40)} (${ratio.toFixed(2)} at ${size}px)`);
+    }
+    return bad;
+  });
+}
+
+/** The project can sit in a synced folder that holds a file for a moment: retry the write. */
+async function save(path, png) {
+  await mkdir(SCREENS_DIR, { recursive: true });
+  for (let i = 0; ; i++) {
+    try {
+      return await writeFile(path, png);
+    } catch (err) {
+      if (i >= 5) throw err;
+      await new Promise((r) => setTimeout(r, 300));
+    }
+  }
+}
+
+/** Waits until every animation that ends has ended (ring draws, sheets, fades); loops never end. */
+export async function settleMotion(page) {
+  await page.evaluate(() => Promise.race([
+    Promise.all(document.getAnimations()
+      .filter((a) => { const t = a.effect && a.effect.getComputedTiming(); return t && Number.isFinite(t.endTime); })
+      .map((a) => a.finished.catch(() => {}))),
+    new Promise((resolve) => setTimeout(resolve, 4000)),
+  ]));
+}
+
+/** Shoots the screen into test-results/screens/<name>.png, then audits its text contrast. */
+export async function shot(page, name, { full = false } = {}) {
+  await page.waitForTimeout(450); // let fades settle
+  await settleMotion(page);
+  await save(`${SCREENS_DIR}/${name}.png`, await page.screenshot({ fullPage: full }));
+  expect(await audit(page), `contrast on ${name}`).toEqual([]);
+  expect(await underMessage(page), `message over the sheet on ${name}`).toEqual([]);
+}
+
+/**
+ * The controls and words of an open sheet that a message covers. A body that
+ * scrolls and is not at its end is skipped: what it hides is a scroll away.
+ */
+export async function underMessage(page) {
+  return page.evaluate(() => {
+    const flash = document.querySelector('#flash-root .flash:not(.fade-out)');
+    const sheet = document.querySelector('#sheet-root:not([hidden]) [data-sheet]');
+    if (!flash || !sheet) return [];
+    const body = sheet.querySelector(':scope > .sheet-body');
+    if (body && body.scrollTop + body.clientHeight < body.scrollHeight - 1) return [];
+    const f = flash.getBoundingClientRect();
+    // What shows of a box: cut by every ancestor that clips (a wheel shows
+    // only the rows around its lens), and nothing when it is hidden.
+    const seen = (r, el) => {
+      let box = { left: r.left, right: r.right, top: r.top, bottom: r.bottom };
+      for (let e = el; e && e !== sheet.parentElement; e = e.parentElement) {
+        const cs = getComputedStyle(e);
+        if (cs.visibility === 'hidden' || cs.display === 'none' || Number(cs.opacity) === 0) return null;
+        if (e !== el && cs.overflow !== 'visible') {
+          const c = e.getBoundingClientRect();
+          box = { left: Math.max(box.left, c.left), right: Math.min(box.right, c.right), top: Math.max(box.top, c.top), bottom: Math.min(box.bottom, c.bottom) };
+        }
+      }
+      return box.right > box.left && box.bottom > box.top ? box : null;
+    };
+    const hits = (r, el) => {
+      const b = seen(r, el);
+      return !!b && b.left < f.right && b.right > f.left && b.top < f.bottom && b.bottom > f.top;
+    };
+    const out = [];
+    for (const el of sheet.querySelectorAll('[data-action]')) {
+      if (hits(el.getBoundingClientRect(), el)) out.push(`[data-action="${el.dataset.action}"]`);
+    }
+    const walker = document.createTreeWalker(sheet, NodeFilter.SHOW_TEXT);
+    while (walker.nextNode()) {
+      const node = walker.currentNode;
+      if (!node.textContent.trim()) continue;
+      const range = document.createRange();
+      range.selectNodeContents(node);
+      if ([...range.getClientRects()].some((r) => hits(r, node.parentElement))) out.push(node.textContent.trim().slice(0, 40));
+    }
+    return out;
+  });
+}
+
+/** Scrolls an open sheet to its top or its end: only the sheet's body scrolls. */
+export async function scrollSheet(page, name, to = 'end') {
+  await page.locator(`[data-sheet="${name}"]`).evaluate((el, end) => {
+    for (const box of [el, el.querySelector(':scope > .sheet-body')]) {
+      if (box) box.scrollTop = end ? box.scrollHeight : 0;
+    }
+  }, to === 'end');
 }

@@ -1,0 +1,2735 @@
+/* Components: everything screens share (spec section 3). Never names a screen.
+   States on every interactive part: default, pressed (one step of fill and a
+   slight scale), focus-visible (an ink ring at once), disabled, busy and,
+   where it applies, selected. Motion only on transform and opacity, on the
+   named easings, and still under Reduce Motion. */
+
+@layer components {
+
+/* ---------- Surfaces (3.9) ---------- */
+.section {
+  padding: var(--space-6) 0;
+  border-top: 1px solid var(--hairline);
+}
+
+.section.flush {
+  border-top: 0;
+  padding-top: 0;
+}
+
+/* On a screen, a supporting block is a soft grey card. */
+.screen .section,
+.screen .card {
+  margin-top: var(--card-gap);
+  padding: var(--card-pad);
+  background: var(--bg-raised);
+  border: 0;
+  border-radius: var(--r-panel);
+}
+
+/* A card's own section is part of it, set off by a hairline. */
+.screen .section .section {
+  margin-top: var(--space-4);
+  padding: var(--space-4) 0 0;
+  background: none;
+  border-top: 1px solid var(--hairline);
+  border-radius: 0;
+}
+
+/* The one hero of a screen sits on the white page with no frame. */
+.screen .section.hero,
+.screen .hero {
+  margin-top: var(--space-6);
+  padding: 0;
+  background: none;
+  border: 0;
+  border-radius: 0;
+}
+
+/* Tinted cards: the soft fill of the meaning they carry. */
+.screen .tint-fast { background: var(--fast-soft); }
+.screen .tint-win { background: var(--win-soft); }
+.screen .tint-full { background: var(--full-soft); }
+.screen .tint-weight { background: var(--weight-soft); }
+
+/* A card of rows with hairlines between them. */
+.screen .group,
+.screen .section.group {
+  margin-top: var(--card-gap);
+  padding: var(--space-1) var(--card-pad);
+  background: var(--bg-raised);
+  border-radius: var(--r-panel);
+}
+
+/* Inside a sheet, sections are plain blocks set off by hairlines. */
+.sheet .section {
+  padding: var(--space-4) 0;
+  border-top: 1px solid var(--hairline);
+}
+
+.sheet .section:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+/* A short summary on its own soft ground. */
+.callout,
+.effect {
+  padding: var(--space-3) var(--space-4);
+  font-weight: 700;
+  font-size: var(--t-callout-size);
+  line-height: var(--t-callout-lh);
+  color: var(--text-display);
+  background: var(--bg-raised);
+  border-radius: var(--r-control);
+}
+
+/* An effect: what a change will do, in headline words. */
+.effect {
+  font-size: var(--t-headline-size);
+  line-height: var(--t-headline-lh);
+}
+
+.section .callout,
+.section .effect,
+.card .callout,
+.card .effect {
+  background: var(--bg);
+}
+
+/* A phase of the window, in words: warn, reopen, opened early. */
+.phase-bar {
+  display: flex;
+  align-items: center;
+  column-gap: var(--space-2);
+  min-height: var(--phase-h);
+  padding: var(--space-3) var(--space-4);
+  font-weight: 800;
+  font-size: var(--t-callout-size);
+  line-height: var(--t-callout-lh);
+  color: var(--text-display);
+  background: var(--bg-raised);
+  border-radius: var(--r-control);
+}
+
+.phase-bar.miss {
+  color: var(--miss-text);
+}
+
+.section .phase-bar,
+.card .phase-bar {
+  background: var(--bg);
+}
+
+.phase-bar > .key {
+  flex: none;
+}
+
+/* A white tile on a grey card, for one to three tappable entries. */
+.list-tile {
+  display: block;
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  text-align: left;
+  background: var(--bg-raised-2);
+  border-radius: var(--r-control);
+  transition: background-color var(--dur-fast) var(--ease-out);
+}
+
+.list-tile + .list-tile {
+  margin-top: var(--space-2);
+}
+
+.list-tile:active {
+  background: var(--shade);
+}
+
+.list-tile:focus-visible {
+  outline-offset: calc(-1 * var(--focus-w));
+}
+
+/* ---------- Headings and labels (3.6) ---------- */
+.field-label {
+  display: block;
+  margin-bottom: var(--space-2);
+  font-weight: 800;
+  font-size: var(--t-footnote-size);
+  line-height: var(--t-footnote-lh);
+  color: var(--text-label);
+}
+
+.card-title {
+  margin: 0 0 var(--space-3);
+  font-weight: 900;
+  font-size: var(--t-title-3-size);
+  line-height: var(--t-title-3-lh);
+  letter-spacing: var(--t-title-3-track);
+  color: var(--text-display);
+}
+
+/* A card inside a titled group: one size down. */
+.in-group .card-title,
+.card-title.in-group {
+  font-size: var(--t-headline-size);
+  line-height: var(--t-headline-lh);
+  letter-spacing: var(--t-headline-track);
+}
+
+.group-title {
+  margin: var(--space-10) 0 var(--space-3);
+  font-weight: 900;
+  font-size: var(--t-title-2-size);
+  line-height: var(--t-title-2-lh);
+  letter-spacing: var(--t-title-2-track);
+  color: var(--text-display);
+}
+
+.group-footer {
+  padding: var(--space-2) var(--card-pad) 0;
+  font-weight: 600;
+  font-size: var(--t-callout-size);
+  line-height: var(--t-callout-lh);
+  color: var(--text-quiet);
+}
+
+/* The quiet line under a figure. */
+.caption {
+  font-weight: 700;
+  font-size: var(--t-footnote-size);
+  line-height: var(--t-footnote-lh);
+  color: var(--text-quiet);
+}
+
+/* ---------- Header (3.15) ---------- */
+.head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  column-gap: var(--space-3);
+  padding-bottom: var(--space-4);
+}
+
+.head-title {
+  display: flex;
+  flex-direction: column-reverse;
+  min-width: 0;
+}
+
+/* The screen's title. */
+.head-title > .label:first-child {
+  font-weight: 900;
+  font-size: var(--t-title-1-size);
+  line-height: var(--t-title-1-lh);
+  letter-spacing: var(--t-title-1-track);
+  color: var(--text-display);
+}
+
+/* The line above it: the date and the kind of day. */
+.head-title > .label + .label {
+  font-weight: 700;
+  color: var(--text-quiet);
+}
+
+.head [data-testid='zone-note'] {
+  white-space: nowrap;
+}
+
+/* Back sits on its own row above the title. */
+.head-back {
+  margin-bottom: var(--space-2);
+}
+
+.head > .btn-2 {
+  flex: none;
+}
+
+/* ---------- Buttons (3.1) ---------- */
+/* The main action: ink, 56 tall. --btn-fg is the words' colour, which the
+   busy ring takes too. */
+.btn {
+  --btn-fg: var(--on-select);
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  column-gap: var(--space-2);
+  min-height: var(--btn-h);
+  padding: 0 var(--space-6);
+  font-family: var(--font-ui);
+  font-weight: 800;
+  font-size: var(--t-headline-size);
+  line-height: var(--t-headline-lh);
+  letter-spacing: var(--t-headline-track);
+  white-space: nowrap;
+  text-align: center;
+  text-decoration: none;
+  color: var(--btn-fg);
+  background: var(--ink);
+  border: 2px solid var(--ink);
+  border-radius: var(--r-pill);
+  transition:
+    background-color var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out),
+    transform var(--dur-press) var(--ease-out);
+}
+
+.btn:active,
+.btn.pressed {
+  background: var(--text-label);
+  border-color: var(--text-label);
+  transform: scale(var(--press-scale));
+}
+
+/* A secondary action beside the main one: an ink outline, 48 tall. */
+.btn.outline {
+  --btn-fg: var(--ink);
+  min-height: var(--btn-h-2);
+  background: var(--bg);
+}
+
+.btn.outline:active,
+.btn.outline.pressed {
+  background: var(--shade);
+  border-color: var(--ink);
+}
+
+.btn.block,
+.btn.big {
+  display: flex;
+  width: 100%;
+}
+
+/* A label sized for a half-width cell. */
+.btn.sm {
+  padding: 0 var(--space-3);
+  font-size: var(--t-callout-size);
+  line-height: var(--t-callout-lh);
+}
+
+/* The window's green: Start a meal and Finished this meal only. */
+.btn.win,
+.btn:where([data-action='start-meal']:not(.outline)),
+.btn:where([data-action='finish-meal']) {
+  --btn-fg: var(--ink);
+  background: var(--win);
+  border-color: var(--win);
+}
+
+.btn.win:active,
+.btn.win.pressed,
+.btn:where([data-action='start-meal']:not(.outline)):active,
+.btn:where([data-action='start-meal']:not(.outline)).pressed,
+.btn:where([data-action='finish-meal']):active,
+.btn:where([data-action='finish-meal']).pressed {
+  --btn-fg: var(--bg);
+  background: var(--win-text);
+  border-color: var(--win-text);
+}
+
+/* Something that cannot be undone: ink with a trash glyph, never red. */
+.btn.danger .glyph-trash {
+  width: var(--glyph-lg);
+  height: var(--glyph-lg);
+}
+
+.btn .glyph,
+.btn-2 .glyph,
+.chip .glyph {
+  flex: none;
+  width: var(--glyph);
+  height: var(--glyph);
+}
+
+/* A tertiary pill: white, an edge, 44 tall. */
+.btn-2 {
+  --btn-fg: var(--ink);
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  column-gap: var(--space-2);
+  min-height: var(--hit);
+  padding: 0 var(--space-4);
+  font-family: var(--font-ui);
+  font-weight: 800;
+  font-size: var(--t-callout-size);
+  line-height: var(--t-callout-lh);
+  white-space: nowrap;
+  text-decoration: none;
+  color: var(--btn-fg);
+  background: var(--bg-raised-2);
+  border: 2px solid var(--edge);
+  border-radius: var(--r-pill);
+  transition:
+    background-color var(--dur-fast) var(--ease-out),
+    transform var(--dur-press) var(--ease-out);
+}
+
+.btn-2:active,
+.btn-2.pressed {
+  background: var(--shade);
+  transform: scale(var(--press-scale));
+}
+
+/* Back: a chevron before the words. */
+.btn-2.back .glyph {
+  width: var(--chevron-w);
+  height: var(--chevron-h);
+}
+
+/* A quick value: Now, 30 min ago, Just now. */
+.chip,
+.presets .btn-2 {
+  --btn-fg: var(--ink);
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  column-gap: var(--space-2);
+  min-height: var(--hit);
+  padding: 0 var(--space-4);
+  font-family: var(--font-ui);
+  font-weight: 800;
+  font-size: var(--t-callout-size);
+  line-height: var(--t-callout-lh);
+  white-space: nowrap;
+  color: var(--btn-fg);
+  background: var(--bg-raised-2);
+  border: 2px solid var(--edge);
+  border-radius: var(--r-pill);
+  transition:
+    background-color var(--dur-fast) var(--ease-out),
+    transform var(--dur-press) var(--ease-out);
+}
+
+.chip:active,
+.chip.pressed,
+.presets .btn-2:active {
+  background: var(--shade);
+  transform: scale(var(--press-scale));
+}
+
+a.btn,
+a.btn-2,
+a.chip {
+  text-decoration: none;
+}
+
+/* Disabled: a grey ground, quiet words, no press. A sentence nearby says why.
+   (Filled buttons: after the action groups, so a grid's fill never wins.) */
+.btn-2[disabled],
+.chip[disabled] {
+  --btn-fg: var(--text-quiet);
+  border-color: var(--track);
+  transform: none;
+  cursor: default;
+  pointer-events: none;
+}
+
+/* Busy while it saves: the words keep the width, a ring turns in their place. */
+.btn[aria-busy='true'],
+.btn-2[aria-busy='true'],
+.chip[aria-busy='true'] {
+  color: transparent;
+  pointer-events: none;
+  transition: color var(--dur-press) var(--ease-out) var(--delay-busy);
+}
+
+.btn[aria-busy='true']::before,
+.btn-2[aria-busy='true']::before,
+.chip[aria-busy='true']::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  width: var(--spinner);
+  height: var(--spinner);
+  margin: auto;
+  border: var(--spinner-stroke) solid var(--btn-fg);
+  border-right-color: transparent;
+  border-radius: var(--r-pill);
+  opacity: 0;
+  animation: busy-spin var(--dur-spinner) var(--ease-linear) var(--delay-busy) infinite;
+}
+
+@keyframes busy-spin {
+  from { opacity: 1; transform: rotate(0deg); }
+  to { opacity: 1; transform: rotate(360deg); }
+}
+
+/* ---------- Action groups ---------- */
+.pill-row,
+.btn-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* Two equal buttons; they stretch to one height. */
+.btn-pair {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--space-3);
+}
+
+/* In a column, a pill keeps to the width of its words. */
+.btn-pair > .chip {
+  justify-self: start;
+}
+
+@media (max-width: 359px) {
+  .btn-pair {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Two wheels side by side, never stacked. */
+.field-pair {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--space-3);
+}
+
+/* Four outline actions, two by two. */
+.btn-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--space-2);
+}
+
+.btn-grid > .btn {
+  --btn-fg: var(--ink);
+  min-height: var(--btn-h-2);
+  padding: 0 var(--space-3);
+  font-size: var(--t-callout-size);
+  line-height: var(--t-callout-lh);
+  background: var(--bg);
+}
+
+.btn-grid > .btn:active,
+.btn-grid > .btn.pressed {
+  background: var(--shade);
+  border-color: var(--ink);
+}
+
+/* Disabled, last of the buttons, so no kind or group outranks it. */
+.btn[disabled],
+.btn[aria-disabled='true'],
+.btn-grid > .btn[disabled],
+.btn-grid > .btn[aria-disabled='true'] {
+  --btn-fg: var(--text-quiet);
+  background: var(--track);
+  border-color: var(--track);
+  transform: none;
+  cursor: default;
+  pointer-events: none;
+}
+
+/* An inline question: Delete or Keep. The destructive choice is ink. */
+.confirm {
+  padding: var(--inset-pad);
+  background: var(--bg-raised);
+  border-radius: var(--r-control);
+}
+
+.confirm > p,
+.confirm-question {
+  margin: 0 0 var(--space-3);
+  font-weight: 800;
+  font-size: var(--t-callout-size);
+  line-height: var(--t-callout-lh);
+  color: var(--text-display);
+}
+
+.confirm .btn {
+  min-height: var(--btn-h-2);
+}
+
+/* A round button with a drawn cross, to put a note away: 44 to touch. */
+.close-x {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: var(--hit);
+  height: var(--hit);
+  border-radius: var(--r-pill);
+  transition: transform var(--dur-press) var(--ease-out);
+}
+
+.close-x svg {
+  width: var(--close-drawn);
+  height: var(--close-drawn);
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.close-x svg circle {
+  fill: transparent;
+  transition: fill var(--dur-fast) var(--ease-out);
+}
+
+.close-x:active {
+  transform: scale(var(--press-scale));
+}
+
+.close-x:active svg circle {
+  fill: var(--shade);
+}
+
+/* ---------- Quick times (3.2) ---------- */
+.presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+
+/* Beside a wheel: a stack as tall as the wheel. */
+.wheel-row .presets {
+  flex-direction: column;
+  flex-wrap: nowrap;
+  align-items: flex-start;
+  margin: 0;
+}
+
+/* ---------- Sliding tracks (3.3) ---------- */
+/* Every choice and rating is one track. An ink pill sits under the chosen
+   option and glides to the next; on a single line it can be dragged too. */
+.scale,
+.choice {
+  position: relative;
+  display: grid;
+  align-items: center;
+  min-height: var(--track-h);
+  padding: var(--space-1);
+  background: var(--shade);
+  border-radius: var(--r-pill);
+}
+
+.scale {
+  grid-template-columns: repeat(var(--n, 10), minmax(0, 1fr));
+}
+
+.choice {
+  grid-template-columns: repeat(var(--cols, 3), minmax(0, 1fr));
+}
+
+/* Over more than one line: softer corners, and the pill crosses lines. */
+.choice.grid,
+.choice.stacked {
+  row-gap: var(--space-1);
+  border-radius: var(--r-panel);
+}
+
+/* A single line can be dragged sideways; up and down still scroll the page. */
+.scale.line,
+.choice.line {
+  touch-action: pan-y;
+}
+
+.scale button,
+.choice button {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  column-gap: var(--space-2);
+  min-width: 0;
+  min-height: var(--hit);
+  padding: 0 var(--space-2);
+  font-family: var(--font-ui);
+  font-weight: 700;
+  font-size: var(--t-callout-size);
+  line-height: var(--t-callout-lh);
+  white-space: nowrap;
+  color: var(--text-body);
+  border-radius: var(--r-pill);
+  transition:
+    color var(--dur-fast) var(--ease-out),
+    transform var(--dur-press) var(--ease-out);
+}
+
+.scale button:active,
+.choice button:active {
+  transform: scale(var(--press-scale));
+}
+
+.scale button[aria-checked='true'],
+.choice button[aria-checked='true'] {
+  font-weight: 800;
+  color: var(--on-select);
+}
+
+/* On the ink pill, a key's ink parts turn white with the words; its colours stay. */
+.scale button .k-ink,
+.choice button .k-ink,
+.scale button .k-ink-line,
+.choice button .k-ink-line {
+  transition:
+    fill var(--dur-fast) var(--ease-out),
+    stroke var(--dur-fast) var(--ease-out);
+}
+
+.scale button[aria-checked='true'] .k-ink,
+.choice button[aria-checked='true'] .k-ink {
+  fill: var(--on-select);
+  stroke: var(--on-select);
+}
+
+.scale button[aria-checked='true'] .k-ink-line,
+.choice button[aria-checked='true'] .k-ink-line {
+  stroke: var(--on-select);
+}
+
+.scale button[disabled],
+.choice button[disabled] {
+  color: var(--text-marginalia);
+  pointer-events: none;
+}
+
+/* Five or more across: smaller words, clear of the rounded ends. */
+.choice.many button {
+  padding: 0 var(--space-1);
+  font-weight: 800;
+  font-size: var(--t-footnote-size);
+  line-height: var(--t-footnote-lh);
+}
+
+.choice.grid button,
+.choice.stacked button {
+  border-radius: var(--r-control);
+}
+
+/* A choice that spans two columns, such as Other after the four meals. */
+.choice button.wide {
+  grid-column: span 2;
+}
+
+/* A fit track: each option as wide as its words. */
+.choice.fit {
+  grid-template-columns: repeat(var(--cols, 3), auto);
+  justify-content: stretch;
+}
+
+.choice.fit button {
+  padding: 0 var(--space-3);
+  font-weight: 800;
+  font-size: var(--t-footnote-size);
+  line-height: var(--t-footnote-lh);
+}
+
+/* When the words do not fit across, one column of rows. */
+.choice.fit.stacked {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+/* Until the first measure says flat or stacked, the track is not drawn, so
+   it never shows as an overflowing row first. */
+.choice.fit:not(.measured) {
+  visibility: hidden;
+}
+
+/* The pill: ink, under the chosen option, gliding when the choice changes.
+   Its width moves with it (a documented exception: it is absolute, so
+   nothing reflows); its height never animates. */
+.pill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 0;
+  width: var(--w, 0);
+  height: var(--h, 0);
+  transform: translate(var(--x, 0), var(--y, 0));
+  background: var(--select);
+  border-radius: var(--r-pill);
+  pointer-events: none;
+}
+
+.choice.grid > .pill,
+.choice.stacked > .pill {
+  border-radius: var(--r-control);
+}
+
+.pill.glide {
+  transition:
+    transform var(--dur-glide) var(--ease-out),
+    width var(--dur-glide) var(--ease-out);
+}
+
+/* The ends of a rating, under it. */
+.scale-ends {
+  display: flex;
+  justify-content: space-between;
+  column-gap: var(--space-3);
+  margin-top: var(--space-2);
+  font-weight: 700;
+  font-size: var(--t-footnote-size);
+  line-height: var(--t-footnote-lh);
+  color: var(--text-quiet);
+}
+
+/* A chart's own switch: 44 tall, options 36 drawn and 44 to touch. */
+.choice.slim {
+  display: inline-grid;
+  grid-auto-flow: column;
+  grid-template-columns: none;
+  min-height: var(--hit);
+}
+
+.choice.slim button {
+  min-height: var(--slim-h);
+  padding: 0 var(--space-2);
+  font-weight: 800;
+  font-size: var(--t-footnote-size);
+  line-height: var(--t-footnote-lh);
+}
+
+.choice.slim button::after {
+  content: '';
+  position: absolute;
+  inset: calc(-1 * var(--space-1)) 0;
+}
+
+/* A switch between the views of a screen, on the page under the header. */
+.page-switch .choice {
+  width: 100%;
+}
+
+.page-switch .dot {
+  display: inline-block;
+  width: var(--space-2);
+  height: var(--space-2);
+  margin-left: var(--space-1);
+  background: currentColor;
+  border-radius: var(--r-pill);
+}
+
+/* ---------- Time wheel (3.4) ---------- */
+.wheel {
+  --row: var(--wheel-row);
+  position: relative;
+  display: inline-grid;
+  grid-template-columns: var(--wheel-col) var(--wheel-sep) var(--wheel-col);
+  height: calc(var(--row) * 5);
+}
+
+/* A wheel with nothing beside it: centred, the lens across the column. */
+.time-wrap > .wheel {
+  display: grid;
+  justify-content: center;
+}
+
+/* A date wheel and an option wheel: one column. */
+.wheel.date {
+  grid-template-columns: var(--wheel-date);
+}
+
+[data-pick] > .wheel.date {
+  grid-template-columns: var(--wheel-option);
+}
+
+.wheel-col {
+  position: relative;
+  z-index: 1;
+  height: 100%;
+  overflow-y: scroll;
+  scroll-snap-type: y mandatory;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  border-radius: var(--r-control);
+  outline: none;
+}
+
+.wheel-col::-webkit-scrollbar {
+  display: none;
+}
+
+.wheel-col:focus-visible {
+  outline: var(--focus-w) solid var(--focus);
+  outline-offset: calc(-1 * var(--focus-w));
+}
+
+.wheel-pad {
+  height: calc(var(--row) * 2);
+}
+
+/* Every row is set at one size and scaled, so nothing reflows as it rolls. */
+.wheel-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: var(--row);
+  scroll-snap-align: center;
+  font-family: var(--font-ui);
+  font-weight: 900;
+  font-size: var(--t-title-2-size);
+  line-height: var(--t-title-2-lh);
+  font-variant-numeric: lining-nums tabular-nums;
+  white-space: nowrap;
+  color: var(--text-quiet);
+  transform: scale(0.625);
+  cursor: pointer;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.wheel-item.near {
+  transform: scale(0.75);
+}
+
+.wheel-item.on {
+  color: var(--ink);
+  transform: none;
+}
+
+.wheel.unset .wheel-item.on {
+  color: var(--text-quiet);
+}
+
+.wheel-sep {
+  align-self: center;
+  text-align: center;
+  font-family: var(--font-ui);
+  font-weight: 900;
+  font-size: var(--t-title-2-size);
+  line-height: var(--t-title-2-lh);
+  color: var(--text-display);
+}
+
+.wheel-lens {
+  position: absolute;
+  z-index: 0;
+  left: 0;
+  right: 0;
+  top: calc(var(--row) * 2);
+  height: var(--row);
+  background: var(--shade);
+  border-radius: var(--r-control);
+  pointer-events: none;
+}
+
+/* A wheel with a quick time beside it, level with the chosen row. */
+.wheel-row {
+  display: grid;
+  grid-template-columns: calc(var(--wheel-col) * 2 + var(--wheel-sep)) minmax(0, 1fr);
+  column-gap: var(--space-4);
+  align-items: center;
+}
+
+.wheel-row > .wheel {
+  display: inline-grid;
+}
+
+/* Just now keeps to the width of its words. */
+.wheel-row > .chip,
+.wheel-row > .btn-2 {
+  justify-self: start;
+}
+
+.field-hint {
+  font-weight: 600;
+  font-size: var(--t-callout-size);
+  line-height: var(--t-callout-lh);
+  color: var(--text-quiet);
+}
+
+/* Under a wheel: Roll to set, and Clear. */
+.time-foot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.time-foot > * {
+  margin-top: var(--space-2);
+}
+
+.time-foot .field-hint:empty {
+  display: none;
+}
+
+/* ---------- Text fields (3.5) ---------- */
+.field {
+  display: block;
+  width: 100%;
+  height: var(--field-h);
+  padding: 0 var(--space-4);
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: var(--t-headline-size);
+  line-height: var(--t-headline-lh);
+  color: var(--text-display);
+  background: var(--bg-raised-2);
+  border: 2px solid var(--edge);
+  border-radius: var(--r-control);
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+/* Focus: the border turns ink at once; that is the field's ring. */
+.field:focus,
+.field[aria-invalid='true'] {
+  border-color: var(--ink);
+}
+
+.field::placeholder {
+  color: var(--text-quiet);
+}
+
+.field[disabled] {
+  color: var(--text-quiet);
+  background: var(--bg-raised);
+  border-color: var(--track);
+}
+
+/* A paste target that never shows what is pasted. */
+.paste-target {
+  display: block;
+  width: 100%;
+  height: var(--paste-h);
+  padding: var(--space-5) var(--space-4);
+  resize: none;
+  font-family: var(--font-ui);
+  font-weight: 700;
+  font-size: var(--t-callout-size);
+  line-height: var(--t-callout-lh);
+  text-align: center;
+  color: transparent;
+  caret-color: var(--ink);
+  background: transparent;
+  border: 2px dashed var(--edge);
+  border-radius: var(--r-control);
+  outline: none;
+}
+
+.paste-target:focus {
+  border-style: solid;
+  border-color: var(--ink);
+}
+
+.paste-target::placeholder {
+  color: var(--text-quiet);
+}
+
+/* ---------- Lists and rows (3.7) ---------- */
+.list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.list > li {
+  padding: var(--space-3) 0;
+  border-top: 1px solid var(--hairline);
+}
+
+.list > li:first-child {
+  border-top: 0;
+}
+
+/* A row you tap holds its own padding. */
+.list > li:has(> .item) {
+  padding: 0;
+}
+
+/* A list row: title and meta, a side value, and a chevron. */
+.item {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  grid-template-columns: [main] minmax(0, 1fr) [side] auto [chev] var(--space-4);
+  column-gap: var(--space-3);
+  align-items: center;
+  width: 100%;
+  min-height: var(--row-h);
+  padding: var(--space-3) 0;
+  text-align: left;
+}
+
+/* The pressed fill reaches a little past the row's words. */
+.item::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  inset: 0 calc(-1 * var(--space-2));
+  border-radius: var(--r-control);
+  transition: background-color var(--dur-fast) var(--ease-out);
+}
+
+/* In a card, it reaches the card's edges. */
+.section .item::before,
+.group .item::before {
+  inset: 0 calc(-1 * var(--card-pad));
+}
+
+.item:active::before {
+  background: var(--shade);
+}
+
+/* An optional 20px lead mark before the words. */
+.item:has(> .item-lead) {
+  grid-template-columns: [lead] var(--space-5) [main] minmax(0, 1fr) [side] auto [chev] var(--space-4);
+}
+
+.item > .item-lead {
+  grid-column: lead;
+}
+
+.item > :not(.item-lead, .item-side) {
+  grid-column: main;
+}
+
+.item > .item-side {
+  grid-column: side;
+}
+
+.item::after {
+  grid-column: chev;
+  justify-self: end;
+}
+
+/* Focus follows the pressed shape, clear of the words and the lead mark. */
+.item:focus-visible,
+.setting-row:focus-visible {
+  outline: none;
+}
+
+.item:focus-visible::before,
+.setting-row:focus-visible::before {
+  outline: var(--focus-w) solid var(--focus);
+  outline-offset: calc(-1 * var(--focus-w));
+}
+
+.item::after,
+.setting-row::after {
+  content: '';
+  width: var(--chevron-w);
+  height: var(--chevron-h);
+  background: var(--edge);
+  -webkit-mask: var(--chevron-mask) center / contain no-repeat;
+  mask: var(--chevron-mask) center / contain no-repeat;
+}
+
+.item-title {
+  font-weight: 800;
+  font-size: var(--t-headline-size);
+  line-height: var(--t-headline-lh);
+  color: var(--text-display);
+}
+
+.item-meta {
+  font-weight: 600;
+  font-size: var(--t-callout-size);
+  line-height: var(--t-callout-lh);
+  color: var(--text-quiet);
+}
+
+.item-side {
+  font-family: var(--font-ui);
+  font-weight: 800;
+  font-size: var(--t-headline-size);
+  line-height: var(--t-headline-lh);
+  font-variant-numeric: lining-nums tabular-nums;
+  color: var(--text-display);
+  text-align: right;
+}
+
+/* Numbered steps. */
+.steps {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: step;
+}
+
+.steps > li {
+  counter-increment: step;
+  display: grid;
+  grid-template-columns: var(--badge) minmax(0, 1fr);
+  column-gap: var(--space-3);
+  padding: var(--space-2) 0;
+}
+
+.steps > li::before {
+  content: counter(step);
+  font-family: var(--font-ui);
+  font-weight: 900;
+  font-size: var(--t-footnote-size);
+  line-height: var(--t-body-lh);
+  color: var(--text-label);
+}
+
+/* Step badges: each numeral in a ringed circle (3.23). */
+.steps.badges > li {
+  padding: 0;
+}
+
+.steps.badges > li + li {
+  margin-top: var(--space-3);
+}
+
+.steps.badges > li::before {
+  display: grid;
+  place-items: center;
+  width: var(--badge);
+  height: var(--badge);
+  line-height: 1;
+  color: var(--text-display);
+  border: 2px solid var(--ink);
+  border-radius: var(--r-pill);
+}
+
+.plain {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.plain > li + li {
+  margin-top: var(--space-2);
+}
+
+/* A stat: a label and its figure on one line. */
+.stat {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: var(--space-3);
+  align-items: baseline;
+  padding: var(--space-2) 0;
+}
+
+.stat-value {
+  font-family: var(--font-ui);
+  font-weight: 900;
+  font-size: var(--t-headline-size);
+  line-height: var(--t-headline-lh);
+  color: var(--text-display);
+  text-align: right;
+}
+
+/* A stat on the page: a caption over a figure, a meta pair beside it. */
+.stat-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: var(--space-4);
+  align-items: center;
+  min-height: var(--tile-h);
+  padding: var(--space-4) 0;
+  border-top: 1px solid var(--hairline);
+}
+
+.stat-row .caption {
+  font-weight: 800;
+}
+
+.stat-row .stat-figure {
+  font-weight: 900;
+  font-size: var(--t-title-1-size);
+  line-height: var(--t-title-1-lh);
+  letter-spacing: var(--t-title-1-track);
+  color: var(--text-display);
+}
+
+/* A row naming what drives a figure, with its own figure at the right. */
+.contrib {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: var(--space-4);
+  align-items: baseline;
+  min-height: var(--row-h);
+  padding: var(--space-3) 0;
+}
+
+.contrib + .contrib {
+  border-top: 1px solid var(--hairline);
+}
+
+.contrib-label {
+  font-weight: 800;
+  font-size: var(--t-headline-size);
+  line-height: var(--t-headline-lh);
+  color: var(--text-display);
+}
+
+.contrib-note {
+  display: block;
+  font-weight: 600;
+  font-size: var(--t-footnote-size);
+  line-height: var(--t-footnote-lh);
+  color: var(--text-quiet);
+}
+
+.contrib-figure {
+  font-weight: 900;
+  font-size: var(--t-title-2-size);
+  line-height: var(--t-title-2-lh);
+  color: var(--text-display);
+  white-space: nowrap;
+}
+
+/* Meta pairs: a label over a value, side by side. */
+.meta-pairs {
+  display: grid;
+  grid-auto-flow: column;
+  justify-content: start;
+  column-gap: var(--space-6);
+}
+
+/* A setting shown as a row; tapping it opens its wheel. */
+.setting-row {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto var(--chevron-w);
+  column-gap: var(--space-3);
+  align-items: center;
+  width: 100%;
+  min-height: var(--row-h);
+  padding: var(--space-2) 0;
+  font-weight: 600;
+  font-size: var(--t-body-size);
+  line-height: var(--t-body-lh);
+  text-align: left;
+}
+
+.setting-row + .setting-row {
+  border-top: 1px solid var(--hairline);
+}
+
+.setting-row::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  inset: 0 calc(-1 * var(--space-2));
+  border-radius: var(--r-control);
+  transition: background-color var(--dur-fast) var(--ease-out);
+}
+
+/* In a card, it reaches the card's edges. */
+.section .setting-row::before,
+.group .setting-row::before,
+.card .setting-row::before {
+  inset: 0 calc(-1 * var(--card-pad));
+}
+
+.setting-row:active::before {
+  background: var(--shade);
+}
+
+/* The value in a pill, so it reads as something you change. */
+.setting-row .value {
+  padding: var(--space-1) var(--space-3);
+  font-family: var(--font-ui);
+  font-weight: 900;
+  font-size: var(--t-headline-size);
+  line-height: var(--t-headline-lh);
+  font-variant-numeric: lining-nums tabular-nums;
+  color: var(--text-display);
+  background: var(--bg-raised-2);
+  border: 2px solid var(--edge);
+  border-radius: var(--r-pill);
+}
+
+/* ---------- Margin notes as meta pairs ---------- */
+/* A row with its notes at the right: a label over each value. */
+.row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: var(--space-4);
+  align-items: start;
+}
+
+.row > .main {
+  grid-column: 1;
+  min-width: 0;
+}
+
+.row > .margin {
+  grid-column: 2;
+  display: flex;
+  flex-direction: column;
+  row-gap: var(--space-3);
+  min-width: 0;
+}
+
+.row > .full {
+  grid-column: 1 / -1;
+}
+
+.note b {
+  display: block;
+  font-weight: 800;
+  font-size: var(--t-footnote-size);
+  line-height: var(--t-footnote-lh);
+  color: var(--text-label);
+}
+
+.note {
+  font-weight: 900;
+  font-size: var(--t-headline-size);
+  line-height: var(--t-headline-lh);
+  color: var(--text-display);
+}
+
+/* A note you tap to change its time: a time tile. */
+.note.tap {
+  position: relative;
+  display: block;
+  width: 100%;
+  min-width: var(--tile-min);
+  min-height: var(--tile-h);
+  padding: var(--space-3) calc(var(--space-4) * 2) var(--space-3) var(--space-4);
+  text-align: left;
+  background: var(--bg-raised-2);
+  border: 2px solid var(--edge);
+  border-radius: var(--r-control);
+  transition:
+    background-color var(--dur-fast) var(--ease-out),
+    transform var(--dur-press) var(--ease-out);
+}
+
+.note.tap b {
+  color: var(--text-quiet);
+}
+
+.note.tap .tap-value {
+  display: block;
+  font-weight: 900;
+  font-size: var(--t-title-2-size);
+  line-height: var(--t-title-2-lh);
+  font-variant-numeric: lining-nums tabular-nums;
+  color: var(--text-display);
+}
+
+.note.tap::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: var(--space-4);
+  width: var(--chevron-w);
+  height: var(--chevron-sm-h);
+  margin-top: calc(var(--chevron-sm-h) / -2);
+  background: var(--text-quiet);
+  -webkit-mask: var(--chevron-mask) center / contain no-repeat;
+  mask: var(--chevron-mask) center / contain no-repeat;
+}
+
+.note.tap:active {
+  background: var(--shade);
+  transform: scale(var(--press-scale));
+}
+
+/* ---------- Time tiles (3.8) ---------- */
+/* The whole tile is tapped; the label sits outside the button. */
+.time-pill {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  row-gap: var(--space-1);
+  min-width: 0;
+  min-height: var(--tile-h);
+  padding: var(--space-3) calc(var(--space-4) * 2) var(--space-3) var(--space-4);
+  text-align: left;
+  background: var(--bg-raised-2);
+  border: 2px solid var(--edge);
+  border-radius: var(--r-control);
+  transition:
+    background-color var(--dur-fast) var(--ease-out),
+    transform var(--dur-press) var(--ease-out);
+}
+
+.time-pill .label {
+  font-weight: 800;
+  color: var(--text-quiet);
+}
+
+/* The time always takes the first line, so paired tiles share their figure
+   line; "Reached" and the day go on the line under it. The words keep their
+   order in the page ("Reached 21:00 yesterday"); only the drawing moves. */
+.time-pill button {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: var(--space-1);
+  padding: 0;
+  font-family: var(--font-ui);
+  font-weight: 900;
+  font-size: var(--t-title-2-size);
+  line-height: var(--t-title-2-lh);
+  font-variant-numeric: lining-nums tabular-nums;
+  color: var(--text-display);
+  text-align: left;
+  text-decoration: none;
+}
+
+/* The tile's hit area: the button reaches every edge. */
+.time-pill button::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: var(--r-control);
+}
+
+.time-pill button:focus-visible {
+  outline: none;
+}
+
+.time-pill .tp-time {
+  flex: 0 0 100%;
+  order: 0;
+  white-space: nowrap;
+}
+
+.time-pill .tp-tag {
+  order: 1;
+  font-weight: 900;
+  font-size: var(--t-footnote-size);
+  line-height: var(--t-footnote-lh);
+  color: var(--fast-text);
+}
+
+.time-pill .tp-qual {
+  order: 2;
+  font-weight: 800;
+  font-size: var(--t-footnote-size);
+  line-height: var(--t-footnote-lh);
+  white-space: nowrap;
+  color: var(--text-quiet);
+}
+
+/* A chevron at the right says it opens. */
+.time-pill::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: var(--space-4);
+  width: var(--chevron-w);
+  height: var(--chevron-sm-h);
+  margin-top: calc(var(--chevron-sm-h) / -2);
+  background: var(--text-quiet);
+  -webkit-mask: var(--chevron-mask) center / contain no-repeat;
+  mask: var(--chevron-mask) center / contain no-repeat;
+  pointer-events: none;
+}
+
+.time-pill:has(> button:active) {
+  background: var(--shade);
+  transform: scale(var(--press-scale));
+}
+
+.time-pill:has(> button:focus-visible) {
+  outline: var(--focus-w) solid var(--focus);
+  outline-offset: var(--focus-gap);
+}
+
+/* The fasting goal, reached: in the fast's soft red. */
+.time-pill:has(> button.reached) {
+  background: var(--fast-soft);
+  border-color: transparent;
+}
+
+.time-pill:has(> button.reached)::after {
+  background: var(--fast-text);
+}
+
+/* A time that is shown, not changed. */
+.time-pill.plain {
+  padding-right: var(--space-4);
+  background: var(--bg-raised);
+  border-color: transparent;
+}
+
+.time-pill.plain::after {
+  display: none;
+}
+
+/* ---------- Notices (3.11) ---------- */
+.notices {
+  margin-top: var(--card-gap);
+  padding: var(--space-1) var(--card-pad);
+  background: var(--bg-raised);
+  border-radius: var(--r-panel);
+}
+
+.notices > .notice + .notice {
+  border-top: 1px solid var(--hairline);
+}
+
+.notice {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: var(--space-3);
+  align-items: center;
+  min-height: var(--row-h);
+  padding: var(--space-2) 0;
+  font-weight: 700;
+  font-size: var(--t-callout-size);
+  line-height: var(--t-callout-lh);
+  color: var(--text-display);
+}
+
+.notice > .btn-2 {
+  flex: none;
+}
+
+/* ---------- Miss and error lines (3.10) ---------- */
+.miss-line,
+.error-line {
+  display: flex;
+  align-items: flex-start;
+  column-gap: var(--space-2);
+  font-weight: 800;
+  font-size: var(--t-callout-size);
+  line-height: var(--t-callout-lh);
+}
+
+.miss-line {
+  color: var(--miss-text);
+}
+
+/* It eases in when its words are new, never on a redraw of the same words
+   (missLine() in components.js adds .appear). */
+.miss-line.appear {
+  animation: line-in var(--dur-base) var(--ease-out) both;
+}
+
+.error-line {
+  color: var(--text-display);
+}
+
+.miss-line > svg,
+.error-line > svg,
+.miss-reason > svg {
+  flex: none;
+  width: var(--glyph);
+  height: var(--glyph);
+  margin-top: calc((var(--t-callout-lh) - var(--glyph)) / 2);
+}
+
+/* Several reasons: one key per line, the words joined as one sentence. */
+.miss-line.multi > span {
+  display: flex;
+  flex-direction: column;
+  row-gap: var(--space-1);
+}
+
+.miss-reason {
+  display: flex;
+  align-items: flex-start;
+  column-gap: var(--space-2);
+}
+
+/* A line with no words yet hides itself; its words span stays in the page. */
+.miss-line:has(> [data-testid]:empty),
+.error-line:has(> [data-testid]:empty) {
+  display: none;
+}
+
+@keyframes line-in {
+  from { opacity: 0; transform: translateY(4px); }
+}
+
+/* ---------- The toast (3.12) ---------- */
+/* Messages float above the tabs, and above an open sheet. */
+.flash-root {
+  position: fixed;
+  left: var(--gutter-l);
+  right: var(--gutter-r);
+  bottom: var(--flash-bottom);
+  z-index: var(--z-toast);
+  max-width: calc(var(--content-max) - var(--space-8));
+  margin-inline: auto;
+  pointer-events: none;
+}
+
+/* Over a sheet, the message sits at the sheet's foot, in the room the sheet
+   keeps for it below its last line and its actions (sheet.js, .flash-room). */
+html.sheet-open .flash-root {
+  bottom: var(--flash-bottom-sheet);
+}
+
+.flash {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  column-gap: var(--space-3);
+  min-height: var(--row-h);
+  padding: var(--space-2) var(--space-2) var(--space-2) var(--space-5);
+  font-weight: 800;
+  font-size: var(--t-callout-size);
+  line-height: var(--t-callout-lh);
+  color: var(--on-select);
+  background: var(--ink);
+  border-radius: var(--r-panel);
+  pointer-events: auto;
+  animation: flash-in var(--dur-base) var(--ease-out) both;
+}
+
+.flash.fade-out {
+  animation: fade-out var(--dur-fast) var(--ease-in) both;
+}
+
+.flash :focus-visible {
+  outline-color: var(--focus-on-ink);
+}
+
+/* Undo: a white pill on the ink. */
+.flash .btn-2 {
+  --btn-fg: var(--ink);
+  flex: none;
+  padding: 0 var(--space-4);
+  font-size: var(--t-headline-size);
+  line-height: var(--t-headline-lh);
+  background: var(--bg);
+  border-color: var(--bg);
+}
+
+.flash .btn-2:active,
+.flash .btn-2.pressed {
+  background: var(--track);
+  border-color: var(--track);
+}
+
+@keyframes flash-in {
+  from { opacity: 0; transform: translateY(12px); }
+}
+
+/* ---------- Tab bar (3.14) ---------- */
+/* A white bar across the foot of the screen, an icon over each name. An ink
+   pill sits under the screen you are on and glides to the next; drag it
+   along to switch. */
+.tabbar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: var(--z-tabbar);
+  padding: 0 var(--gutter-r) var(--tabbar-pad-b) var(--gutter-l);
+  background: var(--bg);
+  border-top: 1px solid var(--hairline);
+}
+
+.tabs {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  column-gap: var(--space-1);
+  max-width: var(--content-max);
+  margin-inline: auto;
+  padding: var(--space-1);
+}
+
+.tabs .pill {
+  background: var(--select);
+  border-radius: var(--r-panel);
+}
+
+.tabs.line {
+  touch-action: pan-y;
+}
+
+.tab {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  row-gap: var(--space-1);
+  height: var(--tab-h);
+  font-family: var(--font-ui);
+  font-weight: 800;
+  font-size: var(--t-micro-size);
+  line-height: var(--t-micro-lh);
+  letter-spacing: var(--t-micro-track);
+  color: var(--text-quiet);
+  border-radius: var(--r-panel);
+  transition:
+    color var(--dur-fast) var(--ease-out),
+    background-color var(--dur-fast) var(--ease-out);
+}
+
+.tab-icon {
+  width: var(--icon-tab);
+  height: var(--icon-tab);
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.tab:active {
+  background: var(--shade);
+}
+
+.tab[aria-current='page'] {
+  font-weight: 900;
+  color: var(--on-select);
+}
+
+.tab:focus-visible {
+  outline-offset: calc(-1 * var(--focus-w));
+}
+
+.tab[aria-current='page']:focus-visible {
+  outline-color: var(--focus-on-ink);
+}
+
+/* ---------- Sheets (3.13) ---------- */
+.sheet-root {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-sheet);
+}
+
+.scrim {
+  position: absolute;
+  inset: 0;
+  background: var(--scrim);
+  animation: fade-in var(--dur-base) var(--ease-out) both;
+}
+
+/* A flex column: a fixed head, a body that scrolls, an optional fixed footer. */
+.sheet {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  max-width: var(--content-max);
+  max-height: var(--sheet-max-h);
+  margin-inline: auto;
+  background: var(--bg);
+  border-radius: var(--r-sheet) var(--r-sheet) 0 0;
+  animation: sheet-in var(--dur-sheet) var(--ease-out) both;
+}
+
+.sheet.full {
+  top: 0;
+  max-height: none;
+  padding-top: var(--sheet-full-pad-top);
+  border-radius: 0;
+}
+
+.sheet-root.closing .scrim {
+  animation: fade-out var(--dur-base) var(--ease-in) both;
+}
+
+.sheet-root.closing .sheet {
+  animation: sheet-out var(--dur-base) var(--ease-in) both;
+}
+
+@keyframes sheet-in {
+  from { transform: translateY(100%); }
+}
+
+@keyframes sheet-out {
+  to { transform: translateY(100%); }
+}
+
+.sheet-head {
+  position: relative;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  column-gap: var(--space-3);
+  min-height: var(--space-16);
+  padding: var(--space-3) var(--sheet-pad) var(--space-2);
+}
+
+/* The title, inline like an iOS sheet's. */
+.sheet-head h2,
+.sheet-head .sheet-title {
+  min-width: 0;
+  font-weight: 900;
+  font-size: var(--t-headline-size);
+  line-height: var(--t-headline-lh);
+  letter-spacing: var(--t-headline-track);
+  color: var(--text-display);
+}
+
+.sheet-head > .btn-2 {
+  flex: none;
+}
+
+/* A hairline under the head once the body has scrolled. */
+.sheet-head::after,
+.sheet-actions::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: var(--hairline);
+  opacity: 0;
+  transition: opacity var(--dur-fast) var(--ease-out);
+}
+
+.sheet-head::after {
+  bottom: 0;
+}
+
+.sheet.scrolled .sheet-head::after {
+  opacity: 1;
+}
+
+.sheet-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  padding: var(--space-2) var(--sheet-pad) var(--space-6);
+}
+
+/* With no footer, the body keeps clear of the home indicator. */
+.sheet-body:last-child {
+  padding-bottom: calc(var(--space-6) + env(safe-area-inset-bottom));
+}
+
+/* Room for a message under the last line, or under the actions, kept from
+   the moment a message shows (or from the start) until the sheet closes, so
+   the message covers nothing and the sheet never shrinks under it. */
+.sheet.flash-room > .sheet-body:last-child {
+  padding-bottom: calc(var(--space-6) + env(safe-area-inset-bottom) + var(--sheet-flash-room, var(--flash-room)));
+}
+
+.sheet.flash-room > .sheet-actions {
+  padding-bottom: calc(var(--sheet-foot-pad-b) + var(--sheet-flash-room, var(--flash-room)));
+}
+
+.sheet-sentinel {
+  height: 1px;
+}
+
+/* Turning to new content: it comes in from the side it goes. */
+.sheet-body.enter > * {
+  animation: fade-in var(--dur-glide) var(--ease-out) both;
+}
+
+.sheet-body.enter[data-dir='forward'] > * {
+  animation-name: turn-forward;
+}
+
+.sheet-body.enter[data-dir='back'] > * {
+  animation-name: turn-back;
+}
+
+@keyframes turn-forward {
+  from { opacity: 0; transform: translateX(24px); }
+}
+
+@keyframes turn-back {
+  from { opacity: 0; transform: translateX(-24px); }
+}
+
+/* The footer: consequences, errors, then the actions. */
+.sheet-actions {
+  position: relative;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  row-gap: var(--space-3);
+  padding: var(--space-3) var(--sheet-pad) var(--sheet-foot-pad-b);
+  background: var(--bg);
+}
+
+.sheet-actions::before {
+  top: 0;
+}
+
+.sheet.more-below .sheet-actions::before {
+  opacity: 1;
+}
+
+/* A heading focused for the screen reader shows no ring: it is not a control. */
+.sheet [tabindex='-1']:focus {
+  outline: none;
+}
+
+/* ---------- Legends and keys (3.16) ---------- */
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: var(--space-3);
+  row-gap: var(--space-2);
+  margin-top: var(--space-2);
+  font-family: var(--font-ui);
+  font-weight: 700;
+  font-size: var(--t-footnote-size);
+  line-height: var(--t-footnote-lh);
+  color: var(--text-quiet);
+}
+
+.legend-item {
+  display: inline-flex;
+  align-items: center;
+  column-gap: var(--space-2);
+}
+
+.key {
+  flex: none;
+  width: var(--ring-key);
+  height: var(--ring-key);
+  overflow: visible;
+}
+
+/* A legend you can tap: each item a chip, 36 drawn and 44 to touch. */
+.legend:has(.legend-pick) {
+  row-gap: var(--space-3);
+}
+
+.legend:has(.legend-pick) > .legend-item:not(.legend-pick) {
+  order: 1;
+}
+
+.legend-pick {
+  position: relative;
+  min-height: var(--slim-h);
+  padding: 0 var(--space-3);
+  font: inherit;
+  font-weight: 800;
+  color: var(--text-display);
+  background: var(--bg-raised-2);
+  border: 2px solid var(--edge);
+  border-radius: var(--r-pill);
+  transition:
+    color var(--dur-fast) var(--ease-out),
+    background-color var(--dur-fast) var(--ease-out),
+    transform var(--dur-press) var(--ease-out);
+}
+
+.legend-pick::after,
+.hit-44::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: -2px; /* out past the 2px border */
+  right: -2px;
+  height: var(--hit);
+  transform: translateY(-50%);
+}
+
+/* A 36px bordered control (Back to latest, for one) reaches 44 to touch. */
+.hit-44 {
+  position: relative;
+}
+
+.legend-pick:active {
+  background: var(--shade);
+  transform: scale(var(--press-scale));
+}
+
+.legend-pick[aria-pressed='true'] {
+  color: var(--on-select);
+  background: var(--select);
+  border-color: var(--select);
+}
+
+/* On the ink chip, a key's ink parts turn white; its colours stay. */
+.legend-pick[aria-pressed='true'] .k-ink {
+  fill: var(--bg);
+  stroke: var(--bg);
+}
+
+.legend-pick[aria-pressed='true'] .k-ink-line {
+  stroke: var(--bg);
+}
+
+/* ---------- Charts (3.17) ---------- */
+.chart {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+/* A chart that follows a finger dragged along it; the page still scrolls. */
+.chart-wrap .chart {
+  touch-action: pan-y;
+}
+
+.chart:focus-visible {
+  outline-offset: var(--space-1);
+}
+
+.chart text {
+  font-family: var(--font-ui);
+  font-weight: 800;
+  font-size: var(--t-chart);
+  font-variant-numeric: lining-nums tabular-nums;
+  fill: var(--text-quiet);
+}
+
+.chart .chart-end {
+  font-weight: 900;
+  font-size: var(--t-chart-end);
+  fill: var(--text-display);
+}
+
+/* Words on a mark, haloed in the surface so lines pass behind them. */
+.chart .bar-value {
+  font-size: var(--t-chart);
+  fill: var(--text-display);
+  paint-order: stroke;
+  stroke: var(--bg);
+  stroke-width: 5px;
+  stroke-linejoin: round;
+}
+
+.section .chart .bar-value,
+.card .chart .bar-value {
+  stroke: var(--bg-raised);
+}
+
+.chart .latest {
+  fill: var(--ink);
+  stroke: var(--bg);
+}
+
+/* Show one series: the others fade, by fill and stroke, never their words
+   below the quiet tone. (In WebKit an opacity layer can take taps meant for
+   the rows beside it.) */
+.chart .dim:not(text),
+.chart .dim :not(text) {
+  fill-opacity: 0.18;
+  stroke-opacity: 0.18;
+}
+
+.chart text.dim,
+.chart .dim text {
+  fill: var(--text-quiet);
+  fill-opacity: 1;
+  stroke-opacity: 1;
+}
+
+.chart.pickable [data-series] {
+  cursor: pointer;
+}
+
+/* Bars rise once when the data changes, one after another. */
+.chart .bar-rise {
+  transform-box: fill-box;
+  transform-origin: bottom;
+  animation: bar-rise var(--dur-chart) var(--ease-out) var(--delay, var(--delay-none)) both;
+}
+
+@keyframes bar-rise {
+  from { transform: scaleY(0); }
+}
+
+.chart-readout {
+  margin-top: var(--space-2);
+  min-height: var(--t-body-lh);
+}
+
+/* Tables, with sticky heads (3.24). */
+.table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: var(--t-callout-size);
+  line-height: var(--t-callout-lh);
+  font-variant-numeric: lining-nums tabular-nums;
+}
+
+.table th {
+  position: sticky;
+  top: 0;
+  z-index: var(--z-sticky);
+  padding: var(--space-2) 0;
+  font-family: var(--font-ui);
+  font-weight: 800;
+  font-size: var(--t-footnote-size);
+  line-height: var(--t-footnote-lh);
+  text-align: left;
+  color: var(--text-label);
+  background: var(--bg);
+}
+
+.screen .table th {
+  top: env(safe-area-inset-top);
+}
+
+.section .table th,
+.card .table th {
+  background: var(--bg-raised);
+}
+
+.table td {
+  padding: var(--space-2) 0;
+  border-top: 1px solid var(--hairline);
+  font-family: var(--font-ui);
+  font-weight: 700;
+  color: var(--text-body);
+}
+
+.table th:not(:first-child),
+.table td:not(:first-child) {
+  text-align: right;
+}
+
+/* The empty screens' picture. */
+.empty-art {
+  display: block;
+  margin: var(--space-6) auto 0;
+}
+
+/* ---------- Rings (3.19) ---------- */
+/* Each ring picture is drawn with room for its rays and pulled back by that
+   room, so the ring itself takes its token size. */
+.rings {
+  display: block;
+  height: auto;
+  overflow: visible;
+  margin: calc(-1 * var(--ring-ray-room));
+}
+
+.rings .ring-arc {
+  stroke-dasharray: 1 1;
+}
+
+/* A ring draws to its value: the arc's dash offset moves (a documented
+   exception to transform and opacity). */
+.ring-draw {
+  animation: ring-draw var(--dur-chart) var(--ease-out) var(--delay, var(--delay-none)) backwards;
+}
+
+@keyframes ring-draw {
+  from { stroke-dashoffset: var(--from, 1); }
+}
+
+/* Stripes and a lap's head fade in instead. */
+.ring-fade {
+  animation: fade-in var(--dur-chart) var(--ease-out) var(--delay, var(--delay-none)) backwards;
+}
+
+.week-ring,
+.result-ring,
+.progress-ring,
+.empty-rings {
+  display: block;
+  overflow: visible;
+}
+
+.progress-ring .progress-arc {
+  stroke-dasharray: 1 1;
+}
+
+/* ---------- Celebrations (3.19) ---------- */
+/* A goal reached, a window kept, a day left wanting: the celebrated ring
+   spins once and its rays burst twice; moments that coincide play in turn,
+   fast, window, fullness. Each moment once. With Reduce Motion on, nothing
+   moves; the words and colours still say it. */
+.rings .burst,
+.rings .ring-spin {
+  transform-box: view-box;
+  transform-origin: 50% 50%;
+}
+
+.rings .burst {
+  opacity: 0;
+}
+
+.celebrate-fast .spin-fast,
+.celebrate-win .spin-win,
+.celebrate-full .spin-full {
+  animation: ring-spin var(--dur-spin) var(--ease-out) var(--cel-at) both;
+}
+
+.celebrate-fast .burst-fast,
+.celebrate-win .burst-win,
+.celebrate-full .burst-full {
+  animation: ring-burst var(--dur-burst) var(--ease-out) calc(var(--cel-at) + var(--delay-burst)) both;
+}
+
+.celebrate-fast .burst-fast-2,
+.celebrate-win .burst-win-2,
+.celebrate-full .burst-full-2 {
+  animation: ring-burst var(--dur-burst) var(--ease-out) calc(var(--cel-at) + var(--delay-burst) + var(--delay-burst-2)) both;
+}
+
+/* Each ring's start in the sequence (celebrate() sets --step-<kind>). */
+.celebrate .spin-fast,
+.celebrate .burst-fast,
+.celebrate .burst-fast-2,
+.celebrate .ring-readout [data-ring-row='fast'] .value {
+  --cel-at: calc(var(--delay-celebrate-step) * var(--step-fast, 0) - var(--since, var(--delay-none)));
+}
+
+.celebrate .spin-win,
+.celebrate .burst-win,
+.celebrate .burst-win-2,
+.celebrate .ring-readout [data-ring-row='win'] .value {
+  --cel-at: calc(var(--delay-celebrate-step) * var(--step-win, 0) - var(--since, var(--delay-none)));
+}
+
+.celebrate .spin-full,
+.celebrate .burst-full,
+.celebrate .burst-full-2,
+.celebrate .ring-readout [data-ring-row='full'] .value {
+  --cel-at: calc(var(--delay-celebrate-step) * var(--step-full, 0) - var(--since, var(--delay-none)));
+}
+
+/* Only the celebrated ring's value in the readout pops. */
+.ring-readout .value {
+  display: inline-block;
+  transform-origin: left center;
+}
+
+.celebrate-fast .ring-readout [data-ring-row='fast'] .value,
+.celebrate-win .ring-readout [data-ring-row='win'] .value,
+.celebrate-full .ring-readout [data-ring-row='full'] .value {
+  animation: ring-pop var(--dur-chart) var(--ease-in-out) calc(var(--cel-at) + var(--delay-burst)) both;
+}
+
+@keyframes ring-spin {
+  from { transform: rotate(-360deg) scale(0.92); }
+  to { transform: rotate(0deg) scale(1); }
+}
+
+@keyframes ring-burst {
+  0% { opacity: 0; transform: scale(0.8); }
+  35% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.15); }
+}
+
+@keyframes ring-pop {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.04); }
+}
+
+/* ---------- Stage icons and discs ---------- */
+.stage-icon {
+  fill: none;
+  stroke: var(--text-quiet);
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.stage-icon.now {
+  stroke: var(--bg);
+}
+
+.stage-icon .leaf {
+  fill: var(--ink);
+  stroke: none;
+}
+
+/* A moving part may reach a little past its picture's edge. */
+.stage-chip svg,
+.stage-stop .disc svg {
+  overflow: visible;
+}
+
+/* A stage on its disc: passed, now or ahead (48, 52 or 56). */
+.stage-disc {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: var(--disc, var(--btn-h-2));
+  height: var(--disc, var(--btn-h-2));
+  border-radius: var(--r-pill);
+  transition: transform var(--dur-press) var(--ease-out);
+}
+
+.stage-disc svg {
+  width: 58%;
+  height: 58%;
+  overflow: visible;
+}
+
+.stage-disc .stage-icon {
+  stroke: var(--ink);
+  stroke-width: 2;
+}
+
+.stage-disc.is-passed {
+  background: var(--fast-soft);
+  border: 2px solid var(--fast);
+}
+
+.stage-disc.is-now {
+  background: var(--fast);
+}
+
+.stage-disc.is-ahead {
+  background: var(--bg);
+  border: 2px solid var(--edge);
+}
+
+.stage-disc.is-ahead .stage-icon {
+  stroke: var(--text-quiet);
+}
+
+button:active > .stage-disc,
+button:active .stage-disc {
+  transform: scale(var(--press-scale));
+}
+
+/* Without a state, a disc wears its stage's shade, from soft grey to ink. */
+.stage-disc:not([data-state]).s-ketones .stage-icon,
+.stage-disc:not([data-state]).s-brain .stage-icon,
+.stage-disc:not([data-state]).s-sparing .stage-icon {
+  stroke: var(--bg);
+}
+
+.s-digesting {
+  background: var(--bg-raised);
+}
+
+.s-settling {
+  background: var(--track);
+}
+
+.s-switch {
+  background: var(--fast-soft);
+}
+
+/* The stages past a day are dark, with light words. */
+.s-ketones {
+  background: var(--fast-text);
+}
+
+.s-brain {
+  background: var(--fast-deep);
+}
+
+.s-sparing {
+  background: var(--ink);
+}
+
+.stage-disc[data-state] {
+  background: none;
+}
+
+.stage-disc.is-passed[data-state] { background: var(--fast-soft); }
+.stage-disc.is-now[data-state] { background: var(--fast); }
+.stage-disc.is-ahead[data-state] { background: var(--bg); }
+
+/* Now, on the stages line. */
+.now-tag {
+  display: inline-flex;
+  align-items: center;
+  height: var(--now-tag-h);
+  padding: 0 var(--space-2);
+  font-weight: 900;
+  font-size: var(--t-footnote-size);
+  line-height: var(--t-footnote-lh);
+  color: var(--bg);
+  background: var(--fast-text);
+  border-radius: var(--r-pill);
+}
+
+/* The stage icons move (owner's rule): the stage the fast is in, in the
+   rings and on the chip under them, and the stage in view on the stages
+   line. The plate's fork taps and its ring turns, the drop sways and
+   settles, the flame flickers, the bolt strikes, the brain pulses with its
+   folds firing in turn, and the shield braces while a line runs down it.
+   Movement only: no glow, no new colour. Each part moves about its own
+   centre. With Reduce Motion on, all rest. */
+:is(.stage-icon.live, .stage-stop[aria-current='true'] .stage-icon) path {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation-timing-function: var(--ease-in-out);
+  animation-iteration-count: infinite;
+}
+
+/* Digesting: the fork taps, all of a piece, and the plate's inner ring breathes. */
+:is(.stage-icon.live, .stage-stop[aria-current='true'] .stage-icon).icon-digesting :is(.p0, .p1, .p2) {
+  animation-name: icon-fork;
+  animation-duration: var(--dur-loop-3);
+}
+
+:is(.stage-icon.live, .stage-stop[aria-current='true'] .stage-icon).icon-digesting .p4 {
+  animation-name: icon-ring;
+  animation-duration: var(--dur-loop-8);
+}
+
+@keyframes icon-fork {
+  0%, 100% { transform: translateY(0); }
+  30% { transform: translateY(-2px); }
+  55% { transform: translateY(0.8px); }
+}
+
+@keyframes icon-ring {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(0.72); }
+}
+
+/* Blood sugar settles: the drop sways and squashes, the level line rocks. */
+:is(.stage-icon.live, .stage-stop[aria-current='true'] .stage-icon).icon-settling .p0 {
+  transform-origin: 50% 100%;
+  animation-name: icon-drop;
+  animation-duration: var(--dur-loop-7);
+}
+
+:is(.stage-icon.live, .stage-stop[aria-current='true'] .stage-icon).icon-settling .p1 {
+  animation-name: icon-level;
+  animation-duration: var(--dur-loop-7);
+}
+
+@keyframes icon-drop {
+  0%, 100% { transform: scale(1, 1) rotate(0deg); }
+  25% { transform: scale(1.06, 0.9) rotate(-4deg); }
+  50% { transform: scale(0.96, 1.05) rotate(0deg); }
+  75% { transform: scale(1.04, 0.94) rotate(4deg); }
+}
+
+@keyframes icon-level {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  25% { transform: translateY(-1px) rotate(-12deg); }
+  75% { transform: translateY(-1px) rotate(12deg); }
+}
+
+/* Metabolic switch: the flame leans and stretches from its base; its heart flickers. */
+:is(.stage-icon.live, .stage-stop[aria-current='true'] .stage-icon).icon-switch .p0 {
+  transform-origin: 50% 100%;
+  animation-name: icon-flame;
+  animation-duration: var(--dur-loop-2);
+}
+
+:is(.stage-icon.live, .stage-stop[aria-current='true'] .stage-icon).icon-switch .p1 {
+  transform-origin: 50% 100%;
+  animation-name: icon-flame-heart;
+  animation-duration: var(--dur-loop-1);
+}
+
+@keyframes icon-flame {
+  0%, 100% { transform: skewX(0deg) scale(1, 1); }
+  25% { transform: skewX(-5deg) scale(0.97, 1.07); }
+  50% { transform: skewX(2deg) scale(1.03, 0.96); }
+  75% { transform: skewX(5deg) scale(0.98, 1.05); }
+}
+
+@keyframes icon-flame-heart {
+  0%, 100% { transform: scale(1, 1); opacity: 1; }
+  40% { transform: scale(0.82, 1.18); opacity: 0.55; }
+  70% { transform: scale(1.08, 0.9); opacity: 0.85; }
+}
+
+/* Ketones climbing: the bolt strikes twice, then rests. */
+:is(.stage-icon.live, .stage-stop[aria-current='true'] .stage-icon).icon-ketones .p0 {
+  animation-name: icon-bolt;
+  animation-duration: var(--dur-loop-5);
+  animation-timing-function: var(--ease-linear);
+}
+
+@keyframes icon-bolt {
+  0%, 46%, 100% { transform: scale(1) translate(0, 0); opacity: 1; }
+  6% { transform: scale(1.18) translate(-0.6px, 0.4px); opacity: 0.35; }
+  12% { transform: scale(1) translate(0.6px, -0.4px); opacity: 1; }
+  18% { transform: scale(1.14) translate(-0.4px, 0); opacity: 0.45; }
+  26% { transform: scale(1) translate(0, 0); opacity: 1; }
+}
+
+/* Brain on ketones: the brain pulses; its folds fire one after another. */
+:is(.stage-icon.live, .stage-stop[aria-current='true'] .stage-icon).icon-brain .p0 {
+  animation-name: icon-pulse;
+  animation-duration: var(--dur-loop-4);
+}
+
+:is(.stage-icon.live, .stage-stop[aria-current='true'] .stage-icon).icon-brain :is(.p2, .p3, .p4, .p5) {
+  animation-name: icon-fire;
+  animation-duration: var(--dur-loop-4);
+}
+
+:is(.stage-icon.live, .stage-stop[aria-current='true'] .stage-icon).icon-brain .p3 { animation-delay: calc(var(--dur-loop-4) * -0.25); }
+
+:is(.stage-icon.live, .stage-stop[aria-current='true'] .stage-icon).icon-brain .p5 { animation-delay: calc(var(--dur-loop-4) * -0.5); }
+
+:is(.stage-icon.live, .stage-stop[aria-current='true'] .stage-icon).icon-brain .p4 { animation-delay: calc(var(--dur-loop-4) * -0.75); }
+
+@keyframes icon-pulse {
+  0%, 100% { transform: scale(1); }
+  30% { transform: scale(1.08); }
+  60% { transform: scale(0.98); }
+}
+
+@keyframes icon-fire {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.2; transform: scale(0.7); }
+}
+
+/* Protein sparing: the shield braces, and a line runs down its middle. */
+:is(.stage-icon.live, .stage-stop[aria-current='true'] .stage-icon).icon-sparing .p0 {
+  animation-name: icon-brace;
+  animation-duration: var(--dur-loop-6);
+}
+
+:is(.stage-icon.live, .stage-stop[aria-current='true'] .stage-icon).icon-sparing .p1 {
+  stroke-dasharray: 10.4;
+  animation-name: icon-run;
+  animation-duration: var(--dur-loop-6);
+  animation-timing-function: var(--ease-linear);
+}
+
+@keyframes icon-brace {
+  0%, 100% { transform: scale(1); }
+  20% { transform: scale(1.1); }
+  40% { transform: scale(0.97); }
+  55% { transform: scale(1.03); }
+}
+
+@keyframes icon-run {
+  from { stroke-dashoffset: 10.4; }
+  to { stroke-dashoffset: -10.4; }
+}
+
+/* ---------- GoalPair (3.20) ---------- */
+.goal-pair {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  column-gap: var(--space-3);
+}
+
+.goal-pair-label {
+  display: flex;
+  align-items: center;
+  column-gap: var(--space-2);
+  font-weight: 800;
+  font-size: var(--t-footnote-size);
+  line-height: var(--t-footnote-lh);
+}
+
+.goal-pair-item[data-ring='fast'] .goal-pair-label {
+  color: var(--fast-text);
+}
+
+.goal-pair-item[data-ring='win'] .goal-pair-label {
+  color: var(--win-text);
+}
+
+.goal-pair-figure {
+  margin-top: var(--space-1);
+  font-weight: 900;
+  font-size: var(--t-display-size);
+  line-height: var(--t-display-lh);
+  letter-spacing: var(--t-display-track);
+  color: var(--text-display);
+}
+
+/* ---------- Glyphs (3.21) ---------- */
+.glyph {
+  flex: none;
+  width: var(--glyph);
+  height: var(--glyph);
+}
+
+.glyph-chevron,
+.glyph-chevron-left {
+  width: var(--chevron-w);
+  height: var(--chevron-h);
+}
+
+/* ---------- Reduce Motion ---------- */
+/* Spatial motion stops; what was a slide is a short fade. */
+@media (prefers-reduced-motion: reduce) {
+  .btn,
+  .btn-2,
+  .chip,
+  .scale button,
+  .choice button,
+  .legend-pick,
+  .time-pill,
+  .note.tap,
+  .close-x,
+  .stage-disc {
+    transition-property: background-color, border-color, color;
+  }
+
+  .btn:active,
+  .btn.pressed,
+  .btn-2:active,
+  .btn-2.pressed,
+  .chip:active,
+  .chip.pressed,
+  .scale button:active,
+  .choice button:active,
+  .legend-pick:active,
+  .time-pill:has(> button:active),
+  .note.tap:active,
+  .close-x:active,
+  button:active > .stage-disc,
+  button:active .stage-disc {
+    transform: none;
+  }
+
+  .pill.glide {
+    transition: none;
+  }
+
+  .miss-line.appear {
+    animation: none;
+  }
+
+  /* The ring still waits as long as the words take to clear, then shows
+     at once and stays still. */
+  .btn[aria-busy='true']::before,
+  .btn-2[aria-busy='true']::before,
+  .chip[aria-busy='true']::before {
+    animation-duration: var(--delay-none);
+    animation-iteration-count: 1;
+    animation-fill-mode: forwards;
+  }
+
+  /* Sheets, the scrim, the message and a turned page fade: opacity
+     transitions, never keyframes. */
+  .flash,
+  .sheet,
+  .scrim,
+  .sheet-body.enter > *,
+  .sheet-body.enter[data-dir] > * {
+    animation: none;
+    transition: opacity var(--dur-reduced) var(--ease-out);
+  }
+
+  @starting-style {
+    .flash,
+    .sheet,
+    .scrim,
+    .sheet-body.enter > * {
+      opacity: 0;
+    }
+  }
+
+  .flash.fade-out,
+  .sheet-root.closing .sheet,
+  .sheet-root.closing .scrim {
+    animation: none;
+    opacity: 0;
+    transition-timing-function: var(--ease-in);
+  }
+
+  .chart .bar-rise {
+    animation: none;
+  }
+
+  /* Nothing in the rings, the stage chip or the stages line moves. */
+  .rings *,
+  .week-ring *,
+  .result-ring *,
+  .stage-chip *,
+  .stage-stop *,
+  .stage-icon * {
+    animation: none !important;
+  }
+
+  .stage-icon path {
+    stroke-dasharray: none !important;
+  }
+}
+}

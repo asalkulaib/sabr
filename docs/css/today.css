@@ -1,0 +1,332 @@
+/* Today: the rings and their words, the window, the stage panel, the week row and the Fast complete note. */
+
+@layer screens {
+
+/* First bite and Begin fast: two equal ways in. */
+.start-actions .btn.big {
+  padding: 0 var(--s2);
+  font-size: 17px;
+}
+
+/* ---------- Countdown ---------- */
+.countdown {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 60px;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  text-align: center;
+  color: var(--win-text);
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+.countdown-caption {
+  text-align: center;
+  margin-top: var(--s2);
+}
+
+/* ---------- The rings ---------- */
+/* The rings on the left, the time fasted, the stage and the other rings'
+   words beside them. */
+.ring-wrap {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  column-gap: var(--s3);
+  align-items: center;
+}
+
+.ring-wrap.compact .rings {
+  width: 144px;
+}
+
+.ring-side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 0;
+}
+
+.ring-side .label {
+  font-size: 11.5px;
+}
+
+.ring-side .stat-fast,
+.ring-stat.stat-fast .label {
+  color: var(--fast-text);
+}
+
+.ring-stat.stat-win .label {
+  color: var(--win-text);
+}
+
+.ring-stat.stat-full .label {
+  color: var(--full-text);
+}
+
+.ring-goal {
+  font-weight: 700;
+  font-size: 13px;
+  line-height: 1.3;
+  color: var(--text-quiet);
+}
+
+.ring-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.ring-col .stage-chip {
+  margin-top: 0;
+  padding-right: 12px;
+  font-size: 13.5px;
+  white-space: nowrap;
+}
+
+.ring-side .ring-goal {
+  margin-bottom: var(--s3);
+}
+
+.ring-stat + .ring-stat {
+  margin-top: 4px;
+}
+
+.ring-stat-text {
+  font-weight: 800;
+  font-size: 14px;
+  line-height: 1.3;
+  color: var(--text-display);
+}
+
+.ring-wrap.compact .ring-time {
+  font-size: 30px;
+}
+
+.ring-legend .legend {
+  column-gap: var(--s3);
+}
+
+.ring-time {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 38px;
+  line-height: 1.05;
+  letter-spacing: -0.01em;
+  color: var(--fast-text);
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+/* ---------- The window as a band ---------- */
+.chart.band {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+/* ---------- The fast: dial, times and the main button together ---------- */
+.ring-legend .legend {
+  justify-content: center;
+  column-gap: var(--s3);
+}
+
+/* The stage under the time is a button that opens the stages. */
+.stage-chip {
+  display: inline-flex;
+  align-items: center;
+  column-gap: 6px;
+  min-height: 34px;
+  max-width: 100%;
+  margin-top: var(--s2);
+  padding: 0 14px 0 9px;
+  font-family: var(--font-ui);
+  font-weight: 800;
+  font-size: 14px;
+  line-height: 1.2;
+  color: var(--bg);
+  background: var(--ink);
+  border: 0;
+  border-radius: var(--r-pill);
+  transition: background-color 200ms ease-out;
+}
+
+.stage-chip svg {
+  width: 18px;
+  height: 18px;
+  flex: none;
+}
+
+.stage-chip .stage-icon {
+  stroke: var(--bg);
+}
+
+.stage-chip:active {
+  background: var(--text-label);
+}
+
+/* The stage panel: the stage's disc beside its name. */
+.stage-head {
+  display: flex;
+  align-items: center;
+  column-gap: var(--s3);
+}
+
+.stage-title {
+  font-size: 21px;
+}
+
+/* When the fast began and when it reaches its goal, side by side. */
+.time-pills {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  column-gap: var(--s2);
+  margin-top: var(--s4);
+}
+
+/* The window open: the rings beside the countdown. */
+.window-wrap .countdown {
+  text-align: left;
+  font-size: 52px;
+}
+
+.window-wrap .countdown-caption {
+  margin-top: 2px;
+  text-align: left;
+  font-weight: 800;
+  font-size: 13.5px;
+  color: var(--text-quiet);
+}
+
+.ring-side .stat-win {
+  color: var(--win-text);
+}
+
+.time-pill-value {
+  font-weight: 900;
+  font-size: 19px;
+  line-height: 30px;
+  color: var(--text-display);
+}
+
+/* The meal being eaten, on a soft green card. */
+.eating-now {
+  padding: var(--s3) var(--s3) var(--s3);
+  background: var(--win-soft);
+  border-radius: var(--r-panel);
+}
+
+.eating-now.outside {
+  background: var(--bg-raised);
+}
+
+.eating-line {
+  font-weight: 900;
+  font-size: 17px;
+  color: var(--text-display);
+}
+
+/* The 16:00 warning: a miss in words, before it happens. */
+[data-testid='firm-reminder'] {
+  font-weight: 800;
+  font-size: 15px;
+  color: var(--miss-text);
+}
+
+/* The fast just ended, at the top of Today: its ring, its length, and a
+   cross to put it away. In soft red when it reached the goal. */
+.screen .section.fast-done {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  column-gap: var(--s3);
+  align-items: center;
+  padding: var(--s3) var(--s3) var(--s3) var(--s2);
+}
+
+.screen .section.fast-done.reached {
+  background: var(--fast-soft);
+}
+
+.fast-done .rings {
+  width: 76px;
+}
+
+.fast-done .label {
+  color: var(--fast-text);
+}
+
+.fast-done .display {
+  font-size: 36px;
+}
+
+.done-goal {
+  font-weight: 800;
+  font-size: 14px;
+}
+
+.fast-done .close-x {
+  align-self: start;
+  color: var(--fast-text);
+}
+
+/* ---------- The week on Today ---------- */
+.week-row {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  margin-top: var(--s2);
+  padding: 0 calc(var(--panel-x) - 8px);
+}
+
+.week-day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  row-gap: 5px;
+  min-height: 50px;
+  padding: 4px 0 6px;
+  font-family: var(--font-ui);
+  font-weight: 500;
+  font-size: 11px;
+  line-height: 1.3;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-quiet);
+  border-radius: var(--r-control);
+  transition: background-color 250ms ease-out;
+}
+
+.week-day .cell {
+  width: 32px;
+  height: 32px;
+}
+
+/* Every day name keeps room for the line under today's, so the marks stay level. */
+.week-day .wd {
+  border-bottom: 2px solid transparent;
+}
+
+.week-day[aria-current='date'] {
+  color: var(--ink);
+}
+
+/* Today's name sits on an ink pill. */
+.week-day[aria-current='date'] .wd {
+  padding: 0 7px;
+  color: var(--bg);
+  background: var(--ink);
+  border-color: transparent;
+  border-radius: var(--r-pill);
+}
+
+.week-day:active {
+  background: var(--shade);
+}
+
+.week-legend {
+  padding: 0 var(--panel-x);
+}
+
+.week-legend .legend {
+  margin-top: 0;
+  column-gap: var(--s3);
+}
+}

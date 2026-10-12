@@ -15,37 +15,24 @@ import { satietyInsights } from '../core/insights.js';
 import { fullnessCard } from './fullness.js';
 import { showAddMealSheet, showFinishMealSheet, showFullnessSheet, showMealEditSheet } from './meal.js';
 import { dueFullness, header, mealInProgress, runningFullness } from './shared.js';
+import { STOP_MARKS, stopIcon, stopMark } from './icons.js';
 
 const INK = C.INK;
-const ROCK = C.QUIET; // satisfied: plain grey
-const CLAY = C.MISS; // overfull: orange
 const BAND = C.FULL_SOFT; // the comfortable zone
 const GRID = C.GRID;
 const W = 340;
 
-// Each way of finishing: its word, colour and shape.
+// Each way of finishing: its word, colour and shape (the shapes live in icons.js).
 export const STOP_STYLE = {
-  before_full: { word: 'Left wanting', colour: C.FULL, shape: 'triangle' },
-  full: { word: 'Satisfied', colour: ROCK, shape: 'square' },
-  stuffed: { word: 'Overfull', colour: CLAY, shape: 'diamond' },
+  before_full: { word: 'Left wanting', ...STOP_MARKS.before_full },
+  full: { word: 'Satisfied', ...STOP_MARKS.full },
+  stuffed: { word: 'Overfull', ...STOP_MARKS.stuffed },
 };
 
 /** A small mark centred on (x, y). */
-function mark(stop, x, y, r = 5) {
-  const st = STOP_STYLE[stop];
-  if (!st) return s('circle', { cx: x, cy: y, r: r - 1, fill: 'none', stroke: INK, 'stroke-width': 1.5 });
-  const d = {
-    triangle: `M${x} ${y - r} L${x + r} ${y + r * 0.8} L${x - r} ${y + r * 0.8} Z`,
-    square: `M${x - r * 0.85} ${y - r * 0.85} h${r * 1.7} v${r * 1.7} h${-r * 1.7} Z`,
-    diamond: `M${x} ${y - r * 1.1} L${x + r * 1.1} ${y} L${x} ${y + r * 1.1} L${x - r * 1.1} ${y} Z`,
-  }[st.shape];
-  return s('path', { d, fill: st.colour, 'data-stop': stop, 'data-series': stop });
-}
+const mark = (stop, x, y, r = 5) => stopMark(stop, { x, y, r });
 
-/** The mark as a legend key or an inline icon. */
-export function stopIcon(stop) {
-  return s('svg', { class: 'stop-icon', viewBox: '0 0 14 14', 'aria-hidden': 'true' }, mark(stop, 7, 7, 5));
-}
+export { stopIcon };
 
 // One way of finishing can be shown on its own, across every chart and the
 // meal list at once: F holds the choice for the render under way.

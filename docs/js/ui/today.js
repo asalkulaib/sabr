@@ -12,11 +12,10 @@ import {
 import { dailySeries } from '../core/history.js';
 import * as P from './palette.js';
 import { ringsSvg, celebrate } from './rings.js';
-import { weekRow } from './week.js';
 import { forgotCloseDefault, showAddMealSheet, showDoneEatingSheet, showFinishMealSheet, showMealEditSheet, showStartMealSheet } from './meal.js';
 import { showOutsideSheet } from './outside.js';
 import { showBiteTimeSheet, showOpeningSheet, showOutsideTimeSheet, showWindowTimesSheet } from './window-times.js';
-import { dayRings, ringHero, stagesSection } from './stages.js';
+import { dayRings, ringHero, stagesSection, weekRow } from './today-parts.js';
 import { currentPause, endPause, pauseToday, showPauseSheet } from './pause.js';
 import { showBeginFastSheet } from './begin-fast.js';
 import { showGoalSheet } from './goal.js';

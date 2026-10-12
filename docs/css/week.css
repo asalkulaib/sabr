@@ -1,0 +1,74 @@
+/* Week and Day, with the outside and temptation sheets opened from a day. */
+
+@layer screens {
+
+/* ---------- Week as a schedule ---------- */
+.sched-head,
+.dayrow {
+  display: grid;
+  grid-template-columns: 22px 56px minmax(0, 1fr) 64px;
+  column-gap: var(--s2);
+  align-items: center;
+}
+
+.sched-head {
+  padding-bottom: var(--s1);
+}
+
+.sched-head text {
+  font-family: var(--font-ui);
+  font-weight: 800;
+  font-size: 11px;
+  fill: var(--text-quiet);
+}
+
+.dayrow {
+  width: 100%;
+  min-height: 52px;
+  padding: var(--s2) 0;
+  border-top: 1px solid var(--rule-quiet);
+  text-align: left;
+}
+
+.dayrow .cell {
+  display: block;
+  width: 22px;
+  height: 22px;
+}
+
+.sched-line {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.dayrow .d {
+  font-family: var(--font-ui);
+  font-weight: 900;
+  font-size: 14.5px;
+  white-space: nowrap;
+  color: var(--ink);
+}
+
+.dayrow .t {
+  display: block;
+  margin-top: 2px;
+  font-family: var(--font-ui);
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--text-body);
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+.dayrow .r {
+  font-weight: 800;
+  font-size: 13.5px;
+  color: var(--text-quiet);
+  text-align: right;
+}
+
+.dayrow .r.ok {
+  color: var(--win-text);
+}
+}

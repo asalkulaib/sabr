@@ -1,0 +1,33 @@
+/* History, Weight and the weight import page. */
+
+@layer screens {
+
+/* A chart's own switches: slim tracks on one line. */
+.chart-switches {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--s2);
+}
+
+/* Back to latest keeps its room while the latest is shown, so the chart never jumps. */
+.latest-idle {
+  visibility: hidden;
+}
+
+/* The average a chart leads with, and the days it covers. */
+.chart-lead-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  column-gap: var(--s3);
+}
+
+.chart-dates {
+  font-family: var(--font-ui);
+  font-weight: 800;
+  font-size: 13px;
+  color: var(--text-quiet);
+  white-space: nowrap;
+}
+}

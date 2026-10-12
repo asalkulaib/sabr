@@ -1,0 +1,8 @@
+/* The form sheets: start, add, finish and edit a meal, the fullness check, outside, the window times and Begin fast. */
+
+@layer screens {
+
+.stanza > p {
+  margin: 0;
+}
+}

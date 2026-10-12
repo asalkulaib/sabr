@@ -1,0 +1,234 @@
+/* The stages sheet ([data-sheet="stages"]) and Read more. */
+
+@layer screens {
+
+/* ---------- Fasting stages, one at a time ---------- */
+/* Room above and below for a stop's focus ring, which the sideways scroll would clip. */
+.stage-line {
+  margin-top: calc(var(--s4) - 4px);
+  padding-block: 4px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+}
+
+.stage-line::-webkit-scrollbar {
+  display: none;
+}
+
+/* Three stages to a view, with the next one showing at the edge: swipe the line for the rest. */
+.stage-track {
+  position: relative;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  width: 167%;
+}
+
+/* The line that joins the stages, behind their discs: from the middle of the first column to the middle of the sixth. */
+.stage-track::before {
+  content: '';
+  position: absolute;
+  left: calc(100% / 12);
+  right: calc(100% / 12);
+  top: 29px;
+  border-top: 2px solid var(--track);
+}
+
+.stage-stop {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  row-gap: 6px;
+  padding: 0 4px 8px;
+  font-family: var(--font-ui);
+  font-weight: 800;
+  font-size: 15px;
+  line-height: 1.25;
+  text-align: center;
+  color: var(--text-quiet);
+  border-radius: var(--r-control);
+}
+
+.stage-stop .name {
+  min-height: 2.5em;
+}
+
+.stage-stop .hrs {
+  font-size: 14px;
+}
+
+.stage-stop .disc {
+  display: grid;
+  place-items: center;
+  width: 58px;
+  height: 58px;
+  border: 2px solid var(--track);
+  border-radius: var(--r-pill);
+}
+
+.stage-stop .disc svg {
+  width: 30px;
+  height: 30px;
+}
+
+.stage-stop .disc .stage-icon {
+  stroke: var(--ink);
+}
+
+/* The fast's red rings the stage the fast is in now. */
+.stage-stop.now .disc {
+  border: 4px solid var(--fast);
+}
+
+.stage-stop[aria-current='true'] {
+  color: var(--ink);
+}
+
+.stage-stop[aria-current='true'] .name {
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 4px;
+}
+
+.stage-cards {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 100%;
+  column-gap: var(--s3);
+  margin: var(--s4) 0 0;
+  padding: 0;
+  list-style: none;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+}
+
+.stage-cards::-webkit-scrollbar {
+  display: none;
+}
+
+.stage-card {
+  scroll-snap-align: start;
+  padding: var(--s4) var(--panel-x) var(--s5);
+  color: var(--ink);
+  border-radius: var(--r-panel);
+}
+
+.stage-card .label {
+  color: var(--ink);
+}
+
+.stage-card .h2 {
+  margin-top: var(--s1);
+  color: inherit;
+}
+
+.stage-card p {
+  max-width: none;
+}
+
+.s-ketones,
+.s-brain,
+.s-sparing {
+  color: var(--bg);
+}
+
+.stage-card.s-ketones .label,
+.stage-card.s-brain .label,
+.stage-card.s-sparing .label {
+  color: var(--bg);
+}
+
+.stage-stop .disc.s-ketones .stage-icon,
+.stage-stop .disc.s-brain .stage-icon,
+.stage-stop .disc.s-sparing .stage-icon {
+  stroke: var(--bg);
+}
+
+/* Read more sits at the foot of every card, level across them. */
+.stage-cards .stage-card {
+  display: flex;
+  flex-direction: column;
+}
+
+.stage-more-row {
+  margin-top: auto;
+  padding-top: var(--s4);
+}
+
+/* On the dark cards the outline is drawn in light. */
+.s-ketones .btn.outline,
+.s-brain .btn.outline,
+.s-sparing .btn.outline {
+  color: var(--bg);
+  border-color: var(--bg);
+  background: none;
+}
+
+.s-ketones .btn:focus-visible,
+.s-brain .btn:focus-visible,
+.s-sparing .btn:focus-visible {
+  outline-color: var(--bg);
+}
+
+.s-ketones .btn.outline:active,
+.s-ketones .btn.outline.pressed,
+.s-brain .btn.outline:active,
+.s-brain .btn.outline.pressed,
+.s-sparing .btn.outline:active,
+.s-sparing .btn.outline.pressed {
+  color: var(--ink);
+  background: var(--bg);
+  border-color: var(--bg);
+}
+
+/* A stage's own page: its card at the top, then the longer read. */
+.stage-hero {
+  margin: var(--s4) 0 var(--s5);
+}
+
+.findings {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.findings > li {
+  padding: var(--s2) 0;
+}
+
+.findings > li + li {
+  border-top: 1px solid var(--rule-quiet);
+}
+
+.findings p {
+  max-width: none;
+}
+
+.findings .small {
+  margin-top: 2px;
+}
+
+.stage-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  column-gap: var(--s3);
+}
+
+.now-badge {
+  padding: 2px 10px;
+  font-family: var(--font-ui);
+  font-weight: 900;
+  font-size: 12px;
+  line-height: 1.5;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--bg);
+  background: var(--fast-text);
+  border-radius: var(--r-pill);
+}
+}

@@ -1,10 +1,20 @@
 // Sabr service worker. Every file is precached, so the app works fully offline.
 // VERSION and ASSETS are stamped by tools/release.mjs on every release.
 
-const VERSION = '2026.10.12-c4d85ca2';
+const VERSION = '2026.10.12-6476a520';
 const ASSETS = [
-  'css/app.css',
+  'css/base.css',
+  'css/components.css',
   'css/fonts.css',
+  'css/history.css',
+  'css/more.css',
+  'css/satiety.css',
+  'css/sheets.css',
+  'css/stages.css',
+  'css/today.css',
+  'css/tokens.css',
+  'css/week.css',
+  'css/welcome.css',
   'fonts/OFL.txt',
   'fonts/nunito-600-45f437de.woff2',
   'fonts/nunito-700-fa89300b.woff2',
@@ -62,9 +72,11 @@ const ASSETS = [
   'js/ui/sheet.js',
   'js/ui/stages.js',
   'js/ui/temptation.js',
+  'js/ui/today-parts.js',
   'js/ui/today.js',
   'js/ui/week.js',
   'js/ui/weight.js',
+  'js/ui/welcome.js',
   'js/ui/window-times.js',
   'js/version.js',
   'js/weight-import.js',

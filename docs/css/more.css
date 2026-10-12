@@ -1,0 +1,45 @@
+/* More, Help, and the Goal, Pause, Reset, Tempted and Restore sheets. */
+
+@layer screens {
+
+/* Footnote numeral and gloss. */
+sup.fn {
+  font-family: var(--font-ui);
+  font-weight: 500;
+  font-size: 11px;
+  line-height: 0;
+  color: var(--text-label);
+  margin-left: 1px;
+}
+
+.gloss {
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--text-body);
+  padding-top: var(--s3);
+  border-top: 1px solid var(--rule-quiet);
+}
+
+.gloss .term {
+  color: var(--text-display);
+  font-weight: 500;
+}
+
+.timer {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 60px;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: var(--text-display);
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+.phrases > li {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 21px;
+  line-height: 1.35;
+  color: var(--text-display);
+}
+}

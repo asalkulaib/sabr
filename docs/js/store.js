@@ -18,6 +18,7 @@ export const DEFAULTS = {
   persisted: null,
   goalChanges: [], // [{ from: 'YYYY-MM-DD', hours }]: the eating-window goal from that day on
   alarms: false, // timers through the Fast Timer shortcut
+  welcomedAt: null, // when the first-run welcome was done or skipped
 };
 
 export const FULLNESS_DELAY = 20 * MIN;
