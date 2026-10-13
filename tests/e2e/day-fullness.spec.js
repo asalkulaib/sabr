@@ -26,6 +26,18 @@ test('with every meal rated, the day reads from the meals', async ({ page }) => 
   await expect(page.locator('[data-block="fullness"]').getByTestId('day-fullness')).toHaveText('Satisfied at one meal or more.');
 });
 
+test('once every meal is rated, the meals decide: an earlier answer for the day no longer counts', async ({ page }) => {
+  // Overfull was chosen for these days before their meals were rated.
+  const days = WEEK.days.map((d) => (['2026-09-22', '2026-09-24'].includes(d.day) ? { ...d, fullness: 'stuffed' } : d));
+  await openAt(page, '2026-09-24T23:00');
+  await seed(page, { ...WEEK, days });
+  await expect(page.getByTestId('ring-fullness')).toContainText('Left wanting');
+  await toNow(page);
+  await expect(page.locator('[data-block="fullness"]').getByTestId('day-fullness')).toHaveText('Left wanting at every meal.');
+  await page.goto('./#day/2026-09-22');
+  await expect(page.locator('[data-block="fullness"]').getByTestId('day-fullness')).toHaveText('Satisfied at one meal or more.');
+});
+
 test('a paused day can still be rated for fullness', async ({ page }) => {
   await openAt(page, '2026-09-27T20:00');
   await seed(page, WEEK);

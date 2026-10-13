@@ -17,7 +17,7 @@ Sabr (صبر, patience) is the owner's second app: every feature and rule of Fas
 - Code: https://github.com/asalkulaib/sabr.
 - The owner's data lives only in IndexedDB (database `sabr`) on their iPhone, never in this repo. It shares the asalkulaib.github.io origin with Fast, so every stored name differs from Fast's: the database, the service worker cache (`sabr-`) and the `sabr.` localStorage keys.
 - Restore accepts backups from Sabr and from Fast (same format), so the owner can move their data over when they ask.
-- Plain HTML, CSS and JavaScript modules: no framework, no build step. `docs/js/core/` holds the pure rules (ported unchanged from Fast, with their tests), `docs/js/ui/` the screens.
+- Plain HTML, CSS and JavaScript modules: no framework, no build step. `docs/js/core/` holds the pure rules (ported unchanged from Fast, with their tests, except the day's fullness below), `docs/js/ui/` the screens.
 - Shared UI code: `components.js` (buttons, tracks, wheels, rows, legends and `key()`, `missLine`, `errorLine`, `goalPair`), `shared.js` (header, time tiles, notices), `sheet.js` (sheets: fixed head, scrolling body, optional fixed footer), `rings.js` (every ring: `ringsSvg`, `resultRing`, `miniRing`, `weekRing`, `progressRing`, `emptyRings`; sizes in `RING`), `icons.js` (stage icons and discs, stop marks, glyphs, stripes), `palette.js` (the colours for SVG drawing), `dom.js`. Today's parts (rings hero, readout, stage panel, week row) are in `today-parts.js`.
 - CSS, in cascade layers, linked in this order by `docs/index.html` (`docs/import/index.html` links fonts, tokens, base, components and history): `fonts.css` (generated), `tokens.css` (`@layer tokens, base, components, screens;` then every token), `base.css` (reset, type classes, layout, focus, utilities), `components.css` (everything shared), then the screen files in `@layer screens`: `today.css`, `stages.css` (`[data-sheet="stages"]`), `sheets.css` (the meal, window and fast form sheets), `week.css` (Week and Day), `history.css` (History, Weight, the import page), `satiety.css` (Satiety and the fullness card), `more.css` (More, Help, Goal, Pause, Reset, Restore, Tempted and the time sheets), `welcome.css`. A screen file only uses selectors rooted in its own screen class or `data-sheet`; component CSS never names a screen. Any screen rule beats any component rule, whatever the selector. No `@import`; `tools/release.mjs` precaches every file it finds.
 
@@ -64,6 +64,8 @@ Sabr (صبر, patience) is the owner's second app: every feature and rule of Fas
 8. More has the group titles "Reminders" and "Your data", after "Settings".
 
 On 13 October 2026 the owner had the Arabic gloss (شبع) removed from the Fullness label, on Satiety's Now view and on a day in Week: the label reads "Fullness" only. Do not restore it, even though Fast's inventory lists it.
+
+The same day the owner chose that once every meal of a day is rated, the meals alone decide the day's fullness: an answer the day was given earlier no longer counts (`dayFullness` in `docs/js/core/fullness.js`), so the day's own answer counts exactly while its question is shown. Fast keeps the old rule, where it always counted; keep Sabr's.
 
 Still to ask the owner, not built: an "All meals" tag on Satiety leads while a filter is on; showing one date ("27 Sep") when History's range is a single day; testing Satiety's drift on the rounded value; the copy of a future day before tracking started ("Before tracking started." above "This day has not started yet.").
 

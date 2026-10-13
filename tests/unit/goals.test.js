@@ -158,3 +158,13 @@ test('a day is left wanting only when every meal was, or the day itself was rate
   assert.equal(dayFullness([], { fullness: 'full' }), 'full'); // a paused day's own rating
   assert.equal(dayFullness([], null), null);
 });
+
+test('once every meal is rated, the meals decide the day: an earlier answer for the day no longer counts', () => {
+  const m = (stop) => ({ stop });
+  assert.equal(dayFullness([m('before_full'), m('before_full')], { fullness: 'stuffed' }), LEFT_WANTING);
+  assert.equal(dayFullness([m('before_full')], { fullness: 'full' }), LEFT_WANTING);
+  assert.equal(dayFullness([m('full')], { fullness: 'stuffed' }), 'full');
+  // While a meal is still unrated, the day's answer counts, the worst first.
+  assert.equal(dayFullness([m('before_full'), m(null)], { fullness: 'stuffed' }), 'stuffed');
+  assert.equal(dayFullness([m('full'), m(null)], { fullness: 'before_full' }), 'full');
+});

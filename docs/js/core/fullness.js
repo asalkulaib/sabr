@@ -8,12 +8,14 @@ export const FULLNESS_WORD = { before_full: 'left wanting', full: 'satisfied', s
 
 /**
  * A day's fullness: the worst rating among its meals and the day's own
- * rating (asked when its meals were not rated). Left wanting only when
- * every meal was; null while nothing is rated, or while a meal is unrated
- * and the day has no rating of its own.
+ * rating (asked while its meals are not all rated). Once every meal is
+ * rated, the meals alone decide: an answer the day was given earlier no
+ * longer counts, so it counts exactly while the question is shown.
+ * Left wanting only when every meal was; null while nothing is rated, or
+ * while a meal is unrated and the day has no rating of its own.
  */
 export function dayFullness(meals, rec) {
-  const own = rec && rec.fullness;
+  const own = ratedByMeals(meals) ? null : rec && rec.fullness;
   const ratings = meals.map((m) => m.stop).filter(Boolean);
   if (own) ratings.push(own);
   if (!ratings.length) return null;

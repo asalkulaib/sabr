@@ -128,9 +128,15 @@ test('read more: a stage opens its own longer page, with no links, and Back retu
   await tap(page, 'stages-back-end');
   await expect(s.getByTestId('stage-more')).toHaveCount(0);
   await expect(s.locator('[data-action="stage-switch"]')).toHaveAttribute('aria-current', 'true');
-  // Another stage's page: no Now badge, and its own findings.
+  // Another stage's page: no Now badge, and its own findings. The cards glide
+  // to the stage tapped; as a finger would, Read more waits for them to rest.
+  const restingOn = () => s.locator('.stage-cards').evaluate((el) => new Promise((done) => {
+    const from = el.scrollLeft;
+    setTimeout(() => done(el.scrollLeft === from ? Math.round(el.scrollLeft / el.clientWidth) : -1), 100);
+  }));
   await tap(page, 'stage-sparing');
   await expect(s.locator('[data-action="stage-sparing"]')).toHaveAttribute('aria-current', 'true');
+  await expect.poll(restingOn).toBe(5);
   await tap(page, 'more-sparing');
   await expect(more).toHaveAttribute('data-stage', 'sparing');
   await expect(more.getByTestId('stage-now')).toHaveCount(0);
