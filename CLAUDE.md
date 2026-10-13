@@ -67,6 +67,8 @@ On 13 October 2026 the owner had the Arabic gloss (شبع) removed from the Full
 
 The same day the owner chose that once every meal of a day is rated, the meals alone decide the day's fullness: an answer the day was given earlier no longer counts (`dayFullness` in `docs/js/core/fullness.js`), so the day's own answer counts exactly while its question is shown. Fast keeps the old rule, where it always counted; keep Sabr's.
 
+Also on 13 October 2026 the owner chose, from two mock-ups, where Where you land shows the comfortable zone's range: on the scale, which counts 2, 4, 6, 8, 10, with the grey band running under the 6 and the 8 and those two in ink (`landingChart` in `docs/js/ui/satiety.js`). Nothing is written beside a meal's mark: a "6 to 8" at the band's right end read as the latest meal's value. Fast's inventory lists grid lines at 1, 4, 7 and 10; keep Sabr's.
+
 Still to ask the owner, not built: an "All meals" tag on Satiety leads while a filter is on; showing one date ("27 Sep") when History's range is a single day; testing Satiety's drift on the rounded value; the copy of a future day before tracking started ("Before tracking started." above "This day has not started yet.").
 
 ### Tokens (`docs/css/tokens.css`, the only file with raw values)

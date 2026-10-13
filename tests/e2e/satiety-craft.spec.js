@@ -1,7 +1,8 @@
 // Satiety's motion and taps: the lag lines rise when first seen, tied lines
-// share the post, a tap on a lag line picks its own way of finishing, a due
-// check reads 0 min, Show all fades the focus bar out, and only a meal saved
-// by Add a meal on Satiety shows itself in the list.
+// share the post, a tap on a lag line picks its own way of finishing, the
+// comfortable zone is read off the scale, a due check reads 0 min, Show all
+// fades the focus bar out, and only a meal saved by Add a meal on Satiety
+// shows itself in the list.
 import { test, expect, openAt, seed, tap, choose, settings, ms, settleMotion } from './helpers.js';
 import { WEEK } from './seed-data.js';
 
@@ -128,6 +129,31 @@ test('a tap just off a landing mark picks that mark, never a neighbour', async (
     await expect(page.getByTestId('satiety-focus')).toContainText(`Charts and meals show ${words[m.stop]} only.`);
     await page.evaluate(() => document.querySelector('[data-action="show-all"]').click());
     await expect(page.getByTestId('satiety-focus')).toHaveCount(0);
+  }
+});
+
+test('the comfortable zone is read off the scale, never written beside a meal', async ({ page }) => {
+  // The latest meal left wanting at 8, by the band's right end: once the
+  // zone's range was written there, and read as that meal's value.
+  const meals = fourteen().map((m) => (m.id === 13 ? { ...m, fullness20: 8 } : m));
+  await openAt(page, '2026-09-26T23:00', '#satiety');
+  await seed(page, { ...WEEK, meals, settings: install });
+  const chart = page.getByTestId('landing-chart');
+  await chart.evaluate((el) => el.scrollIntoView({ block: 'center' }));
+  // The scale counts in twos, so the zone's own numbers are on it, in ink. Nothing else is written on the chart.
+  await expect(chart.locator('text')).toHaveText(['2', '4', '6', '8', '10', '13 meals ago', 'latest']);
+  await expect(chart.locator('text.zone-tick')).toHaveText(['6', '8']);
+  const fills = await chart.locator('text').evaluateAll((ts) => ts.map((t) => getComputedStyle(t).fill));
+  expect(fills[2]).toBe(fills[3]);
+  expect(fills[2]).not.toBe(fills[0]);
+  // The band runs under its 6 and 8.
+  const band = await chart.getByTestId('zone-band').evaluate((el) => el.getBoundingClientRect().toJSON());
+  const ticks = await chart.locator('text.zone-tick').evaluateAll((ts) => ts.map((t) => t.getBoundingClientRect().toJSON()));
+  for (const t of ticks) {
+    expect(t.left).toBeGreaterThanOrEqual(band.left);
+    expect(t.right).toBeLessThanOrEqual(band.right);
+    expect((t.top + t.bottom) / 2).toBeGreaterThan(band.top);
+    expect((t.top + t.bottom) / 2).toBeLessThan(band.bottom);
   }
 });
 

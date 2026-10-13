@@ -112,33 +112,37 @@ const average = (rows, value, weight) => {
   return n ? rows.reduce((a, r) => a + value(r) * weight(r), 0) / n : null;
 };
 
-/** Fullness 20 minutes after each meal, with the comfortable zone as a grey band. */
+/**
+ * Fullness 20 minutes after each meal, with the comfortable zone as a grey
+ * band. Its range is read off the scale, never written beside a mark (where
+ * it read as a meal's value): the scale counts in twos, the band runs under
+ * its 6 and 8, and those two are in ink.
+ */
 function landingChart(st) {
   const pts = st.landings;
   const HT = 176;
   const P = { top: 10, right: 10, bottom: 24, left: 26 };
-  // The points stop short of the right end, where the band names its range.
-  const inner = W - P.left - P.right - 16 - 48;
+  const inner = W - P.left - P.right - 16;
   const y = (v) => P.top + (HT - P.top - P.bottom) * (1 - (v - 1) / 9);
   const x = (i) => P.left + 8 + (pts.length === 1 ? inner / 2 : (inner * i) / (pts.length - 1));
-  const grid = [1, 4, 7, 10].flatMap((v) => [
+  const grid = [2, 4, 6, 8, 10].flatMap((v) => [
     s('line', { x1: P.left, x2: W - P.right, y1: y(v), y2: y(v), stroke: GRID }),
-    s('text', { x: P.left - 8, y: y(v) + 4, 'text-anchor': 'end' }, String(v)),
+    s('text', { x: P.left - 8, y: y(v) + 4, 'text-anchor': 'end', class: ZONE.includes(v) ? 'zone-tick' : null }, String(v)),
   ]);
   const top = y(ZONE[1] + 0.5);
   const bottom = y(ZONE[0] - 0.5);
   // The zone is --shade (satiety.css), the same as its key: on this chart blue means left wanting only.
-  const band = s('rect', { class: 'zone-band', x: P.left, width: W - P.left - P.right, y: top, height: bottom - top, fill: C.TRACK, 'data-testid': 'zone-band' });
-  const bandWords = s('text', { class: 'zone-words', x: W - P.right - 6, y: top + 13, 'text-anchor': 'end' }, `${ZONE[0]} to ${ZONE[1]}`);
+  const band = s('rect', { class: 'zone-band', x: 0, width: W - P.right, y: top, height: bottom - top, fill: C.TRACK, 'data-testid': 'zone-band' });
   const line = s('path', { class: 'meal-line', d: pts.map((p, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)} ${y(p.value).toFixed(1)}`).join(' '), fill: 'none', stroke: C.EDGE, 'stroke-width': 1.5, 'stroke-linejoin': 'round', 'data-series': 'line' });
   // One target over the plot, under the marks (no data-stop, no data-series):
   // a tap near a mark picks the nearest one's way of finishing, never a later neighbour's.
-  const area = s('rect', { class: 'hit landing-area', x: P.left, y: P.top - 8, width: W - P.left - P.right, height: HT - P.top - P.bottom + 16, fill: 'transparent' });
+  // It runs on to the chart's right edge, so a tap just past the latest mark still reaches it.
+  const area = s('rect', { class: 'hit landing-area', x: P.left, y: P.top - 8, width: W - P.left, height: HT - P.top - P.bottom + 16, fill: 'transparent' });
   const marks = pts.map((p, i) => mark(p.stop, x(i), y(p.value), 6));
   const unrated = pts.some((p) => !p.stop);
   const svg = focusable(s('svg', { class: 'chart', viewBox: `0 0 ${W} ${HT}`, role: 'img', 'data-testid': 'landing-chart',
     'aria-label': `Fullness 20 minutes after each of your last ${pts.length} meals, on a scale of 1 to 10.` },
-  band, ...grid, bandWords, line, area, ...marks,
+  band, ...grid, line, area, ...marks,
   s('text', { x: P.left, y: HT - 4 }, `${pts.length} meals ago`), s('text', { x: x(pts.length - 1) + 8, y: HT - 4, 'text-anchor': 'end' }, 'latest')));
   const { focus, pick } = F;
   area.addEventListener('click', (e) => {

@@ -254,7 +254,11 @@ body.has-flash .satiety .focus-bar {
   fill: var(--shade);
 }
 
-.satiety .chart .zone-words,
+/* The zone's own numbers on the scale, with the band under them. */
+.satiety .chart .zone-tick {
+  fill: var(--text-display);
+}
+
 .satiety .chart .col-head {
   font-weight: 800;
   font-size: var(--t-chart);
