@@ -120,11 +120,11 @@ function titled(block, title, ...content) {
   return { card, section: h('section', { class: 'day-group', 'data-block': block }, h('h2', { class: 'group-title' }, title), card) };
 }
 
-/** Fullness under its own title, which carries the card's label and gloss. */
+/** Fullness under its own title, which carries the card's label. */
 function fullnessSection(ctx, key) {
   const card = fullnessCard(ctx, key, { question: 'How did the day\'s eating end?' });
   return h('div', { class: 'day-group day-fullness' },
-    h('h2', { class: 'group-title' }, 'Fullness ', h('span', { class: 'ar', lang: 'ar' }, 'شبع')),
+    h('h2', { class: 'group-title' }, 'Fullness'),
     card);
 }
 

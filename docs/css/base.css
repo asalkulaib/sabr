@@ -391,12 +391,6 @@ body.has-flash .screen {
   margin: var(--space-6) 0;
 }
 
-/* Arabic glosses keep their own letter shapes: no spacing, no capitals. */
-.ar {
-  letter-spacing: 0;
-  text-transform: none;
-}
-
 html.locked,
 html.locked body {
   overflow: hidden;

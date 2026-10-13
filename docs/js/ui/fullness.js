@@ -1,4 +1,4 @@
-// The day's fullness (شبع), on Satiety's Now view and on a day in Week: read
+// The day's fullness, on Satiety's Now view and on a day in Week: read
 // from the meals when every one is rated, otherwise one rating for the whole
 // day, asked at the day's end and on paused days, when no meals are logged.
 // One look wherever it appears (satiety.css styles [data-block="fullness"]).
@@ -24,7 +24,7 @@ export function fullnessCard(ctx, key_, { question = 'How did you finish eating 
   const meals = mealsOfDay(ctx, key_);
   const fromMeals = ratedByMeals(meals) ? dayFullness(meals, rec) : null;
   return h('section', { class: 'section fullness-card', 'data-block': 'fullness', 'data-day': key_ },
-    h('div', { class: 'label fullness-label' }, 'Fullness ', h('span', { class: 'ar', lang: 'ar' }, 'شبع')),
+    h('div', { class: 'label fullness-label' }, 'Fullness'),
     fromMeals
       ? h('p', { class: 'fullness-statement', 'data-testid': 'day-fullness' }, key(`stop-${fromMeals}`, { size: 20 }), FROM_MEALS[fromMeals])
       : [

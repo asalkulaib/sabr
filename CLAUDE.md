@@ -63,6 +63,8 @@ Sabr (صبر, patience) is the owner's second app: every feature and rule of Fas
 7. Touching or dragging along the History chart reads the day under the finger, as on Weight. Tapping still selects a day; the readout and Open this day follow.
 8. More has the group titles "Reminders" and "Your data", after "Settings".
 
+On 13 October 2026 the owner had the Arabic gloss (شبع) removed from the Fullness label, on Satiety's Now view and on a day in Week: the label reads "Fullness" only. Do not restore it, even though Fast's inventory lists it.
+
 Still to ask the owner, not built: an "All meals" tag on Satiety leads while a filter is on; showing one date ("27 Sep") when History's range is a single day; testing Satiety's drift on the rounded value; the copy of a future day before tracking started ("Before tracking started." above "This day has not started yet.").
 
 ### Tokens (`docs/css/tokens.css`, the only file with raw values)

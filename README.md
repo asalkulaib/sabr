@@ -98,7 +98,7 @@ On Satiety and History, tap a legend item to show only that one; the rest fade o
 
 Every colour-coded visual has a legend that names each colour in words: the week row, the rings and the window band on Today, the Week schedule, the History chart, the weight chart and the Satiety charts. Orange stripes always mean a miss. Grey means a paused day on the schedule and the chart; soft green is window time still ahead on the band, and a grey band the comfortable zone on Satiety. On Satiety each way of finishing also has its own shape and tone: a blue triangle for left wanting, a grey square for satisfied and an ink diamond for overfull. Overfull is never orange: orange means a miss.
 
-## Fullness (شبع)
+## Fullness
 
 When you finish a meal, Sabr asks how you finished: Left wanting (the goal), Satisfied, or Overfull. A day counts as left wanting only when every meal was. When the day's meals were not rated, and on paused days, Satiety › Now asks once how the day's eating ended. Fullness is logged every day, holidays and pauses included. The 1 to 10 ratings and the 20-minute check stay as before.
 

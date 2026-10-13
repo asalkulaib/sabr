@@ -807,7 +807,7 @@ export const TRIGGER_OPTIONS = [
   { value: 'other', label: 'Other' },
 ];
 
-// How a meal ended (fullness, شبع). The stored values stay as before.
+// How a meal ended (fullness). The stored values stay as before.
 export const STOP_OPTIONS = [
   { value: 'before_full', label: 'Left wanting' },
   { value: 'full', label: 'Satisfied' },

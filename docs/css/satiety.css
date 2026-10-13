@@ -593,10 +593,6 @@ body.has-flash .satiety .focus-bar {
   color: var(--text-label);
 }
 
-[data-block='fullness'] .fullness-label .ar {
-  font-size: inherit;
-}
-
 [data-block='fullness'] .fullness-question {
   margin: var(--space-2) 0 0;
   font-weight: 900;

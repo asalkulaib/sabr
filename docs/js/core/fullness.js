@@ -1,4 +1,4 @@
-// Fullness (شبع): how each meal ended, rolled up into a day. Pure functions.
+// Fullness: how each meal ended, rolled up into a day. Pure functions.
 // Ratings, stored as before: 'before_full' (left wanting, the goal),
 // 'full' (satisfied) and 'stuffed' (overfull).
 
