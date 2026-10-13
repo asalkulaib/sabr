@@ -240,37 +240,77 @@ test('Weight: keyboard focus shows the latest day, and a mouse let go outside th
 });
 
 /**
- * Every value label's box, grown by 1 unit, against the 7-day trend (sampled
- * every unit along its path), the average and, in Line, the day line: none
- * may run through a label.
+ * Every value label sits with its own mark: its box ends between 1 unit into
+ * and 20 units above the top of the day's mark, or, where it rose over a
+ * line, within 14 units above the highest line that runs between it and the
+ * mark in its column. No line runs through a label's box: the 7-day trend
+ * (sampled every unit along its path), the average and, in Line, the day
+ * line, so no label needs its fallback plate. Returns the faults.
+ * A chart a redraw just removed has no boxes to measure, so it says so and
+ * the caller polls for the chart in place.
  */
 async function linesThroughLabels(chart) {
   return chart.evaluate((svg) => {
-    const hits = [];
+    if (!svg.isConnected) return ['redrawn'];
+    const faults = [];
+    const line = svg.dataset.kind === 'line' ? svg.querySelector('path[data-series="bar"]') : null;
+    // The top of a day's mark: its square or bar, or else the day line's point at x.
+    const markTop = (day, x) => {
+      const r = svg.querySelector(`rect[data-day="${day}"]`);
+      if (r) return Number(r.getAttribute('y'));
+      if (!line) return null;
+      let best = null;
+      const len = line.getTotalLength();
+      for (let l = 0; l <= len; l += 0.5) {
+        const pt = line.getPointAtLength(l);
+        if (!best || Math.abs(pt.x - x) < Math.abs(best.x - x)) best = pt;
+      }
+      return best && Math.abs(best.x - x) < 1 ? best.y : null;
+    };
+    const plates = [...svg.querySelectorAll('line.label-plate')].map((p) => {
+      const half = Number(p.getAttribute('stroke-width')) / 2;
+      const y = Number(p.getAttribute('y1'));
+      return { x0: Number(p.getAttribute('x1')), x1: Number(p.getAttribute('x2')), y0: y - half, y1: y + half };
+    });
+    const covered = (b) => plates.some((p) => p.x0 <= b.x0 + 1 && p.x1 >= b.x1 - 1 && p.y0 <= b.y0 + 1 && p.y1 >= b.y1 - 1);
     const boxes = [...svg.querySelectorAll('text.bar-value')].map((t) => {
       const b = t.getBBox();
-      return { day: t.dataset.valueFor, x0: b.x - 1, x1: b.x + b.width + 1, y0: b.y - 1, y1: b.y + b.height + 1 };
+      return { day: t.dataset.valueFor, cx: b.x + b.width / 2, x0: b.x, x1: b.x + b.width, y0: b.y, y1: b.y + b.height };
     });
-    const inside = (b, x, y) => x > b.x0 && x < b.x1 && y > b.y0 && y < b.y1;
-    const paths = [svg.querySelector('[data-testid="trend-line"]'), svg.dataset.kind === 'line' ? svg.querySelector('path[data-series="bar"]') : null].filter(Boolean);
-    for (const p of paths) {
+    // Every point of the lines, sampled every unit; the average every unit across.
+    const pts = [];
+    for (const p of [svg.querySelector('[data-testid="trend-line"]'), line].filter(Boolean)) {
       const len = p.getTotalLength();
-      for (let l = 0; l <= len; l += 1) {
-        const pt = p.getPointAtLength(l);
-        for (const b of boxes) if (inside(b, pt.x, pt.y)) hits.push(`${b.day} ${p.dataset.series}`);
-      }
+      for (let l = 0; l <= len; l += 1) pts.push(p.getPointAtLength(l));
     }
     const avg = svg.querySelector('[data-testid="avg-line"]');
     if (avg) {
       const ay = Number(avg.getAttribute('y1'));
-      for (const b of boxes) if (ay > b.y0 && ay < b.y1) hits.push(`${b.day} avg`);
+      for (let x = Number(avg.getAttribute('x1')); x <= Number(avg.getAttribute('x2')); x += 1) pts.push({ x, y: ay });
     }
-    return [...new Set(hits)];
+    for (const b of boxes) {
+      const top = markTop(b.day, b.cx);
+      if (top == null) { faults.push(`${b.day} no mark`); continue; }
+      const gap = top - b.y1;
+      if (gap < -1) faults.push(`${b.day} label ${gap.toFixed(1)} into its mark`);
+      else if (gap > 20) {
+        // Risen over a line: only as far as the highest line under it in its column.
+        const under = pts.filter((pt) => pt.x > b.x0 && pt.x < b.x1 && pt.y > b.y1 && pt.y < top + 1);
+        const hi = under.length ? Math.min(...under.map((pt) => pt.y)) : null;
+        if (hi == null) faults.push(`${b.day} label floats ${gap.toFixed(1)} over its mark`);
+        else if (hi - b.y1 > 14) faults.push(`${b.day} label ${(hi - b.y1).toFixed(1)} over the line it rose over`);
+      }
+    }
+    const inside = (b, pt) => pt.x > b.x0 && pt.x < b.x1 && pt.y > b.y0 && pt.y < b.y1;
+    for (const b of boxes) if (pts.some((pt) => inside(b, pt)) && !covered(b)) faults.push(`${b.day} crossed by a line`);
+    // Each label found room over its lines: none needed the fallback plate.
+    if (plates.length) faults.push(`${plates.length} label plates`);
+    return [...new Set(faults)];
   });
 }
 
 for (const [name, data] of [['sixty days', () => ({ days: sixtyDays(), settings: early })], ['the week seed', () => WEEK], ['a close week', () => ({ days: closeWeek(), settings: early })]]) {
-  test(`over 7 days no line runs through a value label (${name})`, async ({ page }) => {
+  test(`over 7 days each value label sits on its mark, and no line runs through it (${name})`, async ({ page }) => {
     await openAt(page, '2026-09-26T23:00', '#history');
     await seed(page, data());
     await choose(page, 'history-range', '7');
@@ -281,7 +321,7 @@ for (const [name, data] of [['sixty days', () => ({ days: sixtyDays(), settings:
         await choose(page, 'history-chart', kind);
         await expect(page.locator(`.history[data-metric="${metric}"] [data-testid="history-chart"][data-kind="${kind}"]`)).toBeVisible();
         await expect(chart.locator('text.bar-value').first()).toBeVisible();
-        expect(await linesThroughLabels(chart), `${metric} ${kind}`).toEqual([]);
+        await expect.poll(() => linesThroughLabels(chart), { message: `${metric} ${kind}` }).toEqual([]);
       }
     }
   });

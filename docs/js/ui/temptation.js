@@ -151,18 +151,26 @@ function gains(ctx, sit) {
   return out;
 }
 
+/** A duration kept on one line inside a headline: '4 h 20 min', never '4 h' over '20 min'. */
+const whole = (text) => text.replace(/ /g, '\u00a0');
+
 /** A step's small label above its headline. */
 const kicker = (...text) => h('div', { class: 'label kicker' }, ...text);
 
 /**
- * A step laid out: the fixed head (Back on the left when there is one,
- * Close on the right), the body, and the dock of actions. focus: a step
- * that is only a headline sits at the optical centre.
+ * Every step shares one frame: the fixed head (Back on the left when there
+ * is one, Close on the right), then the body from the same top line (the
+ * kicker's line, kept empty on a step without one, so every headline
+ * starts at the same height), then the dock of actions in the thumb zone.
  */
-function stepView(head, body, actions = null, { focus = false, step } = {}) {
+function stepView(head, body, actions = null, { step } = {}) {
+  const parts = [].concat(body).filter(Boolean);
+  if (!parts[0] || !parts[0].classList || !parts[0].classList.contains('kicker')) {
+    parts.unshift(h('div', { class: 'label kicker', 'aria-hidden': 'true' }));
+  }
   return {
     head,
-    body: h('div', { class: focus ? 'tempt-step focus' : 'tempt-step', 'data-step': step }, ...[].concat(body).filter(Boolean)),
+    body: h('div', { class: 'tempt-step', 'data-step': step }, ...parts),
     actions: actions ? [].concat(actions).filter(Boolean) : null,
   };
 }
@@ -228,7 +236,7 @@ function render(app, api, id) {
   const ctx = app.ctx();
   if (!t) {
     return stepView(h('div', { class: 'sheet-head' }, h('span'), button('Close', () => api.close(), { kind: 'secondary', name: 'close-flow' })),
-      h('p', { class: 'tempt-headline' }, 'This was removed.'), null, { focus: true, step: 'removed' });
+      h('p', { class: 'tempt-headline' }, 'This was removed.'), null, { step: 'removed' });
   }
   const sit = situation(ctx);
   const today = ctx.todayKey;
@@ -290,17 +298,18 @@ function render(app, api, id) {
         kicker('Tempted'),
         h('h1', { class: 'tempt-headline' }, 'Hold the line.'),
         h('p', { class: 'tempt-ask' }, "What's pulling at you?"),
-      ], h('div', { class: 'trigger-track' },
-        choice({ options: TRIGGER_OPTIONS, value: t.trigger, cols: 3, name: 'trigger', ariaLabel: "What's pulling at you?", onChange: (v) => next({ trigger: v, step: 'gain' }) })),
-      { focus: true, step: 'trigger' });
+        // The six reasons sit right under the question they answer, each its own tile.
+        h('div', { class: 'trigger-track' },
+          choice({ options: TRIGGER_OPTIONS, value: t.trigger, cols: 3, name: 'trigger', ariaLabel: "What's pulling at you?", onChange: (v) => next({ trigger: v, step: 'gain' }) })),
+      ], null, { step: 'trigger' });
 
     case 'gain': {
       let lead;
       const ahead = longFastAhead(ctx);
-      const leadP = (...parts) => h('h1', { class: 'tempt-lead' }, ...parts);
+      const leadP = (...parts) => h('h1', { class: 'tempt-headline tempt-lead' }, ...parts);
       if (sit.kind === 'before' && ahead) {
         lead = leadP(`Your ${ahead.hours}-hour fast reaches its goal at ${fmtWhen(ahead.at, today)}. `,
-          live('span', {}, (ts) => `That is ${fmtDuration(Math.max(0, ahead.at - ts))} away.`));
+          live('span', {}, (ts) => `That is ${whole(fmtDuration(Math.max(0, ahead.at - ts)))} away.`));
       } else if (sit.kind === 'before' && isFlexible(today, ctx.settings)) {
         lead = leadP('Your window opens when you choose. Every hour you wait adds to the fast.');
       } else if (sit.kind === 'before') {
@@ -308,7 +317,7 @@ function render(app, api, id) {
         const plannedTs = at(today, plannedMin);
         lead = ctx.nowTs < plannedTs
           ? leadP(`Your window opens at ${fmtMinutes(plannedMin)}. `,
-            live('span', {}, (ts) => `That is ${fmtDuration(Math.max(0, plannedTs - ts))} away.`))
+            live('span', {}, (ts) => `That is ${whole(fmtDuration(Math.max(0, plannedTs - ts)))} away.`))
           : leadP('Your planned time has come. Open the window when you sit down to eat.');
       } else if (sit.kind === 'open') {
         lead = leadP(`Your window is open until ${fmtTime(ctx.openRec.firstBite + ctx.windowMsFor(ctx.openRec.day))}. Eat inside it.`);
@@ -351,7 +360,7 @@ function render(app, api, id) {
       return stepView(head, h('h1', { class: 'tempt-headline' }, 'How is it now?'), [
         button('It passed. I held.', () => finish('held', 'held'), { block: true, name: 'held' }),
         pair(withPeople(), cantAvoid()),
-      ], { focus: true, step: 'end' });
+      ], { step: 'end' });
 
     case 'social':
       return stepView(head, [
@@ -370,8 +379,9 @@ function render(app, api, id) {
 
     case 'cant': {
       const blocks = [];
+      const dock = [];
       if (sit.kind === 'open') {
-        blocks.push(h('p', { class: 'tempt-lead' }, `Your window is open until ${fmtTime(ctx.openRec.firstBite + ctx.windowMsFor(ctx.openRec.day))}. Eat inside it.`));
+        blocks.push(h('p', { class: 'tempt-headline tempt-lead' }, `Your window is open until ${fmtTime(ctx.openRec.firstBite + ctx.windowMsFor(ctx.openRec.day))}. Eat inside it.`));
       }
       if (sit.kind === 'before' || sit.kind === 'late') {
         const clock = `${Math.round(ctx.windowMsFor(today) / (60 * MIN))}-hour clock`;
@@ -379,22 +389,23 @@ function render(app, api, id) {
         blocks.push(h('section', { class: 'exit-card' },
           h('h3', { class: 'card-title' }, 'Open the window now'),
           h('p', {}, `This starts your ${clock}. Everything you eat fits by ${fmtTime(ctx.nowTs + ctx.windowMsFor(today))}.`),
-          workdayEarly ? missLine('Today is a workday and it is before 16:00, so today will count as a miss.') : null,
-          button(`Start the ${clock}`, openNow, { block: true, name: 'open-now' })));
+          workdayEarly ? missLine('Today is a workday and it is before 16:00, so today will count as a miss.') : null));
+        dock.push(button(`Start the ${clock}`, openNow, { block: true, name: 'open-now' }));
       }
       if (sit.kind === 'after' || sit.kind === 'late') {
-        const second = blocks.some((b) => b.querySelector && b.querySelector('[data-action="open-now"]'));
+        const second = dock.length > 0;
         blocks.push(h('section', { class: 'exit-card' },
           h('h3', { class: 'card-title' }, 'Eat very little'),
           h('p', {}, 'A small portion. Protein only. Then close it again.'),
-          sit.kind === 'late' ? h('p', { class: 'caption' }, 'This counts against last night.') : null,
+          sit.kind === 'late' ? h('p', { class: 'caption' }, 'This counts against last night.') : null));
+        dock.push(
           button('Log a small portion', () => ateOutside('little'), { kind: second ? 'outline' : 'primary', block: true, name: 'eat-little' }),
-          button('I ate more than that', () => ateOutside('meal'), { kind: 'outline', block: true, name: 'ate-more' })));
+          button('I ate more than that', () => ateOutside('meal'), { kind: 'outline', block: true, name: 'ate-more' }));
       }
       return stepView(head, [
         kicker("If you can't avoid it"),
         h('div', { class: 'exits' }, blocks),
-      ], null, { step: 'cant' });
+      ], dock.length ? dock : null, { step: 'cant' });
     }
 
     case 'ask': {
@@ -404,12 +415,12 @@ function render(app, api, id) {
         options.push(button('I ate a little', () => ateOutside('little'), { kind: 'outline', block: true, name: 'ate-little' }));
         options.push(button('I ate outside the window', () => ateOutside('meal'), { kind: 'outline', block: true, name: 'ate-outside' }));
       }
-      return stepView(head, h('h1', { class: 'tempt-headline' }, 'How did it end?'), options, { focus: true, step: 'ask' });
+      return stepView(head, h('h1', { class: 'tempt-headline' }, 'How did it end?'), options, { step: 'ask' });
     }
 
     case 'slip':
-      return stepView(head, h('h1', { class: 'tempt-slip', 'data-testid': 'slip-line' }, nextWindowLine(ctx, t.slipDay || sit.lastDay || today)),
-        button('Done', () => api.close(), { block: true, name: 'done' }), { focus: true, step: 'slip' });
+      return stepView(head, h('h1', { class: 'tempt-headline tempt-slip', 'data-testid': 'slip-line' }, nextWindowLine(ctx, t.slipDay || sit.lastDay || today)),
+        button('Done', () => api.close(), { block: true, name: 'done' }), { step: 'slip' });
 
     case 'held':
     default: {
@@ -420,7 +431,7 @@ function render(app, api, id) {
       return stepView(head, [
         h('h1', { class: 'tempt-held' }, 'Held.'),
         h('p', { class: 'tempt-line' }, line),
-      ], button('Done', () => api.close(), { block: true, name: 'done' }), { focus: true, step: 'held' });
+      ], button('Done', () => api.close(), { block: true, name: 'done' }), { step: 'held' });
     }
   }
 }

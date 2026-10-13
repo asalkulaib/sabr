@@ -23,15 +23,15 @@ const MARK_ROOM = 4;
 const DOT_R = 2.5;
 const DOT_RING = 1;
 
-/** A scale of at most four ticks that holds lo and hi. */
+/**
+ * The scale that holds lo and hi: a range of at least 1 kg, its step the
+ * first of 0.2, 0.5, 1, 2, 5 and 10 that leaves at most four intervals
+ * (else 10), the ends floored and ceiled to the step.
+ */
 function yScale(lo, hi) {
   if (hi - lo < 1) { const mid = (hi + lo) / 2; lo = mid - 0.5; hi = mid + 0.5; }
-  for (const step of [0.5, 1, 2, 5, 10, 20, 50, 100]) {
-    const a = Math.floor(lo / step + 1e-9) * step;
-    const b = Math.ceil(hi / step - 1e-9) * step;
-    if ((b - a) / step <= 3 + 1e-9) return { lo: a, hi: b, step };
-  }
-  return { lo, hi, step: hi - lo };
+  const step = [0.2, 0.5, 1, 2, 5, 10].find((st) => (hi - lo) / st <= 4) || 10;
+  return { lo: Math.floor(lo / step) * step, hi: Math.ceil(hi / step) * step, step };
 }
 
 /**

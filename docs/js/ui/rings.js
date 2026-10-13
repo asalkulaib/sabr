@@ -336,13 +336,17 @@ export function celebrate(el, moments, nowMs = performance.now()) {
 
 // ---------- Rings as their own pictures ----------
 
-/** Three empty ring tracks, no arcs: Today's nothing-on-record picture. */
+/**
+ * Three empty ring tracks, no arcs: Today's nothing-on-record picture. Each
+ * track in its ring's soft tint, as under the hero's arcs, so the legend's
+ * red, green and blue name what is drawn.
+ */
 export function emptyRings(size) {
   const w = strokeFor(size);
   const c = size / 2;
   const rr = radii(size, w);
   return s('svg', { class: 'empty-rings', viewBox: `0 0 ${size} ${size}`, width: size, height: size, 'aria-hidden': 'true', focusable: 'false' },
-    ORDER.map((k) => s('circle', { cx: c, cy: c, r: rr[k], fill: 'none', stroke: P.TRACK, 'stroke-width': w })));
+    ORDER.map((k) => s('circle', { cx: c, cy: c, r: rr[k], fill: 'none', stroke: KIND[k].soft, 'stroke-width': w })));
 }
 
 /**

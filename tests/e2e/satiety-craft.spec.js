@@ -169,7 +169,7 @@ test('Add a meal put away unsaved marks no later meal as just added', async ({ p
   await expect(page.locator('.meal-list > li.fresh')).toHaveCount(0);
 });
 
-test('lag lines that end together meet at the post with no end mark, and the right figures all carry their shape', async ({ page }) => {
+test('lag lines that end together keep both end marks, side by side, and every right figure carries its shape', async ({ page }) => {
   await openAt(page, '2026-09-26T23:00', '#satiety');
   await seed(page, { ...WEEK, settings: install });
   const lag = page.getByTestId('lag-chart');
@@ -177,18 +177,26 @@ test('lag lines that end together meet at the post with no end mark, and the rig
   // Left wanting and Satisfied both land on 7.0.
   await expect(lag).toContainText('7.0 +2.0');
   const got = await lag.evaluate((svg) => {
-    const X1 = 236;
     const centre = (p) => { const b = p.getBBox(); return { x: b.x + b.width / 2, y: b.y + b.height / 2 }; };
-    const ends = [...svg.querySelectorAll('g[data-series] > path[data-stop]')].map(centre).filter((p) => Math.abs(p.x - X1) < 1).map((p) => p.y);
+    const ends = [...svg.querySelectorAll('.lag-ends > path[data-stop]')].map(centre);
+    const posts = [116, 236].map((X) => ends.filter((p) => Math.abs(p.x - X) < 12));
     const marked = [...svg.querySelectorAll('.lag-label')].map((g) => !!g.querySelector('path[data-stop]'));
-    return { ends, marked };
+    return { count: ends.length, posts, marked };
   });
-  expect(got.ends.length).toBeLessThan(3);
-  for (let i = 0; i < got.ends.length; i++) {
-    for (let j = i + 1; j < got.ends.length; j++) expect(Math.abs(got.ends[i] - got.ends[j])).toBeGreaterThanOrEqual(10);
+  // Two end marks per line, one at each post.
+  expect(got.count).toBe(6);
+  expect(got.posts.map((p) => p.length)).toEqual([3, 3]);
+  // No mark hides another at either post.
+  for (const post of got.posts) {
+    for (let i = 0; i < post.length; i++) {
+      for (let j = i + 1; j < post.length; j++) {
+        const apart = Math.abs(post[i].x - post[j].x) >= 10 || Math.abs(post[i].y - post[j].y) >= 10;
+        expect(apart, JSON.stringify([post[i], post[j]])).toBe(true);
+      }
+    }
   }
   expect(got.marked).toHaveLength(3);
-  if (got.marked.some(Boolean)) expect(got.marked.every(Boolean)).toBe(true);
+  expect(got.marked.every(Boolean)).toBe(true);
 });
 
 test.describe('at 320 wide', () => {

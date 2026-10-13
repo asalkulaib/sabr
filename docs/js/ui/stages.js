@@ -88,6 +88,21 @@ function stagesView(api, currentKey, openKey) {
   };
   const step = () => (cards.children[1] ? cards.children[1].offsetLeft - cards.children[0].offsetLeft : cards.clientWidth);
   const shownCard = () => Math.max(0, Math.min(STAGES.length - 1, Math.round(cards.scrollLeft / step())));
+  // The list is as tall as the card in view, so the note under it follows the
+  // card's last line. Between two cards it eases from one height to the other.
+  const fit = () => {
+    if (!cards.isConnected) return;
+    const at = Math.max(0, Math.min(STAGES.length - 1, cards.scrollLeft / step()));
+    const i = Math.floor(at);
+    const a = cards.children[i].offsetHeight;
+    const b = cards.children[Math.min(i + 1, STAGES.length - 1)].offsetHeight;
+    cards.style.setProperty('--cards-h', `${Math.round(a + (b - a) * (at - i))}px`);
+  };
+  // A card's height changes with the width and the fonts.
+  if (typeof ResizeObserver === 'function') {
+    const watch = new ResizeObserver(() => (cards.isConnected ? fit() : watch.disconnect()));
+    [...cards.children].forEach((c) => watch.observe(c));
+  }
   // While the cards glide to a tapped stage, the line waits for them rather than following each card passed.
   let target = null;
   let settle = 0;
@@ -105,6 +120,7 @@ function stagesView(api, currentKey, openKey) {
   cards.addEventListener('scroll', () => {
     cancelAnimationFrame(frame);
     frame = requestAnimationFrame(() => {
+      fit();
       const i = shownCard();
       if (target !== null && i !== target) return;
       target = null;
@@ -114,7 +130,7 @@ function stagesView(api, currentKey, openKey) {
   const start = Math.max(0, STAGES.findIndex((st) => st.key === openKey));
   stops.forEach((b, j) => b.setAttribute('aria-current', String(j === start)));
   // Open on the stage asked for, once the cards and the line have their width.
-  requestAnimationFrame(() => show(start, false));
+  requestAnimationFrame(() => { show(start, false); fit(); });
   const body = h('div', { class: 'stages-view' },
     h('p', { class: 'stages-intro' }, 'Typical changes after your last bite, from human studies. Swipe the stages or the cards, or tap a stage. Read more opens the full story of a stage.'),
     line,

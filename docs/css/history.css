@@ -20,10 +20,11 @@
   margin: var(--space-1) 0 0;
 }
 
+/* The dates, then the days the average covers on a line of their own. */
 .history .lead-meta {
   display: flex;
-  flex-wrap: wrap;
-  column-gap: var(--space-3);
+  flex-direction: column;
+  align-items: flex-start;
   margin: var(--space-2) 0 0;
   font-weight: 700;
   font-size: var(--t-callout-size);
@@ -74,6 +75,7 @@
 
 .history .history-chart .scrub-part,
 .history .history-chart .trend-halo,
+.history .history-chart .label-plate,
 .history .history-chart .bar-value {
   pointer-events: none;
 }
@@ -177,20 +179,47 @@
   margin-top: var(--space-3);
 }
 
-/* ---------- History empty: a statement and a quiet line, as on Satiety and Weight ---------- */
-.history .empty-words {
-  margin: 0;
-  color: var(--text-display);
-  text-wrap: pretty;
+/* ---------- History empty: the chart's frame with no marks, its message over the plot ---------- */
+.history.empty .lead-row {
+  min-height: 0;
 }
 
-.history .empty-how {
-  margin: var(--space-2) 0 0;
+.history .history-empty-plot {
+  position: relative;
+}
+
+.history .history-empty-chart {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin: 0;
+  overflow: visible;
+}
+
+.history .history-empty-chart text {
+  font-family: var(--font-ui);
+  font-weight: 800;
+  font-size: var(--t-chart);
+  font-variant-numeric: lining-nums tabular-nums;
+  fill: var(--text-quiet);
+}
+
+/* Centred over the plot (viewBox 340 x 200: plot from x 32 to 332, y 16 to
+   172), placed in percentages so it follows the frame at any width. */
+.history .history-empty-plot .empty-words {
+  position: absolute;
+  inset: 8% 2.35% 14% 9.41%;
+  padding-inline: var(--space-6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
   font-weight: 600;
-  font-size: var(--t-callout-size);
-  line-height: var(--t-callout-lh);
+  font-size: var(--t-body-size);
+  line-height: var(--t-body-lh);
   color: var(--text-quiet);
-  text-wrap: pretty;
+  text-align: center;
+  text-wrap: balance;
 }
 
 /* ---------- Tables, under their toggle ---------- */
@@ -408,8 +437,26 @@
   margin-top: var(--space-2);
 }
 
-/* On a narrow screen the two outlines keep their words on one line inside the card. */
+/* How to set up the Shortcut: a row to Help with the book glyph and a chevron, as on More. */
+.weight .import-card .help-row {
+  grid-template-columns: var(--icon-chip) minmax(0, 1fr) var(--chevron-w);
+  margin-top: var(--space-3);
+  border-top: 1px solid var(--hairline);
+  font-weight: 700;
+}
+
+.weight .import-card .help-row > .glyph {
+  width: var(--icon-chip);
+  height: var(--icon-chip);
+}
+
+/* On a narrow screen the outline keeps its words on one line inside the card. */
 @media (max-width: 374px) {
+  .weight .import-card .help-row {
+    font-size: var(--t-callout-size);
+    line-height: var(--t-callout-lh);
+  }
+
   .weight .import-more .btn {
     padding-inline: var(--space-3);
     font-size: var(--t-callout-size);

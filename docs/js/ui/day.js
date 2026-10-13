@@ -89,9 +89,11 @@ export function renderDay(ctx, app, key) {
   const dayOffRow = isWorkweekday(key) && !paused;
   const pauseRow = !paused && !isOpen(rec);
   return h('div', { class: 'day', 'data-day': key },
+    // The title names the screen, as on Today and Week; the line above it
+    // carries the date and the kind of day.
     header(ctx, app, {
-      title: fmtDayLong(key),
-      sub: dayTypeText(key, rec),
+      title: 'Day',
+      sub: `${fmtDayLong(key)} · ${dayTypeText(key, rec)}`,
       zone: dayZoneNote(ctx, key, rec) || undefined,
       back: { label: 'Back to the week', name: 'back-to-week', onClick: () => app.go(`week/${weekStart(key)}`) },
     }),
@@ -104,12 +106,8 @@ export function renderDay(ctx, app, key) {
     past && (paused || rec.firstBite || mealsOfDay(ctx, key).length) ? fullnessSection(ctx, key) : null,
     tracked ? checkinSection(ctx, key, rec) : null,
     tracked ? temptationSection(ctx, app, key) : null,
-    dayOffRow || pauseRow
-      ? h('section', { class: 'day-group day-settings on-page' },
-        h('h2', { class: 'group-title' }, 'Day settings'),
-        dayOffRow ? dayOffSection(key, rec) : null,
-        pauseRow ? pauseSection(app, key) : null)
-      : null,
+    dayOffRow ? dayOffSection(key, rec) : null,
+    pauseRow ? pauseSection(app, key) : null,
   );
 }
 
@@ -140,10 +138,10 @@ function pausedSection(app, key, rec) {
     }, { block: true, name: 'unpause-day' })).section;
 }
 
-/** A Day settings row on the page: what it is, what it does, and its pill. */
+/** Day off and Pause, each its own group on the page: its title, what it does, and its pill. */
 function dayRow(block, title, text, action) {
-  return h('div', { class: 'day-row', 'data-block': block },
-    h('h3', { class: 'card-title in-group' }, title),
+  return h('section', { class: 'day-group day-row on-page', 'data-block': block },
+    h('h2', { class: 'group-title' }, title),
     h('p', { class: 'day-row-text' }, text),
     action);
 }
@@ -215,9 +213,11 @@ function windowSection(ctx, app, key, rec) {
       const planned = plannedStartMin(key, rec, ctx.settings);
       children.push(
         summary,
+        // Each wheel's own Clear sits under it, as in Meal edit, so it plainly
+        // clears that wheel alone and stays apart from Clear this window.
         h('div', { class: 'field-pair day-wheels' },
-          labelRow(timeField({ label: 'First bite', minutes: draft.first, fallback: planned, name: 'day-first', onChange: (m) => { draft.first = m; summary.textContent = summaryText(); } })),
-          labelRow(timeField({ label: 'Last bite', minutes: draft.last, fallback: (draft.first ?? planned) + 180, name: 'day-last', allowUnset: true, hint: draft.last == null ? 'Open' : '', onChange: (m) => { draft.last = m; summary.textContent = summaryText(); } }))),
+          timeField({ label: 'First bite', minutes: draft.first, fallback: planned, name: 'day-first', onChange: (m) => { draft.first = m; summary.textContent = summaryText(); } }),
+          timeField({ label: 'Last bite', minutes: draft.last, fallback: (draft.first ?? planned) + 180, name: 'day-last', allowUnset: true, hint: draft.last == null ? 'Open' : '', onChange: (m) => { draft.last = m; summary.textContent = summaryText(); } })),
         hintLine,
         h('div', { class: 'day-actions' }, button('Save window', async () => {
           const setHint = (text) => { draft.hint = text; hintEl.textContent = text; };
@@ -253,18 +253,6 @@ function windowSection(ctx, app, key, rec) {
   };
   draw();
   return section;
-}
-
-/**
- * A wheel's label row: the label, and at its right the wheel's own Clear,
- * moved up from under the wheel so it plainly clears that wheel alone.
- * The same element moves, so it keeps its handler and its hidden state.
- */
-function labelRow(field) {
-  const label = field.querySelector(':scope > .field-label');
-  const clear = field.querySelector(':scope > .time-foot > .btn-2');
-  if (label) field.prepend(h('div', { class: 'field-head' }, label, clear));
-  return field;
 }
 
 /** A titled group on the page: list rows with hairlines, then its add action. No card. */
@@ -332,8 +320,8 @@ function showOutsideEditSheet(app, id) {
     head: sheetHead(api, 'Outside the window'),
     body: h('div', { class: 'day-form' },
       h('div', { class: 'day-form-lead' },
-        h('h3', { class: 'day-form-hero' }, 'What set it off?'),
-        choice({ ariaLabel: 'What set it off?', options: TRIGGER_OPTIONS, value: draft.trigger, cols: 3, name: 'trigger', onChange: (v) => { draft.trigger = v; } })),
+        h('h3', { class: 'day-form-hero' }, 'What set it off'),
+        choice({ ariaLabel: 'What set it off', options: TRIGGER_OPTIONS, value: draft.trigger, cols: 3, name: 'trigger', onChange: (v) => { draft.trigger = v; } })),
       choice({ label: 'How much', options: AMOUNT_OPTIONS, value: draft.amount, cols: 2, name: 'amount', onChange: (v) => { draft.amount = v; } }),
       timeField({ label: 'At', minutes: draft.minutes, name: 'outside-at', onChange: (m) => { draft.minutes = m; } }),
       h('div', { class: 'day-form-end' }, confirming

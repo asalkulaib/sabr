@@ -171,6 +171,7 @@ export function openSheet(build, opts = {}) {
   const sheet = h('div', {
     class: `sheet${opts.full ? ' full' : ''}`,
     role: 'dialog',
+    'aria-modal': 'true',
     'aria-label': opts.label || 'Details',
     'data-sheet': opts.name || '',
     tabindex: '-1',

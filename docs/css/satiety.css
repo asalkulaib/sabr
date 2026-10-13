@@ -12,7 +12,29 @@
   vertical-align: middle;
 }
 
-/* ---------- The shared top: the header, then the switch ---------- */
+/* ---------- The shared top: the header, the summary, then the switch ---------- */
+/* The summary sentence on the left, Add a meal on the right. */
+.satiety-summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: var(--space-3);
+  align-items: center;
+  margin-top: var(--space-2);
+}
+
+.satiety-summary > .summary-line {
+  margin: 0;
+  font-weight: 600;
+  font-size: var(--t-callout-size);
+  line-height: var(--t-callout-lh);
+  color: var(--text-quiet);
+  text-wrap: pretty;
+}
+
+.satiety-summary > .btn {
+  white-space: nowrap;
+}
+
 .satiety .page-switch {
   margin-top: var(--space-4);
 }
@@ -128,7 +150,7 @@ body.has-flash .satiety .focus-bar {
   font-weight: 800;
   font-size: var(--t-footnote-size);
   line-height: var(--t-footnote-lh);
-  color: var(--full-text);
+  color: var(--text-label);
 }
 
 .satiety-hero .hero-figure {
@@ -161,16 +183,6 @@ body.has-flash .satiety .focus-bar {
   font-size: var(--t-body-size);
   line-height: var(--t-body-lh);
   color: var(--text-display);
-}
-
-/* What the drift rests on, under its note. */
-.satiety-hero .hero-count {
-  margin: var(--space-2) 0 0;
-  font-weight: 600;
-  font-size: var(--t-footnote-size);
-  line-height: var(--t-footnote-lh);
-  color: var(--text-quiet);
-  text-wrap: pretty;
 }
 
 .satiety-hero .contrib-group {
@@ -322,6 +334,17 @@ body.has-flash .satiety .focus-bar {
   animation: lag-label-in var(--dur-chart) var(--ease-out) var(--delay, var(--delay-none)) both;
 }
 
+/* The end marks of a way not in focus fade with its line (they sit in a layer
+   above every line, outside the series' group). */
+.satiety .chart .lag-ends.faded > * {
+  fill-opacity: 0.18;
+  stroke-opacity: 0.18;
+}
+
+.satiety .chart.pickable [data-ends] {
+  cursor: pointer;
+}
+
 @keyframes lag-label-in {
   from { opacity: 0; }
 }
@@ -376,16 +399,6 @@ body.has-flash .satiety .focus-bar {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-2);
-  margin-top: var(--space-6);
-}
-
-/* ---------- Add a meal: inside each view ---------- */
-[data-block='satiety-meals'] > .add-meal-row {
-  margin-bottom: var(--space-6);
-}
-
-[data-block='satiety-now'] > .add-meal-row,
-.satiety-empty > .add-meal-row {
   margin-top: var(--space-6);
 }
 
@@ -474,7 +487,7 @@ body.has-flash .satiety .focus-bar {
   font-weight: 800;
   font-size: var(--t-footnote-size);
   line-height: var(--t-footnote-lh);
-  color: var(--full-text);
+  color: var(--text-label);
 }
 
 .check-hero .check-meal {
@@ -577,7 +590,7 @@ body.has-flash .satiety .focus-bar {
   font-weight: 800;
   font-size: var(--t-footnote-size);
   line-height: var(--t-footnote-lh);
-  color: var(--full-text);
+  color: var(--text-label);
 }
 
 [data-block='fullness'] .fullness-label .ar {
@@ -755,14 +768,8 @@ body.has-flash .satiety .focus-bar {
   color: var(--text-body);
 }
 
-.satiety-empty > p:first-child,
-.satiety-empty > .legend + p {
+.satiety-empty > p:first-child {
   margin-top: 0;
-}
-
-/* Before there is anything to show: the marks you will rate with, then the message and how to begin. */
-.satiety-empty > .legend {
-  margin: 0 0 var(--space-4);
 }
 
 .satiety-empty > .empty-message {

@@ -163,8 +163,9 @@
 }
 
 /* ---------- The cards: neutral, one at a time, each as tall as its words ---------- */
-/* The list is as tall as the longest card, so the note under it stays put
-   while the cards swipe; a short card ends at its own Read more. */
+/* The list is as tall as the card in view (--cards-h, set as the cards
+   swipe), so the note under it sits a fixed gap under the card's Read more.
+   Without the script it is as tall as the longest card. */
 [data-sheet='stages'] .stage-cards {
   display: grid;
   align-items: start;
@@ -174,7 +175,9 @@
   margin: var(--space-4) 0 0;
   padding: 0;
   list-style: none;
+  height: var(--cards-h, auto);
   overflow-x: auto;
+  overflow-y: hidden;
   scroll-snap-type: x mandatory;
   overscroll-behavior-x: contain;
   scrollbar-width: none;

@@ -20,7 +20,7 @@
   color: var(--text-body);
 }
 
-[data-sheet='goal'] .goal-caption {
+:is([data-sheet='goal'], .more) .goal-caption {
   margin-top: var(--space-2);
 }
 
@@ -182,8 +182,13 @@
   height: var(--icon-chip);
 }
 
-.more [data-block='help'] {
-  margin-top: var(--group-gap);
+/* The page's intro: one quiet line under the More title, summing up the page. */
+.more .more-intro {
+  margin: calc(-1 * var(--space-2)) 0 var(--space-5);
+  font-weight: 600;
+  font-size: var(--t-callout-size);
+  line-height: var(--t-callout-lh);
+  color: var(--text-quiet);
 }
 
 .more .version {
@@ -349,10 +354,6 @@
   grid-template-columns: minmax(0, 1fr);
 }
 
-[data-sheet='pause'] .wheel-lens {
-  background: var(--bg);
-}
-
 [data-sheet='pause'] .pause-summary {
   margin: var(--space-3) 0 0;
   font-weight: 600;
@@ -416,37 +417,43 @@
 }
 
 /* ---------- Tempted ---------- */
-/* The body is a column, so a step that is only a headline can fill it and
-   sit at the optical centre, a little above the middle. */
-[data-sheet='temptation'] .sheet-body {
-  display: flex;
-  flex-direction: column;
-}
-
-[data-sheet='temptation'] .tempt-step.focus {
-  flex: 1 0 auto;
-  display: grid;
-  align-content: center;
-  padding-bottom: var(--focus-lift);
-}
-
-/* A question answered in the dock sits just above the dock; a statement
-   (held, slip) keeps the optical centre. */
-[data-sheet='temptation'] .tempt-step.focus:is([data-step='trigger'], [data-step='end'], [data-step='ask']) {
-  align-content: end;
-  padding-bottom: var(--space-2);
-}
-
+/* One frame for every step: the kicker's line (kept, empty, on a step
+   without one) at the top of the body, the headline under it at the same
+   height on every step, the step's content, and the actions in the dock. */
 [data-sheet='temptation'] .kicker {
+  min-height: var(--t-footnote-lh);
   margin-bottom: var(--space-2);
   color: var(--text-quiet);
 }
 
 [data-sheet='temptation'] .tempt-headline {
+  margin: 0;
+  font-weight: 900;
   font-size: var(--t-display-size);
   line-height: var(--t-display-lh);
   letter-spacing: var(--t-display-track);
   color: var(--text-display);
+  text-wrap: balance;
+}
+
+/* The six reasons, right under the question: a tile each on the track,
+   so they read as six separate choices before any is chosen. */
+[data-sheet='temptation'] .trigger-track {
+  margin-top: var(--space-5);
+}
+
+[data-sheet='temptation'] .trigger-track .choice.grid {
+  gap: var(--space-2);
+  padding: var(--space-2);
+}
+
+[data-sheet='temptation'] .trigger-track .choice.grid button {
+  min-height: var(--track-h);
+  background: var(--bg);
+}
+
+[data-sheet='temptation'] .trigger-track .choice.grid button[aria-checked='true'] {
+  background: transparent;
 }
 
 [data-sheet='temptation'] .tempt-ask {
@@ -457,20 +464,10 @@
   color: var(--text-display);
 }
 
-[data-sheet='temptation'] .tempt-lead,
-[data-sheet='temptation'] .tempt-slip {
-  margin: 0;
-  font-weight: 900;
-  font-size: var(--t-title-2-size);
-  line-height: var(--t-title-2-lh);
-  letter-spacing: var(--t-title-2-track);
-  color: var(--text-display);
-}
-
 /* What waiting gives you: rows across the column. */
 [data-sheet='temptation'] .gains {
   max-width: none;
-  margin-top: var(--space-4);
+  margin-top: var(--space-5);
 }
 
 [data-sheet='temptation'] .gains > li {
@@ -617,12 +614,9 @@
   margin-top: var(--space-3);
 }
 
-[data-sheet='temptation'] .exit-card > .btn {
-  margin-top: var(--space-4);
-}
-
-[data-sheet='temptation'] .exit-card > .btn + .btn {
-  margin-top: var(--space-2);
+/* The window's own line, when it is open, leads the step as its headline. */
+[data-sheet='temptation'] .exits > .tempt-headline {
+  margin-bottom: var(--space-2);
 }
 
 /* The phrases, as quotes: an ink rule at the left, square. */

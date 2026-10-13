@@ -88,23 +88,15 @@ test.describe('screens, shot in WebKit', () => {
 
   const at = async (page, testid) => page.getByTestId(testid).evaluate((el) => el.scrollIntoView({ block: 'center' }));
 
-  test('history: Fast as a line over 90 days, goal days as small squares under the trend', async ({ page }) => {
+  test('history: Fast as a line over 90 days, squares only on misses and the selected day', async ({ page }) => {
     await openAt(page, '2026-09-26T23:00', '#history');
     await seed(page, { days: sixtyDays(), settings: [...install, ...settings({ historyRange: 90, historyChart: 'line' })] });
     const chart = page.getByTestId('history-chart');
-    await expect(chart.locator('rect[data-goal="true"]').first()).toBeVisible();
+    await expect(chart.locator('rect[data-day]:not([data-miss="true"])')).toHaveCount(1);
     await shot(page, 'H42c-history-fast-line-90');
-    // Most days reaching the goal, over 90 days: the squares stay apart, under the trend.
+    // Most days reaching the goal, over 90 days: still only the selected day and the misses.
     await seed(page, { days: denseDays(), settings: settings({ installedAt: ms('2026-06-01T08:00'), historyRange: 90, historyChart: 'line' }) });
-    await expect.poll(() => chart.locator('rect[data-goal="true"]').count()).toBeGreaterThan(60);
-    const order = await chart.evaluate((svg) => {
-      const kids = [...svg.children];
-      const goals = svg.querySelector('rect[data-goal="true"]').parentElement;
-      const gap = Math.min(...[...goals.children].map((r, i, all) => (i ? Number(r.getAttribute('x')) - Number(all[i - 1].getAttribute('x')) - Number(all[i - 1].getAttribute('width')) : Infinity)));
-      return { under: kids.indexOf(goals) < kids.indexOf(svg.querySelector('[data-testid="trend-line"]').parentElement), gap };
-    });
-    expect(order.under).toBe(true);
-    expect(order.gap).toBeGreaterThan(0);
+    await expect(chart.locator('rect[data-day]:not([data-miss="true"])')).toHaveCount(1);
     await shot(page, 'H42d-history-fast-line-90-most-goal');
   });
 
@@ -211,16 +203,20 @@ test.describe('screens, shot in WebKit', () => {
 
   test('history: empty, then at 320 wide', async ({ page }) => {
     await openAt(page, '2026-09-27T09:00', '#history');
-    // Nothing logged: the statement and its quiet line stand alone, with no
-    // chart frame, no switches and no legend, as on Satiety and Weight.
+    // Nothing logged: the lead with no figure, both switches, and an empty
+    // chart frame holding the metric's own line; no legend, reading or table.
     const empty = page.locator('.history.empty');
     await expect(empty.locator('.empty-words')).toHaveText('Fasts appear here from the day after your first logged window.');
-    await expect(empty.getByTestId('history-summary')).toHaveText("Each fast runs from one day's last bite to the next first bite.");
-    await expect(empty.locator('svg.chart, [data-block="history-controls"], .legend')).toHaveCount(0);
+    await expect(empty.getByTestId('history-summary')).toHaveText('Nothing yet in the last 30 days.');
+    await expect(empty.locator('.chart-lead .label')).toHaveText('Average fast');
+    await expect(empty.locator('svg.empty-art')).toBeVisible();
+    await expect(empty.locator('[data-block="history-controls"] [data-choice="history-chart"]')).toHaveCount(2);
+    await expect(empty.locator('svg.chart, .legend, [data-testid="history-readout"]')).toHaveCount(0);
     await shot(page, 'H45-history-empty');
     await choose(page, 'history-metric', 'feast');
     await expect(empty.locator('.empty-words')).toHaveText('Your eating windows appear here once you close one.');
-    await expect(empty.locator('svg.chart, [data-block="history-controls"], .legend')).toHaveCount(0);
+    await expect(empty.locator('.chart-lead .label')).toHaveText('Average window');
+    await expect(empty.locator('svg.chart, .legend')).toHaveCount(0);
     await shot(page, 'H45b-history-feast-empty');
     await page.setViewportSize({ width: 320, height: 700 });
     await choose(page, 'history-metric', 'fast');
@@ -233,10 +229,9 @@ test.describe('screens, shot in WebKit', () => {
     await seed(page, { days: sixtyDays(), settings: install });
     await choose(page, 'history-range', '7');
     const empty = page.locator('.history.empty');
-    await expect(empty.locator('.empty-words')).toHaveText('No fasts in the last 7 days.');
-    await expect(empty.getByTestId('history-summary')).toHaveText('A longer time shows the earlier ones.');
-    // Only the days switch stays, so a longer time brings them back.
-    await expect(empty.locator('[data-choice="history-chart"]')).toHaveCount(0);
+    await expect(empty.getByTestId('history-summary')).toHaveText('Nothing yet in the last 7 days.');
+    await expect(empty.locator('.empty-words')).toHaveText('Fasts appear here from the day after your first logged window.');
+    await expect(empty.locator('svg.empty-art')).toBeVisible();
     await expect(empty.locator('svg.chart, .legend')).toHaveCount(0);
     await shot(page, 'H45c-history-range-empty');
     await choose(page, 'history-range', '30');

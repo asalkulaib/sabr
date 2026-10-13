@@ -90,7 +90,7 @@ Satiety has its own tab, laid out after your earlier satiety page. It has three 
 - Now shows the fullness check waiting, with its countdown and Score my fullness now; any meal in progress, with Finished this meal; and how the day's eating ended.
 - Meals lists the last 30 days by day, newest first. Each meal reads hunger before → fullness right after → fullness at 20 minutes, followed by the drift. Tap one to edit it.
 
-Add a meal, at the top of every view, adds a meal you already ate (see Add a meal you already ate). Today keeps the meal buttons, the check-in and the streak. While a fullness check is running, Today shows a short line with a button to Satiety.
+At the top of every view, once a meal is rated, a line counts your rated meals and those with the 20-minute check; Add a meal, beside it, adds a meal you already ate (see Add a meal you already ate). Today keeps the meal buttons, the check-in and the streak. While a fullness check is running, Today shows a short line with a button to Satiety.
 
 ## Legends
 
@@ -143,9 +143,9 @@ Weight shows your 7-day average as a big figure: the average of every weigh-in i
 
 ## More
 
-More opens with your goal: the fast and the window as two figures, the presets 16:8, 18:6, 20:4 and 23:1, and Custom. Under it, the settings come in groups. Settings holds what makes a day a success and the planned window start. Reminders holds the reminder times, the calendar file and Alarms. Pauses lists the pauses running or ahead, with Add a pause. Your data holds Backup, Export and Storage, with Back up now as the one main button. Then the Help page (the weight Shortcut and the Home Screen), Reset all history, and the version. Each time is a row with its value in a pill; tap it to roll a new time, which saves as it settles.
+More opens with your goal: the fast and the window as two figures, the presets 16:8, 18:6, 20:4 and 23:1, and Custom, with a note that a change applies from today on. Under it, the settings come in groups. Settings, with a line on what it covers, holds what makes a day a success and the planned window start. Reminders holds the reminder times, the calendar file and Alarms. Pauses lists the pauses running or ahead, with Add a pause. Your data holds Backup, Export and Storage, with Back up now as the one main button. Then Help, a row to the help page (the weight Shortcut and the Home Screen), Reset, with Reset all history, and the version. Each time is a row with its value in a pill; tap it to roll a new time, which saves as it settles.
 
-Tempted? at the top of a screen opens a full-screen flow, one question at a time with most buttons at the foot: what is pulling at you, what waiting gives you, a 10-minute urge timer as an ink ring that drains, ways out when you are with people or cannot avoid eating, and how it ended.
+Tempted? at the top of a screen opens a full-screen flow, one step at a time. Every step has the same frame: its label and headline at the top, what supports it under them, and its buttons at the foot. The steps: what is pulling at you, what waiting gives you, a 10-minute urge timer as an ink ring that drains, ways out when you are with people or cannot avoid eating, and how it ended.
 
 ## Pauses
 

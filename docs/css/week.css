@@ -4,19 +4,15 @@
 
 /* ================= Week ================= */
 
-/* The week bar: which week, and the pager under it. */
+/* Which week is in the line over the title; the range keeps together. */
 .week .week-range {
-  margin: 0;
-  font-weight: 800;
-  font-size: var(--t-headline-size);
-  line-height: var(--t-headline-lh);
-  letter-spacing: var(--t-headline-track);
-  color: var(--text-display);
-  text-wrap: balance;
+  white-space: nowrap;
 }
 
+/* The pager: Previous at the left, Next at the right, one row under the
+   header's own 16. */
 .week .week-pager {
-  margin-top: var(--space-2);
+  justify-content: space-between;
 }
 
 .week .week-pager .glyph {
@@ -447,11 +443,7 @@
 
 /* ================= Day ================= */
 
-.day .head-title > .label:first-child {
-  text-wrap: balance;
-}
-
-/* Tempted? sits level with Back, so the date has the full width. */
+/* Tempted? sits level with Back, so the line with the date has the full width. */
 .day .head-title {
   grid-row: 1;
   grid-column: 1 / -1;
@@ -547,7 +539,7 @@
 
 /* The record: every block has its title on the page (title-2), 32 apart.
    Blocks with controls (Window, Check-in, Fullness) sit in a grey card;
-   Outside, Meals, Temptations and Day settings sit on the page itself. */
+   Outside, Meals, Temptations, Day off and Pause sit on the page itself. */
 .day .day-group > .group-title {
   margin-top: var(--space-8);
 }
@@ -592,9 +584,8 @@
   color: var(--text-display);
 }
 
-/* Each wheel under its label row: the label, and the wheel's own Clear at
-   its right. The two columns share their rows, so the wheels stay level
-   even when a narrow phone puts Clear under its label. */
+/* Each wheel under its label, its own Clear under it. The two columns share
+   their rows, so the wheels stay level when only Last bite has a foot. */
 .day .day-wheels {
   row-gap: 0;
 }
@@ -605,30 +596,6 @@
   grid-template-rows: subgrid;
   grid-template-columns: minmax(0, 1fr);
   min-width: 0;
-}
-
-.day .day-wheels .field-head {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  align-content: flex-start;
-  column-gap: var(--space-2);
-  row-gap: var(--space-1);
-  margin-bottom: var(--space-2);
-}
-
-/* The label takes the pill's height, so both columns' labels sit level. */
-.day .day-wheels .field-head > .field-label {
-  display: flex;
-  align-items: center;
-  min-height: var(--hit);
-  margin: 0;
-  white-space: nowrap;
-}
-
-.day .day-wheels .field-head > .btn-2 {
-  margin-left: auto;
 }
 
 .day .day-wheels + .error-line {
@@ -716,19 +683,9 @@
   row-gap: var(--space-6);
 }
 
-/* Day settings: Day off and Pause on the page, split by a hairline. */
-.day .day-row + .day-row {
-  margin-top: var(--space-5);
-  padding-top: var(--space-5);
-  border-top: 1px solid var(--hairline);
-}
-
-.day .day-row > .card-title {
-  margin: 0;
-}
-
+/* Day off and Pause: each a group on the page, its words, then its pill. */
 .day .day-row-text {
-  margin: var(--space-1) 0 var(--space-3);
+  margin: 0 0 var(--space-3);
   font-weight: 600;
   font-size: var(--t-callout-size);
   line-height: var(--t-callout-lh);
@@ -816,4 +773,9 @@
     transition: none;
   }
 }
+}
+
+/* The ring's own key, under the notes beside it. */
+.week .week-hero-words .legend {
+  margin-top: var(--space-2);
 }

@@ -308,7 +308,8 @@ function pausedBlock(ctx, app) {
   const run = currentPause(ctx) || { from: ctx.todayKey, to: ctx.todayKey, reason: true };
   const until = run.to;
   return h('section', { class: 'section strong hero', 'data-block': 'paused' },
-    // The headline names the pause: no label over it repeats the word.
+    // The context line, as on every hero: the 'Paused' label over the rest.
+    context('Paused'),
     h('div', { class: 'paused-hero' },
       resultRing('paused', RING.md.size),
       h('div', { class: 'paused-words' },
@@ -354,21 +355,26 @@ function openBlock(ctx, app, rec, animate) {
   const fastMs = dailySeries(ctx, rec.day, rec.day)[0].fastMs;
   const d = dayRings(ctx, rec.day);
   const used = Math.max(0, ctx.nowTs - rec.firstBite);
+  const miss = phase === 'over' || !!e.openedEarly;
   const rings = ringsSvg({
     fast: { frac: fastMs == null ? 0 : fastMs / (goalHoursOf(ctx, rec.day) * HOUR) },
-    // It keeps measuring the window when it opened early: the bar under the
-    // rings says that miss in words. Past the grace it is stripes.
-    win: { frac: Math.min(1, used / windowMs), miss: phase === 'over', testid: 'window-ring' },
+    // It keeps measuring the window. Opened early on a workday, the day is
+    // already a miss, so the arc is stripes from the start (the bar under the
+    // rings says it in words); otherwise it turns to stripes past the grace.
+    // In the grace the hours are used up but the day is not yet kept: the
+    // arc stays just short of closed, a closed ring meaning a kept window.
+    win: { frac: phase === 'grace' ? Math.min(used / windowMs, 0.999) : Math.min(1, used / windowMs), miss, testid: 'window-ring' },
     full: d.full,
   }, { size: heroRingSize(), key: 'hero', animate });
-  if (phase !== 'over') startCap(rings, used / windowMs);
+  if (!miss) startCap(rings, used / windowMs);
   const caption = `left of ${hoursWord(windowMs)}`;
   const countdown = (cls) => live(cls === 'value' ? 'div' : 'span', { class: `countdown tabular${cls === 'value' ? ' value' : ''}`, 'data-testid': 'countdown', role: 'timer' }, (t) => fmtCountdown(closesAt - t));
+  const closesLine = h('div', { class: 'ring-goal' }, `Closes at ${fmtTime(closesAt)}`);
   // The window's row leads the readout: the time left, or, once the hours are
-  // up, the grace left, or how far over it is. Past the hours the readout
-  // says it all: the countdown, at 0:00, stays only for a screen reader.
+  // up, the grace left, or how far over it is. Past the hours the countdown,
+  // at 0:00, steps down to a quiet line under that figure. The closing time
+  // ends the row.
   let winRow;
-  let countdownBelow = null;
   if (phase === 'grace') {
     winRow = h('p', { class: 'grace-lead', 'data-testid': 'grace' },
       h('span', { class: 'grace-intro' }, `Your ${hoursWord(windowMs)} are up.`), ' ',
@@ -381,11 +387,11 @@ function openBlock(ctx, app, rec, animate) {
   } else {
     winRow = [countdown('value'), h('div', { class: 'countdown-caption' }, caption)];
   }
-  if (phase === 'grace' || phase === 'over') countdownBelow = h('div', { class: 'countdown-line sr-only' }, countdown('line'), ' ', h('span', { class: 'countdown-caption' }, caption));
-  // Past the grace the window ring is stripes, so its key is the striped ring.
-  const winName = ringName('win', 'Window', phase === 'over');
+  if (phase === 'grace' || phase === 'over') winRow = [winRow, h('div', { class: 'countdown-line' }, countdown('line'), ' ', h('span', { class: 'countdown-caption' }, caption))];
+  // A striped window ring has the striped ring as its key.
+  const winName = ringName('win', 'Window', miss);
   const readout = h('div', { class: 'ring-readout open-readout', 'data-testid': 'open-ring-legend' },
-    h('div', { class: 'ring-row', 'data-ring-row': 'win' }, winName, winRow),
+    h('div', { class: 'ring-row', 'data-ring-row': 'win' }, winName, winRow, closesLine),
     h('div', { class: 'ring-row', 'data-ring-row': 'fast' }, ringName('fast', 'Fast'), fastMs == null ? null : h('div', { class: 'value' }, fmtFigure(fastMs))),
     h('div', { class: 'ring-row', 'data-ring-row': 'full' }, ringName('full', 'Fullness'), h('div', { class: 'value' }, d.fullText)));
   const doneEating = eating
@@ -396,9 +402,8 @@ function openBlock(ctx, app, rec, animate) {
   const ended = endedFast(ctx, rec);
   const ringRow = h('div', { class: 'ring-wrap window-wrap' }, rings, readout);
   return h('section', { class: 'section strong hero', 'data-block': 'open', 'data-phase': phase },
-    context('Window open', { cls: phase === 'over' ? 'ctx-ink' : 'ctx-win' }),
+    context('Window open'),
     ended && ended.reached ? celebrate(ringRow, [{ key: `done:${rec.firstBite}`, kind: 'fast' }]) : ringRow,
-    countdownBelow,
     phase === 'warn'
       ? h('div', { class: 'phase-bar' }, h('span', { 'data-testid': 'warn-30' }, live('span', { class: 'phase-figure tabular' }, (t) => minsLeft(t, closesAt)), ` left. The window closes at ${fmtTime(closesAt)}.`))
       : null,
@@ -433,8 +438,9 @@ function startCap(svg, frac) {
 
 /**
  * The window as a band: time used in green, time left in pale green, then
- * the dashed 15 minutes of grace. Past the grace the band turns to orange
- * stripes, the mark of a miss, and the legend says only Over.
+ * the dashed 15 minutes of grace. Past the grace both turn to orange
+ * stripes, the mark of a miss, the grace keeping its dashed edge. The legend
+ * keeps Time used, Time left and the grace, and adds Over.
  */
 function windowBand(rec, nowTs, windowMs) {
   const W = 340;
@@ -455,17 +461,15 @@ function windowBand(rec, nowTs, windowMs) {
   return h('div', { class: 'band-wrap', 'data-testid': 'window-band', 'data-used': String(Math.round(used / MIN)), 'data-over': String(over) },
     s('svg', { class: 'chart band', viewBox: `0 0 ${W} ${HT}`, 'aria-hidden': 'true', focusable: 'false' },
       miss.defs,
-      // Time left: pale green, its edge drawn inside it.
-      s('rect', { x: X0 + 0.5, y: Y + 0.5, width: (gx - X0 - 3).toFixed(1), height: BH - 1, rx: (BH - 1) / 2, fill: P.WIN_SOFT, stroke: P.WIN, 'stroke-width': 1 }),
-      s('rect', { x: (gx + 2).toFixed(1), y: Y + 1, width: (X1 - gx - 3).toFixed(1), height: BH - 2, rx: (BH - 2) / 2, fill: 'none', stroke: P.QUIET, 'stroke-width': 1.5, 'stroke-dasharray': '3 3' }),
-      over
-        ? s('rect', { x: X0 + 0.5, y: Y + 0.5, width: X1 - X0 - 1, height: BH - 1, rx: (BH - 1) / 2, fill: miss.fill, stroke: P.MISS_TEXT, 'stroke-width': 1 })
-        : s('rect', { x: X0, y: Y, width: Math.max(BH, x(used) - X0).toFixed(1), height: BH, rx: BH / 2, fill: P.WIN }),
+      // Time left: pale green, its edge drawn inside it. Over: stripes.
+      s('rect', { x: X0 + 0.5, y: Y + 0.5, width: (gx - X0 - 3).toFixed(1), height: BH - 1, rx: (BH - 1) / 2, fill: over ? miss.fill : P.WIN_SOFT, stroke: over ? P.MISS_TEXT : P.WIN, 'stroke-width': 1 }),
+      // The grace: a dashed edge, striped once it is used up too.
+      s('rect', { x: (gx + 2).toFixed(1), y: Y + 1, width: (X1 - gx - 3).toFixed(1), height: BH - 2, rx: (BH - 2) / 2, fill: over ? miss.fill : 'none', stroke: P.QUIET, 'stroke-width': 1.5, 'stroke-dasharray': '3 3' }),
+      over ? null : s('rect', { x: X0, y: Y, width: Math.max(BH, x(used) - X0).toFixed(1), height: BH, rx: BH / 2, fill: P.WIN }),
       ...ticks,
       s('text', { x: X0, y: HT - 4 }, fmtTime(rec.firstBite)),
       s('text', { x: gx.toFixed(1), y: HT - 4, 'text-anchor': 'end' }, fmtTime(rec.firstBite + windowMs))),
-    // Past the grace the stripes cover the whole band: the legend names only them.
-    legend(over ? [['band-over', 'Over']] : [['band-used', 'Time used'], ['band-left', 'Time left'], ['band-grace', '15 min grace']], 'band-legend'));
+    legend([['band-used', 'Time used'], ['band-left', 'Time left'], ['band-grace', '15 min grace'], over ? ['band-over', 'Over'] : null], 'band-legend'));
 }
 
 // ---------- Forgotten close ----------

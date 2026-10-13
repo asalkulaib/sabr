@@ -592,13 +592,13 @@ const RESULT_KEYS = { 'day-success': 'success', 'day-miss': 'miss', 'day-open': 
  * day-paused, left-wanting; bar-fast, bar-fast-short, bar-win, bar-miss,
  * bar-selected, band-paused, line-trend, line-average, line-weight,
  * line-meal, latest-square, zone; line-fast and line-win (History's Line
- * view, with { square, dense }); band-used, band-left, band-grace, band-over;
+ * view, with { square }); band-used, band-left, band-grace, band-over;
  * track-window, track-open; stop-before_full, stop-full, stop-stuffed,
  * unrated; progress-fast. Small marks keep a 1px edge in their darker tone,
  * so each reaches 3:1. Ink parts carry k-ink, so a chosen legend chip can
  * turn them white.
  */
-export function key(kind, { size = 14, square = null, dense = false } = {}) {
+export function key(kind, { size = 14, square = null } = {}) {
   const sized = (svg) => {
     if (size !== 14) {
       svg.style.setProperty('width', `${size}px`);
@@ -652,19 +652,15 @@ export function key(kind, { size = 14, square = null, dense = false } = {}) {
   // band too (--shade with an --edge rim), never a square like a mark.
   if (kind === 'zone') return box(s('rect', { x: 0.5, y: 3.5, width: 13, height: 7, fill: P.EDGE, 'fill-opacity': 0.12, stroke: P.EDGE, 'stroke-width': 1 }));
   // History's Line view: the day line in its ring colour, with the square a
-  // day carries on it (square: goal, short, win or miss). dense: the 90-day
-  // chart, where the line is thinner and fainter, a goal square is a small
-  // 2.5 square with no edge and a miss a 5 one.
+  // day carries on it (square: goal, short, win or miss).
   if (kind === 'line-fast' || kind === 'line-win') {
     const colour = kind === 'line-win' ? P.WIN : P.FAST;
     const looks = { goal: [P.FAST, P.FAST_TEXT, 1], short: [P.FAST_SOFT, P.FAST_TEXT, 1.5], win: [P.WIN, P.WIN_TEXT, 1] };
     const stripes = square === 'miss' ? hatch() : null;
     const [fill, edge, width] = stripes ? [stripes.fill, P.MISS_TEXT, 1] : square ? looks[square] : [];
-    const plain = square === 'goal' && dense;
-    const side = plain ? 2.5 : square === 'miss' && dense ? 5 : 7;
     return box(stripes ? stripes.defs : null,
-      line(colour, dense ? 1.5 : 2, { 'stroke-opacity': dense ? 0.45 : null }),
-      square ? s('rect', { x: 7 - side / 2, y: 7 - side / 2, width: side, height: side, fill, stroke: plain ? 'none' : edge, 'stroke-width': plain ? null : width }) : null);
+      line(colour, 2),
+      square ? s('rect', { x: 3.5, y: 3.5, width: 7, height: 7, fill, stroke: edge, 'stroke-width': width }) : null);
   }
   if (kind === 'unrated' || kind.startsWith('stop-')) {
     const mark = stopMark(kind === 'unrated' ? null : kind.slice(5), { x: 7, y: 7, r: 5 });

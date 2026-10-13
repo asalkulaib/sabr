@@ -9,7 +9,7 @@ import { RING, ringsSvg } from './rings.js';
 import * as store from '../store.js';
 import { HOUR, addDays, at, fmtElapsed, fmtTime, fmtWhen, minutesOfDay, now } from '../core/time.js';
 import { fastHoursFor, lastBiteTs, lastEatingSource, plannedStartMin } from '../core/rules.js';
-import { errLine, field, form, latestAtOrBefore, say } from './meal.js';
+import { errLine, field, form, formIntro, latestAtOrBefore, say } from './meal.js';
 
 /**
  * onBite(): opens the last bite on record, for a fast that began before it.
@@ -58,7 +58,7 @@ export function showBeginFastSheet(app, { onBite } = {}) {
       drawRing();
     };
     const quick = h('div', { class: 'presets', role: 'group', 'aria-label': 'Quick times' },
-      presets.map(([label, v]) => button(label, () => { ts = v; wheel.set(minutesOfDay(v)); update(); }, { kind: 'secondary', name: `fast-${label.split(' ')[0].toLowerCase()}` })));
+      presets.map(([label, v]) => button(label, () => { ts = v; wheel.set(minutesOfDay(v)); update(); }, { kind: 'chip', name: `fast-${label.split(' ')[0].toLowerCase()}` })));
     const wheel = timeField({
       label: 'Fast began at',
       minutes: minutesOfDay(ts),
@@ -76,7 +76,7 @@ export function showBeginFastSheet(app, { onBite } = {}) {
     return {
       head: sheetHead(api, 'Begin fast'),
       body: form(
-        h('p', { class: 'form-intro' }, 'Already fasting? Set when your fast began, so none of it is lost.'),
+        formIntro('Already fasting? Set when your fast began, so none of it is lost.'),
         h('div', { class: 'fast-hero' },
           ring,
           h('div', { class: 'fast-words' }, h('div', { class: 'fast-label' }, 'Fasting'), summary)),

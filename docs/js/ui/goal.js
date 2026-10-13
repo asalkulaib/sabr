@@ -105,14 +105,12 @@ export function goalControls(app, redraw, { announce = true } = {}) {
 
 const CAPTION = 'A change applies from today on. Past days keep the goal they had.';
 
-/**
- * The Goal block on More: the hero of the screen, on the page. Its from-today
- * note is shared with the success rule's, under What makes a day a success.
- */
+/** The Goal block on More: the hero of the screen, on the page, its from-today note under it. */
 export function goalSection(ctx, app) {
   return h('section', { class: 'section hero goal-hero', 'data-block': 'goal' },
     h('div', { class: 'label' }, 'Goal'),
-    goalControls(app, () => app.refresh()));
+    goalControls(app, () => app.refresh()),
+    h('p', { class: 'caption goal-caption' }, CAPTION));
 }
 
 /** The same choices in a sheet, from the Goal note on Today. Changes apply as they settle. */

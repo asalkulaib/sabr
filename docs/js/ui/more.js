@@ -127,7 +127,7 @@ function timingSection(ctx, app) {
     h('p', { class: 'more-text', 'data-testid': 'timing-text' }, flexible
       ? `Open your ${hours}-hour window at any hour, any day. A day succeeds when all eating fits inside it.`
       : `Your ${hours}-hour window, and on workdays not before 16:00. A day succeeds when both hold and all eating fits inside it.`),
-    h('p', { class: 'caption' }, 'Like the goal, a change applies from today on. Past days keep what they had.'));
+    h('p', { class: 'caption' }, 'A change applies from today on. Past days keep the rule they had.'));
 }
 
 function calendarStatus(ctx) {
@@ -158,6 +158,8 @@ export function renderMore(ctx, app) {
 
   return h('div', { class: 'more' },
     header(ctx, app, { title: 'More' }),
+    // Under the page title it sums up the whole page: the goal, the rule and the reminders.
+    h('p', { class: 'more-intro' }, 'Your goal, when a day counts as a success, and the times Sabr reminds you.'),
     goalSection(ctx, app),
 
     groupTitle('Settings'),
@@ -213,11 +215,13 @@ export function renderMore(ctx, app) {
           ? null
           : h('p', { class: 'more-body' }, 'You are using Sabr in the browser. Add it to your Home Screen and use it from there: the Home Screen app keeps its own data.'))),
 
+    groupTitle('Help'),
     h('section', { class: 'section group help-link', 'data-block': 'help' },
       h('button', { type: 'button', class: 'setting-row help-row', 'data-action': 'help', onclick: () => app.go('help') },
         glyph('book', { size: 20 }),
         h('span', {}, 'Weight Shortcut and Home Screen setup'))),
 
+    groupTitle('Reset'),
     h('section', { class: 'section', 'data-block': 'reset' },
       h('p', { class: 'more-body' }, 'Delete all history and start again. Your planned times and reminders stay.'),
       h('div', { class: 'pill-row' }, button('Reset all history', () => showResetSheet(app), { kind: 'secondary', name: 'reset', icon: 'trash' }))),

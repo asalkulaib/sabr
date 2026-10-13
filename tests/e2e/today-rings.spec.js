@@ -1,6 +1,6 @@
 // Today in rings: the hero on the page, the readout as the rings' legend, the
 // stage chip as a white pill, the ring draw, and the first screen.
-import { test, expect, openAt, seed, advance, tap, pick, choose, sheet, setTime, settings, ms } from './helpers.js';
+import { test, expect, openAt, seed, advance, tap, pick, choose, sheet, setTime, settings, ms, smallTargets } from './helpers.js';
 
 const LAST_NIGHT = {
   days: [{ day: '2026-09-26', firstBite: ms('2026-09-26T17:00'), lastBite: ms('2026-09-26T21:00') }],
@@ -58,7 +58,7 @@ test('before the window: one hero on the page, the rings at 184 with their reado
   await expect(page.getByTestId('ring-legend')).toHaveCount(1);
 });
 
-test('the stage chip is a white tertiary pill whose icon moves; the stage card disc is still', async ({ page }) => {
+test('the stage chip is a white tertiary pill whose icon moves; the stage card repeats no picture of the stage', async ({ page }) => {
   await openAt(page, '2026-09-27T13:10');
   await seed(page, LAST_NIGHT);
   const chip = page.locator('.stage-chip');
@@ -66,8 +66,9 @@ test('the stage chip is a white tertiary pill whose icon moves; the stage card d
   expect((await box(chip)).height).toBeGreaterThanOrEqual(44);
   const moving = (sel) => page.evaluate((q) => document.querySelector(q).getAnimations({ subtree: true }).filter((a) => a.animationName && !/ring-draw|fade/.test(a.animationName)).length, sel);
   await expect.poll(() => moving('.stage-chip')).toBeGreaterThan(0);
-  expect(await moving('[data-block="stages"] .stage-disc')).toBe(0);
-  await expect(page.locator('[data-block="stages"] .stage-disc')).toHaveClass(/is-now/);
+  await expect(page.locator('[data-block="stages"] .stage-disc')).toHaveCount(0);
+  await expect(page.locator('[data-block="stages"] .stage-head .label')).toHaveText(/^Stage \d of 6$/);
+  await expect(page.locator('[data-block="stages"] .stage-title')).toHaveText((await page.locator('.stage-chip-name').first().textContent()).trim());
 });
 
 test('with one notice, the rings and Start a meal are on the first screen', async ({ page }) => {
@@ -96,23 +97,34 @@ test('window open: the readout leads with the time left; grace and over state th
   await expect(readout.locator('.legend-item')).toHaveText(['Window', 'Fast', 'Fullness']);
   await expect(readout.locator('[data-ring-row="win"] .legend-item')).toHaveText('Window');
   await expect(readout.getByTestId('countdown')).toHaveText('4:00');
+  // The window's row ends with the closing time, as it always has.
+  await expect(readout.locator('[data-ring-row="win"] .ring-goal')).toHaveText('Closes at 21:00');
+  // Before the hours are up the readout fits beside the rings' picture.
+  expect((await box(readout)).height).toBeLessThanOrEqual((await box(open.locator('.ring-wrap > svg.rings'))).height);
   // While eating: the meal's card holds Finished this meal, in the window's green.
   const eating = open.locator('[data-block="eating"]');
   await expect(eating).toHaveClass(/tint-win/);
   await expect(eating.locator('[data-action="finish-meal"]')).toBeVisible();
   await advance(page, 245); // 21:05, inside the grace
   await expect(page.getByTestId('grace')).toHaveText('Your 4 hours are up. 10 min of grace left.');
-  // The readout says it all: the countdown, at 0:00, stays only for a screen reader.
-  await expect(readout.getByTestId('countdown')).toHaveCount(0);
   await expect(open.getByTestId('countdown')).toHaveText('0:00');
-  await expect(open.locator('.countdown-line')).toHaveClass(/\bsr-only\b/);
-  expect((await open.locator('.countdown-line').boundingBox()).height).toBeLessThanOrEqual(1);
-  // The readout stays within the rings' picture, their rays' room included.
+  // The countdown, at 0:00, steps down to a quiet caption in the window's
+  // row, under its figure and above the closing time.
+  const winRow = readout.locator('[data-ring-row="win"]');
+  await expect(winRow.locator('.countdown-line')).not.toHaveClass(/\bsr-only\b/);
+  await expect(winRow.locator('.countdown-line')).toBeVisible();
+  await expect(winRow.locator('.countdown-line')).toHaveText('0:00 left of 4 hours');
+  await expect(winRow.locator('.ring-goal')).toHaveText('Closes at 21:00');
+  // In the grace the window ring stays just short of closed: a closed ring is a kept window.
+  expect(Number(await open.locator('[data-ring="win"]').first().getAttribute('data-frac'))).toBeLessThan(1);
+  // The readout stays within the rings' picture, their rays' room included,
+  // but for the two quiet lines (0:00 left and the closing time) past the hours.
   const picture = async () => (await box(open.locator('.ring-wrap > svg.rings'))).height;
-  expect((await box(readout)).height).toBeLessThanOrEqual(await picture());
+  const quietLines = 2 * 22;
+  expect((await box(readout)).height).toBeLessThanOrEqual(await picture() + quietLines);
   await advance(page, 15); // 21:20
   await expect(page.getByTestId('over')).toHaveText('Over by 20 min');
-  await expect(open.locator('.hero-context')).toHaveCSS('color', 'rgb(14, 14, 18)');
+  await expect(open.locator('.hero-context')).toHaveCSS('color', 'rgb(74, 74, 85)');
   // Over: the window ring is stripes, so the Window key is the striped ring,
   // named in the colour of a miss, and it is the only key over the figure.
   await expect(open.locator('[data-ring="win"]')).toHaveClass(/ring-miss/);
@@ -122,9 +134,10 @@ test('window open: the readout leads with the time left; grace and over state th
   await expect(winName.locator('svg.key')).toHaveCount(1);
   await expect(winName.locator('svg.key pattern')).toHaveCount(1);
   await expect(page.getByTestId('over').locator('svg')).toHaveCount(0);
-  expect((await box(readout)).height).toBeLessThanOrEqual(await picture());
-  await expect(open.locator('.countdown-line')).toHaveClass(/\bsr-only\b/);
-  await expect(page.getByTestId('band-legend').locator('.legend-item')).toHaveText(['Over']);
+  expect((await box(readout)).height).toBeLessThanOrEqual(await picture() + quietLines);
+  await expect(winRow.locator('.countdown-line')).toHaveText('0:00 left of 4 hours');
+  await expect(winRow.locator('.ring-goal')).toHaveText('Closes at 21:00');
+  await expect(page.getByTestId('band-legend').locator('.legend-item')).toHaveText(['Time used', 'Time left', '15 min grace', 'Over']);
 });
 
 test('a meal eaten after the window is never on green: grey, with the stripes of a miss', async ({ page }) => {
@@ -147,7 +160,8 @@ test('a meal eaten after the window is never on green: grey, with the stripes of
 });
 
 // The closed card's actions in two weights: Add a meal and Start a meal as
-// the 48 outline pair side by side, then the corrections as 44 pills.
+// the 48 outline pair side by side, then the corrections as tertiary pills,
+// 36 drawn and 44 to touch.
 const expectClosedActions = async (page) => {
   await openAt(page, '2026-09-27T22:30');
   await seed(page, { ...LAST_NIGHT, days: [...LAST_NIGHT.days, { day: '2026-09-27', firstBite: ms('2026-09-27T17:30'), lastBite: ms('2026-09-27T21:30') }] });
@@ -165,11 +179,12 @@ const expectClosedActions = async (page) => {
   await expect(pills).toHaveText(['I ate something', 'Change times']);
   for (const b of await pills.all()) {
     const r = await box(b);
-    expect(Math.round(r.height)).toBe(44);
+    expect(Math.round(r.height)).toBe(36);
     expect(r.y).toBeGreaterThan(boxes[0].y + boxes[0].height);
     expect(await b.evaluate((el) => el.scrollWidth <= el.clientWidth + 1)).toBe(true);
   }
   await expect(closed.locator('.closed-actions .btn-grid')).toHaveCount(0);
+  expect(await smallTargets(page)).toEqual([]);
   return closed;
 };
 
@@ -230,7 +245,8 @@ test('the fast complete note: one callout row with a key, the length in ink, a C
   await expect(closeBtn).toHaveText('Close');
   await expect(closeBtn).toHaveClass(/\bbtn-2\b/);
   const close = await box(closeBtn);
-  expect(close.height).toBeGreaterThanOrEqual(44);
+  expect(Math.round(close.height)).toBe(36);
+  expect(await smallTargets(page)).toEqual([]);
   // The words and Close share one row.
   const line = await box(done.locator('.done-line'));
   expect(Math.abs((line.y + line.height / 2) - (close.y + close.height / 2))).toBeLessThanOrEqual(2);
@@ -248,7 +264,7 @@ test('the week row: 56 tall days, today on an ink pill, keys in the shape of eac
   await expect(page.getByTestId('today-week-legend').locator('.legend-item svg')).toHaveCount(2);
 });
 
-test('opened before 16:00: the window ring keeps measuring the window; the bar says the miss', async ({ page }) => {
+test('opened before 16:00: the window ring keeps measuring the window, in the stripes of a miss; the bar says it in words', async ({ page }) => {
   await openAt(page, '2026-09-27T17:45');
   await seed(page, {
     ...LAST_NIGHT,
@@ -256,10 +272,12 @@ test('opened before 16:00: the window ring keeps measuring the window; the bar s
   });
   const open = page.locator('[data-block="open"]');
   const ring = open.getByTestId('window-ring');
-  await expect(ring).not.toHaveClass(/ring-miss/);
+  // The day is already a miss, so the arc is stripes up to the time used.
+  await expect(ring).toHaveClass(/ring-miss/);
   expect(Number(await ring.getAttribute('data-frac'))).toBeCloseTo(135 / 240, 2);
   await expect(open.locator('.phase-bar.miss')).toContainText('Opened before 16:00, so today counts as a miss.');
-  await expect(open.locator('[data-ring-row="win"] > .legend-item')).not.toHaveClass(/is-miss/);
+  await expect(open.locator('[data-ring-row="win"] > .legend-item')).toHaveClass(/is-miss/);
+  await expect(open.locator('[data-ring-row="win"] > .legend-item svg.key pattern')).toHaveCount(1);
 });
 
 for (const [name, seedDays, at] of [

@@ -12,24 +12,25 @@ import { button, choice, durationFigure, focusLine, hatch, key, legend } from '.
 import * as store from '../store.js';
 import { HOUR, addDays, fmtDayMonth, fmtDayShort, fmtDuration, fmtFigure, weekdayShort, keyParts } from '../core/time.js';
 import { dailySeries, hourScale, rollingAverage, summarize } from '../core/history.js';
-import { fastHoursFor } from '../core/rules.js';
+import { fastHoursFor, windowMsFor } from '../core/rules.js';
 import { header } from './shared.js';
 
 const W = 340;
 const HT = 232;
+const EMPTY_HT = 200; // the empty frame (5.5)
 const PAD = { top: 16, right: 8, bottom: 28, left: 32 };
-const LABEL_ROOM = 32; // the plot's top padding when value labels sit over the marks
+const LABEL_ROOM = 40; // the plot's top padding when value labels sit over the marks
 const LABEL_LINE = 12; // hours over minutes in a value label
 // A value label's box around its lower baseline: the halo above the hours and
 // below the minutes, and half its width, so no line ever runs through it.
 const LABEL_ASCENT = 13;
 const LABEL_DESCENT = 5;
 const LABEL_HALF = 13;
-const LABEL_CLEAR = 2;
+const LABEL_CLEAR = 4; // a label lifted over a line stands this far above it
 
 const METRICS = {
-  fast: { key: 'fastMs', name: 'Fast', mark: 'Hours fasted', short: 'Short of the goal', noun: 'fast', empty: 'Fasts appear here from the day after your first logged window.', how: 'Each fast runs from one day\'s last bite to the next first bite.' },
-  feast: { key: 'feastMs', name: 'Feast', mark: 'Hours in the window', noun: 'window', empty: 'Your eating windows appear here once you close one.', how: 'Each window runs from a day\'s first bite to its last.' },
+  fast: { key: 'fastMs', name: 'Fast', mark: 'Hours fasted', short: 'Short of the goal', noun: 'fast', empty: 'Fasts appear here from the day after your first logged window.' },
+  feast: { key: 'feastMs', name: 'Feast', mark: 'Hours in the window', noun: 'window', empty: 'Your eating windows appear here once you close one.' },
 };
 
 const FOR_REASON = { travel: ' for travel', illness: ' for illness', ramadan: ' for Ramadan' };
@@ -133,9 +134,6 @@ function chart({ series, trend, metric, kind, isMiss, avgMs, onPick, focus, goal
 
   const bars = [];
   const markers = s('g', {});
-  // Over 90 days a fast that reached its goal is a small plain square on the
-  // day line, under the average and the trend, so the trend stays on top.
-  const goalMarks = s('g', {});
   let line = null;
   if (kind === 'bars') {
     values.forEach((v, i) => {
@@ -154,12 +152,12 @@ function chart({ series, trend, metric, kind, isMiss, avgMs, onPick, focus, goal
     });
   } else {
     // A line in the metric's colour that breaks over days with no value,
-    // lighter over many days; square markers when they fit, and always for
+    // thinner over many days; square markers when they fit, and always for
     // missed days and the selected one.
     const d = linePath(values, xc, y);
     if (d) {
       line = s('path', {
-        d, fill: 'none', stroke: metric === 'feast' ? C.WIN : C.FAST, 'stroke-width': many ? 1.5 : 2, 'stroke-opacity': many ? 0.45 : null,
+        d, fill: 'none', stroke: metric === 'feast' ? C.WIN : C.FAST, 'stroke-width': many ? 1.5 : 2,
         'stroke-linejoin': 'round', 'stroke-linecap': 'round', 'data-series': 'bar',
       });
     }
@@ -174,22 +172,13 @@ function chart({ series, trend, metric, kind, isMiss, avgMs, onPick, focus, goal
   };
   const drawMarkers = (pick) => {
     if (kind === 'bars') return;
-    // Over 90 days the line carries the days: a fast that reached its goal
-    // keeps a small plain square (2.5, clear of the 3.3 between days), a
-    // miss a half square (5) and the selected day a full one (10).
-    goalMarks.replaceChildren(...(many ? values.map((v, i) => {
-      if (v == null || i === pick || !reached(i)) return null;
-      return square(i, v, 2.5);
-    }).filter(Boolean) : []));
-    for (const m of goalMarks.children) {
-      m.setAttribute('fill', C.FAST);
-      m.setAttribute('stroke', 'none');
-    }
+    // Over 90 days the line carries the days: only a miss and the selected
+    // day keep a square.
     markers.replaceChildren(...values.map((v, i) => {
       if (v == null) return null;
       const isPick = i === pick;
       if (!isPick && !missAt[i] && many) return null;
-      const size = isPick ? 10 : many ? 5 : 8;
+      const size = isPick ? 10 : 8;
       const m = square(i, v, size);
       paint(m, i, pick, size);
       return m;
@@ -214,13 +203,12 @@ function chart({ series, trend, metric, kind, isMiss, avgMs, onPick, focus, goal
     })
     : null;
 
-  // Over 7 days each day carries its hours, the hours over the minutes ('20h'
-  // over '32m'), haloed. In Bars they stand in one row over the plot, each
-  // over its own bar, as the days stand in one row under it: the scale's top
-  // is over every value and every line, so nothing meets the row. In Line each
-  // sits over its own square; one that would meet the trend, the average or
-  // the day line sits under its square when there is room, or else above
-  // every line it would meet.
+  // Over 7 days each day carries its hours over its own mark, the hours over
+  // the minutes ('20h' over '32m'), haloed in the page. A label the trend,
+  // the average or the day line would run through rises over the highest of
+  // them in its column, 4u clear, so no line cuts the words and the label
+  // still stands in its own day's column. Only if that cannot fit does it
+  // keep its place on a plate in the page's colour.
   const segY = (vals, x) => {
     // The y of a broken path through vals at x, or null where it has no segment.
     const k = (x - PAD.left) / slot - 0.5;
@@ -235,20 +223,20 @@ function chart({ series, trend, metric, kind, isMiss, avgMs, onPick, focus, goal
   };
   const linesNear = (i) => {
     const ys = avgY != null ? [avgY] : [];
-    for (let dx = -LABEL_HALF - 1; dx <= LABEL_HALF + 1; dx += 1) {
+    for (let dx = -LABEL_HALF; dx <= LABEL_HALF; dx += 1) {
       const x = xc(i) + dx;
       const t1 = segY(trend, x);
       if (t1 != null) ys.push(t1);
       if (kind !== 'bars') {
         const d1 = segY(values, x);
         // The day line leaves its own marker: only where it is clear of it.
-        if (d1 != null && Math.abs(dx) > 5) ys.push(d1);
+        if (d1 != null && (Math.abs(dx) > 5 || d1 < y(values[i]) - 6)) ys.push(d1);
       }
     }
     return ys;
   };
-  const meets = (ys, base, rows) => ys.filter((ln) => ln >= base - rows - LABEL_ASCENT - LABEL_CLEAR && ln <= base + LABEL_DESCENT + LABEL_CLEAR);
-  const plotBottom = plotTop + plotH;
+  // The lines that run through a label whose lower baseline is base, or within 2u (its halo) of it.
+  const hits = (ys, base, rows) => ys.filter((ln) => ln >= base - rows - LABEL_ASCENT - 2 && ln <= base + LABEL_DESCENT + 2);
   const labelTop = []; // the top of what stands over each day (its label or its mark), for the crosshair
   const valueLabels = labelled
     ? values.map((v, i) => {
@@ -256,36 +244,27 @@ function chart({ series, trend, metric, kind, isMiss, avgMs, onPick, focus, goal
       const [hours, mins] = fmtFigure(v).split(' ');
       const rows = mins ? LABEL_LINE : 0;
       const x = xc(i).toFixed(1);
-      const words = (top) => s('text', { x, y: top.toFixed(1), 'text-anchor': 'middle', class: 'bar-value', 'data-value-for': series[i].day, 'data-series': seriesOf(i) },
+      const ys = linesNear(i);
+      const rest = y(v) - (kind === 'bars' ? 6 : 9); // the lower line's baseline over the mark
+      let base = rest;
+      // Rise over each line in the way until none is, while the label fits.
+      for (let hit = hits(ys, base, rows); hit.length && base >= 10 + rows; hit = hits(ys, base, rows)) {
+        base = Math.min(...hit) - LABEL_CLEAR - LABEL_DESCENT;
+      }
+      if (base < 10 + rows) base = Math.max(10 + rows, rest);
+      const top = base - rows - LABEL_ASCENT;
+      labelTop[i] = Math.min(top, y(v) - 5);
+      // The plate: a butt-capped line as tall as the words (lines and no
+      // rects, so the chart's rect count holds), drawn just under them.
+      const crossed = ys.some((ln) => ln >= top - 1 && ln <= base + LABEL_DESCENT + 1);
+      const plate = crossed
+        ? s('line', { class: 'label-plate', x1: (xc(i) - LABEL_HALF - 1).toFixed(1), x2: (xc(i) + LABEL_HALF + 1).toFixed(1), y1: ((top + base + LABEL_DESCENT) / 2).toFixed(1), y2: ((top + base + LABEL_DESCENT) / 2).toFixed(1), stroke: C.PAGE, 'stroke-width': (base + LABEL_DESCENT - top).toFixed(1) })
+        : null;
+      return [plate, s('text', { x, y: (base - rows).toFixed(1), 'text-anchor': 'middle', class: 'bar-value', 'data-value-for': series[i].day, 'data-series': seriesOf(i) },
         // The hours keep their trailing space, so the words still read '20h 32m'.
         s('tspan', { x }, mins ? `${hours} ` : hours),
-        mins ? s('tspan', { x, dy: LABEL_LINE }, mins) : null);
-      if (kind === 'bars') {
-        const row = plotTop - 6 - LABEL_LINE; // the hours' baseline, the minutes one line under
-        labelTop[i] = row - LABEL_ASCENT;
-        return words(row);
-      }
-      const ys = linesNear(i);
-      let base = y(v) - (kind === 'bars' ? 6 : 9); // the lower line's baseline
-      let below = false;
-      if (meets(ys, base, rows).length) {
-        const under = y(v) + 9 + LABEL_ASCENT - 3 + rows;
-        if (kind !== 'bars' && !meets(ys, under, rows).length && under + LABEL_DESCENT <= plotBottom) {
-          base = under;
-          below = true;
-        } else {
-          for (let guard = 0; guard < 6; guard++) {
-            const hit = meets(ys, base, rows);
-            if (!hit.length) break;
-            base = Math.min(...hit) - LABEL_DESCENT - LABEL_CLEAR - 0.5;
-          }
-        }
-      }
-      base = Math.max(10 + rows, base);
-      const top = base - rows - LABEL_ASCENT;
-      labelTop[i] = below ? y(v) - 5 : Math.min(top, y(v) - 5);
-      return words(base - rows);
-    }).filter(Boolean)
+        mins ? s('tspan', { x, dy: LABEL_LINE }, mins) : null)];
+    }).flat().filter(Boolean)
     : [];
 
   // While a finger moves along the chart: a crosshair, and over more than 7
@@ -305,7 +284,7 @@ function chart({ series, trend, metric, kind, isMiss, avgMs, onPick, focus, goal
     'data-testid': 'history-chart',
     'data-kind': kind,
     'aria-label': `${METRICS[metric].name} hours per day, ${n} days, with the 7-day trend and the average. Tap a day to read it.`,
-  }, stripes.defs, ...bands.map((b) => b.el), ...grid, ...xLabels, cross, ...bars.map((b) => b.el), line, goalMarks, avgLine, trendHalo, trendLine, markers, ...valueLabels, tag);
+  }, stripes.defs, ...bands.map((b) => b.el), ...grid, ...xLabels, cross, ...bars.map((b) => b.el), line, avgLine, trendHalo, trendLine, markers, ...valueLabels, tag);
   dimOthers(svg, focus);
 
   const placeScrub = (i) => {
@@ -377,19 +356,34 @@ function chart({ series, trend, metric, kind, isMiss, avgMs, onPick, focus, goal
   return { svg, pick };
 }
 
+/**
+ * The empty chart: its real grid and the days of the range, with no marks.
+ * The gridlines across the middle, where the message stands, are left out
+ * with their hours, so no hour floats without its line.
+ */
+function emptyFrame(series, scaleMs) {
+  const { grid, xLabels, plotTop, plotH } = frame(series, hourScale(Math.max(scaleMs, HOUR)), EMPTY_HT);
+  const clear = (el) => {
+    const yy = Number(el.getAttribute(el.tagName === 'line' ? 'y1' : 'y')) - (el.tagName === 'line' ? 0 : 4);
+    return yy <= plotTop + plotH * 0.3 || yy >= plotTop + plotH * 0.7;
+  };
+  return s('svg', { class: 'empty-art history-empty-chart', viewBox: `0 0 ${W} ${EMPTY_HT}`, 'aria-hidden': 'true', focusable: 'false' },
+    ...grid.filter(clear), ...xLabels);
+}
+
 /** Line mode's key: the day line in the metric's colour through the square the chart draws for that day. */
-const lineKey = (metric, { square = null, many = false }) => key(metric === 'feast' ? 'line-win' : 'line-fast', { square, dense: many });
+const lineKey = (metric, { square = null }) => key(metric === 'feast' ? 'line-win' : 'line-fast', { square });
 
 /** Which marks are on the chart, so identity never rests on colour alone. */
 // Tap an item to show only that series; the chart itself still picks a day.
 function chartLegend(m, metric, kind, n, { anyTrend, anyPaused, anyPick, anyGoal }, focus, onPick) {
   const line = kind === 'line';
-  const many = n > 30; // over 90 days the line carries the days short of the goal with no squares
+  const many = n > 30; // over 90 days the line carries the days that are not a miss with no squares
   const dayLook = metric === 'feast' ? 'win' : 'short';
   return legend([
-    anyGoal ? [line ? lineKey(metric, { square: 'goal', many }) : 'bar-fast', 'Goal reached', 'goal'] : null,
-    [line ? lineKey(metric, { square: many ? null : dayLook, many }) : metric === 'feast' ? 'bar-win' : 'bar-fast-short', anyGoal ? m.short : m.mark, 'bar'],
-    [line ? lineKey(metric, { square: 'miss', many }) : 'bar-miss', 'Miss', 'miss'],
+    anyGoal ? [line ? lineKey(metric, { square: 'goal' }) : 'bar-fast', 'Goal reached', 'goal'] : null,
+    [line ? lineKey(metric, { square: many ? null : dayLook }) : metric === 'feast' ? 'bar-win' : 'bar-fast-short', anyGoal ? m.short : m.mark, 'bar'],
+    [line ? lineKey(metric, { square: 'miss' }) : 'bar-miss', 'Miss', 'miss'],
     anyPick ? [line ? 'latest-square' : 'bar-selected', 'Selected day'] : null,
     anyTrend ? ['line-trend', '7-day trend', 'trend'] : null,
     ['line-average', 'Average', 'avg'],
@@ -450,6 +444,7 @@ function table(series, trend, m, isMiss) {
 
 /** Which days the average covers. */
 function summaryLine(sum, range) {
+  if (!sum.count) return `Nothing yet in the last ${range} days.`;
   return sum.count === range ? `Over the last ${range} days.` : `From ${sum.count} of the last ${range} days.`;
 }
 
@@ -481,9 +476,9 @@ export function renderHistory(ctx, app) {
     h('div', { class: 'lead-row' }, h('div', { class: 'label' }, `Average ${m.noun}`)),
     sum.count ? h('p', { class: 't-hero lead-figure', 'data-testid': 'history-average' }, durationFigure(sum.avgMs)) : null,
     h('p', { class: 'lead-meta' },
-      h('span', { 'data-testid': 'history-dates' }, `${fmtDayMonth(from)} to ${fmtDayMonth(ctx.todayKey)}`),
+      h('span', { class: 'lead-dates', 'data-testid': 'history-dates' }, `${fmtDayMonth(from)} to ${fmtDayMonth(ctx.todayKey)}`),
       ' ',
-      h('span', { 'data-testid': 'history-summary' }, summaryLine(sum, p.range))));
+      h('span', { class: 'lead-summary', 'data-testid': 'history-summary' }, summaryLine(sum, p.range))));
 
   // The chart's own switches, slim, on one line under the lead.
   const controls = h('div', { class: 'chart-switches', 'data-block': 'history-controls' },
@@ -493,17 +488,18 @@ export function renderHistory(ctx, app) {
   const head = [header(ctx, app, { title: 'History' }), metricSwitch(app, p.metric)];
 
   if (!sum.count) {
-    // Nothing to plot: a statement and a quiet line stand alone, as on the
-    // empty Satiety and Weight pages, with no chart, switches or legend.
-    // When an earlier fast sits within 90 days, only the days switch stays,
-    // so a longer time can bring it back.
-    const earlier = p.range < 90 && dailySeries(ctx, addDays(ctx.todayKey, -89) < ctx.startKey ? ctx.startKey : addDays(ctx.todayKey, -89), ctx.todayKey).some((d) => d[m.key] != null);
+    // Nothing to plot: the lead with no figure ("Nothing yet in the last 30
+    // days."), the switches, and the chart's own frame with no marks, the
+    // metric's message over it. No legend, reading or table.
+    const scaleMs = p.metric === 'feast' ? windowMsFor(ctx.todayKey, ctx.settings) : goalMs(ctx.todayKey);
     return h('div', { class: 'history empty', 'data-metric': p.metric },
       head,
-      h('section', { class: 'hero history-empty', 'data-block': 'history-chart' },
-        h('h2', { class: 't-title-3 empty-words' }, earlier ? `No ${m.noun}s in the last ${p.range} days.` : m.empty),
-        h('p', { class: 'empty-how', 'data-testid': 'history-summary' }, earlier ? 'A longer time shows the earlier ones.' : m.how)),
-      earlier ? h('div', { class: 'chart-switches', 'data-block': 'history-controls' }, controls.firstChild) : null);
+      h('section', { class: 'history-block', 'data-block': 'history-chart' },
+        lead,
+        controls,
+        h('div', { class: 'history-plot history-empty-plot' },
+          emptyFrame(series, scaleMs),
+          h('p', { class: 'empty-words' }, m.empty))));
   }
 
   const shape = `${p.metric}:${p.range}:${p.chart}`;

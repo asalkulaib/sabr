@@ -4,6 +4,7 @@
 
 import { h } from './dom.js';
 import { button, choice, figureParts } from './components.js';
+import { glyph } from './icons.js';
 import * as store from '../store.js';
 import { metricSwitch } from './history.js';
 import { fmtDayMonth } from '../core/time.js';
@@ -62,8 +63,11 @@ function importSection(ctx, app) {
         pasteTarget(app))
       : null,
     h('div', { class: 'import-more' },
-      h('a', { class: 'btn outline block', href: SHORTCUT_URL, 'data-action': 'run-shortcut' }, 'Run the Fast Weight shortcut'),
-      button('How to set up the Shortcut', () => app.go('help'), { kind: 'outline', block: true, name: 'shortcut-help' })),
+      h('a', { class: 'btn outline block', href: SHORTCUT_URL, 'data-action': 'run-shortcut' }, 'Run the Fast Weight shortcut')),
+    // Setting it up is a page in Help: a row that leads there, as on More.
+    h('button', { type: 'button', class: 'setting-row help-row', 'data-action': 'shortcut-help', onclick: () => app.go('help') },
+      glyph('book', { size: 20 }),
+      h('span', {}, 'How to set up the Shortcut')),
   );
 }
 

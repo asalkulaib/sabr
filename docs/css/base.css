@@ -78,6 +78,13 @@ h3 {
   display: none !important;
 }
 
+/* A legend key that comes and goes (History's Selected day while a finger
+   scrubs) keeps its place, so the legend never reflows under the finger. */
+.legend > .legend-item[hidden] {
+  display: inline-flex !important;
+  visibility: hidden;
+}
+
 :focus {
   outline: none;
 }

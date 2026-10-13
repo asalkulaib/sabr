@@ -11,7 +11,7 @@ import { HOUR, MIN, addDays, durationParts, fmtDayShort, fmtDuration, fmtMinutes
 import { fastHoursFor, isFlexible, plannedStartMin } from '../core/rules.js';
 import { STAGES, fastingState } from '../core/stages.js';
 import { LEFT_WANTING, dayFullness, mealsByDay } from '../core/fullness.js';
-import { glyph, stageDisc, stageGlyph, stageIcon } from './icons.js';
+import { glyph, stageGlyph, stageIcon } from './icons.js';
 import { RING, celebrate, miniRing, ringsSvg } from './rings.js';
 import { showStagesSheet } from './stages.js';
 
@@ -184,7 +184,7 @@ export function ringHero(ctx, lastBiteTs, { times = null, day = ctx.todayKey, mi
 }
 
 /**
- * The stage card: the stage on its still disc, how far the goal and the next
+ * The stage card: the stage's place and name, how far the goal and the next
  * stage are, what happens in it, and the way to the stages. On a day without
  * eating, or while a meal goes on after the window, it holds the smaller
  * rings, the stage chip and the fast's times first; otherwise the rings lead
@@ -200,8 +200,9 @@ export function stagesSection(ctx, app, lastBiteTs, { withRing, times = null, da
     // icon: under the hairline, a quiet count says only where it falls.
     withRing
       ? h('div', { class: 'label stage-count' }, `Stage ${state.index + 1} of ${STAGES.length}`)
+      // Without them, the rings above hold the stage's icon and chip: the
+      // head gives its place and name in words, with no third picture of it.
       : h('div', { class: 'stage-head' },
-        stageDisc(state.stage.key, { size: 48, state: 'now', live: false }),
         h('div', { class: 'stage-head-words' },
           h('div', { class: 'label' }, `Stage ${state.index + 1} of ${STAGES.length}`),
           h('h2', { class: 'stage-title' }, state.stage.name))),

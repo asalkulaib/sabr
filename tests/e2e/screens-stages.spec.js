@@ -1,7 +1,7 @@
 // The stages sheet and Read more at 390 x 844: every state shot for design
 // review, with a contrast audit of each, plus the layout rules the design
 // holds the sheet to (checked in every browser).
-import { test, expect, openAt, seed, tap, sheet, settings, ms, shot, scrollSheet } from './helpers.js';
+import { test, expect, openAt, seed, tap, sheet, settings, ms, shot, scrollSheet, smallTargets } from './helpers.js';
 
 const install = settings({ installedAt: ms('2026-09-20T08:00'), lastBackupAt: ms('2026-09-26T08:00'), lastImportAt: ms('2026-09-26T09:00') });
 // Last night's window closed at 21:00 on Saturday 26 September.
@@ -146,7 +146,7 @@ test.describe('layout', () => {
     expect(ringed).toEqual({ colour: 'rgb(14, 14, 18)', opacity: '1', words: 'rgb(14, 14, 18)' });
     // Neutral cards, each as tall as its words: Read more 16 under the text and
     // the card's padding under Read more, so no card holds an empty block.
-    // The list is as tall as the longest card; the note sits 24 under it.
+    // The list is as tall as the card in view; the note sits 24 under it.
     const cards = await s.locator('.stage-card').evaluateAll((els) => els.map((e) => {
       const card = e.getBoundingClientRect();
       const text = e.querySelector('.stage-text').getBoundingClientRect();
@@ -163,11 +163,13 @@ test.describe('layout', () => {
     expect(cards.map((c) => c.foot)).toEqual(Array(6).fill(0));
     const list = await s.locator('.stage-cards').evaluate((el) => ({
       h: el.getBoundingClientRect().height,
+      shown: el.querySelector('.stage-card[data-stage="switch"]').getBoundingClientRect().height,
       note: Math.round(el.nextElementSibling.getBoundingClientRect().top - el.getBoundingClientRect().bottom),
     }));
-    expect(Math.abs(list.h - Math.max(...cards.map((c) => c.h)))).toBeLessThan(1);
+    expect(Math.abs(list.h - list.shown)).toBeLessThan(1);
     expect(list.note).toBe(24);
-    for (const b of await s.locator('button:visible').all()) expect((await b.boundingBox()).height).toBeGreaterThanOrEqual(44);
+    // Every button is 44 to touch: by its own box, or a tertiary pill's hit area.
+    expect(await smallTargets(page)).toEqual([]);
     // Nothing uppercase.
     expect(await s.evaluate((el) => [...el.querySelectorAll('*')].filter((e) => getComputedStyle(e).textTransform === 'uppercase').length)).toBe(0);
   });

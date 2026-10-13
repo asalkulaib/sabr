@@ -70,18 +70,10 @@
 }
 
 /* ---------- The hero: one order in every mode ---------- */
-/* The context line: what state the day is in. */
+/* The context line: what state the day is in, one label style in every
+   mode (.label: 800, --text-label). Ring colours stay on the readout. */
 .today .hero-context {
   margin-bottom: var(--space-3);
-  color: var(--text-quiet);
-}
-
-.today .hero-context.ctx-win {
-  color: var(--win-text);
-}
-
-.today .hero-context.ctx-ink {
-  color: var(--text-display);
 }
 
 /* The first card under a hero sits a step further off than cards do. */
@@ -345,6 +337,20 @@
   flex-basis: 100%;
 }
 
+/* Past the hours, the countdown at 0:00 steps down to a quiet caption under
+   the window's figure, in its row. */
+.today .countdown-line {
+  margin-top: var(--space-2);
+  font-weight: 700;
+  font-size: var(--t-callout-size);
+  line-height: var(--t-callout-lh);
+  color: var(--text-quiet);
+}
+
+.today .countdown-line .countdown-caption {
+  font-weight: inherit;
+}
+
 /* ---------- The stage chip ---------- */
 /* Navigation to the stages: a white pill with the stage's moving icon. */
 .today .stage-chip {
@@ -440,7 +446,6 @@
 /* Lines that wrap keep their last words together. */
 .today .phase-bar > span,
 .today .miss-line > span,
-.today .result-line > span,
 .today .eating-line > span,
 .today .plan-row .item-title,
 .today .day-off-line > span {
@@ -713,11 +718,17 @@
   display: flex;
   align-items: flex-start;
   column-gap: var(--space-2);
+  max-width: none;
   margin: var(--space-4) 0 0;
   font-weight: 800;
   font-size: var(--t-headline-size);
   line-height: var(--t-headline-lh);
   color: var(--text-display);
+}
+
+/* The verdict takes the card's full width; only a lone last word is avoided. */
+.today .result-line > span {
+  text-wrap: pretty;
 }
 
 .today .result-line > .key {

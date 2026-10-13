@@ -62,8 +62,9 @@ test('history: tap a day to read it, open it, or see the table', async ({ page }
 
 test('history: nothing logged yet shows a quiet empty state', async ({ page }) => {
   await openAt(page, '2026-09-27T09:00', '#history');
-  await expect(page.locator('.history.empty .empty-words')).toHaveText('Fasts appear here from the day after your first logged window.');
-  await expect(page.getByTestId('history-summary')).toHaveText("Each fast runs from one day's last bite to the next first bite.");
+  await expect(page.getByTestId('history-summary')).toHaveText('Nothing yet in the last 30 days.');
+  await expect(page.locator('.history .empty-art')).toBeVisible();
+  await expect(page.locator('.history')).toContainText('Fasts appear here from the day after your first logged window.');
   await expect(page.locator('.history svg.chart, .history .legend')).toHaveCount(0);
 });
 

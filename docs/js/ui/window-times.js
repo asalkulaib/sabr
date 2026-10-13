@@ -10,7 +10,7 @@ import { openSheet, sheetHead } from './sheet.js';
 import * as store from '../store.js';
 import { MIN, dayKey, floorToMinute, fmtDuration, fmtOnDay, fmtTime, minutesOfDay, nearestTime, now } from '../core/time.js';
 import { timeOnOrAfter } from '../core/rules.js';
-import { effectLine, errLine, form, missSlot, resolveFirstBite, say, timesMissLines } from './meal.js';
+import { effectLine, errLine, form, formIntro, missSlot, resolveFirstBite, say, timesMissLines } from './meal.js';
 import { mealsOfDay } from './shared.js';
 
 const meals = (n) => (n === 1 ? 'Its meal goes too.' : `Its ${n} meals go too.`);
@@ -45,7 +45,7 @@ export function showOpeningSheet(app, initialKey) {
     return {
       head: sheetHead(api, 'Window opened'),
       body: form(
-        h('p', { class: 'form-intro' }, 'Set the time of your first bite. The countdown, your eating window and the 16:00 rule follow it.'),
+        formIntro('Set the time of your first bite. The countdown, your eating window and the 16:00 rule follow it.'),
         timeField({ label: 'First bite at', minutes: draft.minutes, name: 'opened-at', onChange: (m) => { draft.minutes = m; } }),
         h('div', { class: 'form-act' },
           errLine(draft.hint, 'times-hint'),
@@ -143,7 +143,7 @@ export function showOutsideTimeSheet(app, id) {
     return {
       head: sheetHead(api, 'Last bite'),
       body: form(
-        h('p', { class: 'form-intro' }, 'Your last bite was logged outside the window.'),
+        formIntro('Your last bite was logged outside the window.'),
         wheel),
       actions: [
         hintEl,

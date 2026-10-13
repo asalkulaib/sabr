@@ -29,8 +29,15 @@ export const formRule = () => h('div', { class: 'form-rule', 'aria-hidden': 'tru
 /** One field with the lines that belong to it (an error under its wheel), 8 apart. */
 export const field = (...kids) => h('div', { class: 'form-field' }, ...kids);
 
-/** The sheet's own heading in its body, such as the meal's name. */
+/**
+ * A sheet's body opens one of two ways, the same in every form sheet: a
+ * heading at one size (the meal, "What set it off?"), with any note under it
+ * quiet, or a quiet intro line (formIntro) with no heading.
+ */
 export const formHero = (text, testid = null) => h('h3', { class: 'form-hero', 'data-testid': testid }, text);
+
+/** The quiet intro line a sheet without a heading opens with. */
+export const formIntro = (text, testid = null) => h('p', { class: 'form-intro', 'data-testid': testid }, text);
 
 /**
  * An error in words beside its alert glyph. With a testid the line hides
@@ -135,7 +142,7 @@ function mealTypeSection(ctx, draft, guessAt = null, { titled = false } = {}) {
           textField({ label: 'Name', placeholder: 'Dessert', value: draft.other, name: 'meal-name',
             onInput: (v) => { draft.other = v; draft.name = v; } }),
           others.length
-            ? h('div', { class: 'btn-row pill-row' }, others.map((n) => button(h('span', { class: 'clip' }, n), () => { draft.other = n; draw(); }, { kind: 'secondary' })))
+            ? h('div', { class: 'btn-row pill-row' }, others.map((n) => button(h('span', { class: 'clip' }, n), () => { draft.other = n; draw(); }, { kind: 'chip' })))
             : null)
         : null,
     ].filter(Boolean));
@@ -242,7 +249,7 @@ export function showStartMealSheet(app) {
         startField.set(minutesOfDay(draft.ts));
         updateWarn();
         typeBox.refresh();
-      }, { kind: 'secondary', name: `meal-start-${mins}` })));
+      }, { kind: 'chip', name: `meal-start-${mins}` })));
     // A clock time means today, or last night just after midnight; never a time still ahead.
     const startField = timeField({
       label: 'Started at',
@@ -280,10 +287,11 @@ export function showStartMealSheet(app) {
     return {
       head: sheetHead(api, 'Start a meal'),
       body: form(
-        // Eating after the window's hours is a miss, said beside its stripes.
+        // Eating after the window's hours is a miss, said beside its stripes;
+        // while Save refuses the time picked, only the refusal speaks.
         sit.kind === 'outside'
-          ? missLine(context, { testid: 'meal-context' })
-          : h('p', { class: 'meal-context', 'data-testid': 'meal-context' }, context),
+          ? Object.assign(missLine(context, { testid: 'meal-context' }), { hidden: !!hint })
+          : formIntro(context || null, 'meal-context'),
         h('div', { class: 'coach' },
           h('p', {}, 'Protein and vegetables first.'),
           h('p', {}, 'Eat slowly.'),
@@ -475,7 +483,7 @@ export function showAddMealSheet(app, { day = null, from = null } = {}) {
 
     // The Finished at wheel takes what is rolled as it is (hour, then minute); only a start or a length moves it.
     const lengths = h('div', { class: 'presets lengths', role: 'group', 'aria-label': 'How long it took' },
-      LENGTHS.map(([mins, label]) => button(label, () => { draft.length = mins; followStart(); }, { kind: 'secondary', name: `added-length-${mins}` })));
+      LENGTHS.map(([mins, label]) => button(label, () => { draft.length = mins; followStart(); }, { kind: 'chip', name: `added-length-${mins}` })));
     const finishField = timeField({
       label: 'Finished at',
       minutes: minutesOfDay(finishTs()),
@@ -518,7 +526,7 @@ export function showAddMealSheet(app, { day = null, from = null } = {}) {
     // so the two wheels of the form line up.
     const ago = draft.day === today
       ? h('div', { class: 'presets', role: 'group', 'aria-label': 'Quick times' },
-        AGO.map(([mins, label]) => button(label, () => moveStart(floorToMinute(now() - mins * MIN)), { kind: 'secondary', name: `added-start-${mins}` })))
+        AGO.map(([mins, label]) => button(label, () => moveStart(floorToMinute(now() - mins * MIN)), { kind: 'chip', name: `added-start-${mins}` })))
       : null;
     const startField = timeField({
       label: 'Started at',
@@ -551,7 +559,7 @@ export function showAddMealSheet(app, { day = null, from = null } = {}) {
     const built = {
       head: sheetHead(api, 'Add a meal'),
       body: form(
-        h('p', { class: 'form-intro' }, 'For a meal you already ate. No timer.'),
+        formIntro('For a meal you already ate. No timer.'),
         fixed
           ? h('p', { class: 'form-fixed', 'data-testid': 'add-meal-day' }, fmtDayLong(fixed))
           : choice({
@@ -595,8 +603,12 @@ export function showFinishMealSheet(app, mealId, { next = null, lead = null } = 
     return {
       head: sheetHead(api, 'Finished this meal'),
       body: form(
-        lead ? h('p', { class: 'callout', 'data-testid': 'finish-lead' }, lead) : null,
-        formHero(meal.name || 'This meal'),
+        // The meal leads; why this sheet came first is a quiet note under it.
+        lead
+          ? h('div', { class: 'form-lead' },
+            formHero(meal.name || 'This meal'),
+            h('p', { class: 'form-note', 'data-testid': 'finish-lead' }, lead))
+          : formHero(meal.name || 'This meal'),
         stopChoice(draft),
         fullnessScale(draft),
         timeField({ label: 'Finished at', minutes: draft.minutes, name: 'finished-at', onChange: (m) => { draft.minutes = m; } }),

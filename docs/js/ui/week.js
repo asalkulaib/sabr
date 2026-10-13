@@ -5,7 +5,7 @@ import { button, figureParts, hatch, key, legend } from './components.js';
 import { glyph } from './icons.js';
 import * as P from './palette.js';
 import { miniRing, weekRing } from './rings.js';
-import { addDays, at, fmtDayShort, fmtDuration, fmtTime, fmtWeekRange, weekStart, weekdayShort, keyParts } from '../core/time.js';
+import { MIN, addDays, at, fmtDayShort, fmtTime, fmtWeekRange, weekStart, weekdayShort, keyParts } from '../core/time.js';
 import { cutoffApplies } from '../core/rules.js';
 import { weekReview } from '../core/review.js';
 import { header, note } from './shared.js';
@@ -196,9 +196,6 @@ const signed = (v) => `${v > 0 ? '+' : v < 0 ? '−' : ''}${Math.abs(v).toFixed(
  * and small units: words and anything in brackets go to unit spans, so the
  * text reads exactly as it was given.
  */
-/** A duration in its usual words ("3 h 17 min"), the digits large and the units small. */
-const windowFigure = (ms) => figureParts([...fmtDuration(ms).matchAll(/(\d+)( [a-z]+)/g)].map((m) => [m[1], m[2]]));
-
 function unitText(text) {
   const out = [];
   for (const m of String(text).matchAll(/\([^)]*\)|[−+]?\d[\d.]*|[^\d(−+]+|[−+]/g)) {
@@ -257,6 +254,19 @@ function dayResult(d) {
   }
 }
 
+/**
+ * The average window in the original's words ('3 h 17 min', '45 min'), drawn
+ * as a big figure: large digits, small units.
+ */
+function windowFigure(ms) {
+  const total = Math.round(Math.max(0, ms) / MIN);
+  const hh = Math.floor(total / 60);
+  const mm = total % 60;
+  if (hh === 0) return figureParts([[mm, ' min']]);
+  if (mm === 0) return figureParts([[hh, ' h']]);
+  return figureParts([[hh, ' h'], [mm, ' min']]);
+}
+
 /** The ring of seven: each day's result as one arc, Sunday at the top. */
 function weekHeroRing(r, count) {
   const ring = weekRing(r.days.map(shownResult));
@@ -288,13 +298,12 @@ export function renderWeek(ctx, app, weekKey) {
 
   const t = r.temptations;
   return h('div', { class: 'week', 'data-week': start },
-    header(ctx, app, { title: 'Week', sub: isCurrent ? 'This week' : null }),
+    // Which week, stated once in the line over the title, as Today states its date.
+    header(ctx, app, { title: 'Week', sub: h('span', {}, isCurrent ? 'This week · ' : null, h('span', { class: 'week-range', 'data-testid': 'week-range' }, fmtWeekRange(start))) }),
     h('div', { class: `week-body ${turn}`.trim() },
-      h('div', { class: 'week-bar' },
-        h('p', { class: 'week-range', 'data-testid': 'week-range' }, fmtWeekRange(start)),
-        h('div', { class: 'pill-row week-pager' },
-          button('Previous', () => { paging = { to: addDays(start, -7), cls: 'turn-prev' }; app.go(`week/${paging.to}`); }, { kind: 'secondary', name: 'prev-week', icon: 'chevron-left' }),
-          isCurrent ? null : button([h('span', {}, 'Next'), glyph('chevron', { size: 12 })], () => { paging = { to: addDays(start, 7), cls: 'turn-next' }; app.go(`week/${paging.to}`); }, { kind: 'secondary', name: 'next-week' }))),
+      h('div', { class: 'pill-row week-pager' },
+        button('Previous', () => { paging = { to: addDays(start, -7), cls: 'turn-prev' }; app.go(`week/${paging.to}`); }, { kind: 'secondary', name: 'prev-week', icon: 'chevron-left' }),
+        isCurrent ? null : button([h('span', {}, 'Next'), glyph('chevron', { size: 12 })], () => { paging = { to: addDays(start, 7), cls: 'turn-next' }; app.go(`week/${paging.to}`); }, { kind: 'secondary', name: 'next-week' })),
       h('section', { class: 'hero week-hero' },
         weekHeroRing(r, `${r.successCount} of ${7 - r.pausedCount}`),
         h('div', { class: 'week-hero-words' },
@@ -303,7 +312,13 @@ export function renderWeek(ctx, app, weekKey) {
           h('div', { class: 'week-count', 'data-testid': 'success-count' }, figureParts([[r.successCount, ` of ${7 - r.pausedCount}`]])),
           h('div', { class: 'week-notes' },
             note('Best streak', days(r.streak.best)),
-            r.pausedCount ? note('Paused', days(r.pausedCount)) : null))),
+            r.pausedCount ? note('Paused', days(r.pausedCount)) : null),
+          // The ring's own colours, named beside it; the full legend sits under the rows.
+          legend([
+            ['track-window', 'Success'],
+            ['bar-miss', 'Miss'],
+            r.pausedCount ? ['band-paused', 'Paused'] : null,
+          ], 'ring-legend'))),
       schedule(ctx, app, r),
       h('div', { class: 'tiles first' },
         h('section', { class: 'tile' },

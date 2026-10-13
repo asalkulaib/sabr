@@ -39,7 +39,10 @@
   row-gap: var(--space-3);
 }
 
-/* The body's own heading: the meal, "20 minutes after Dinner", "What set it off?". */
+/* A body opens one of two ways, the same in every form sheet: a heading at
+   title-2 (the meal, "Finish Dinner", "20 minutes after Dinner", "What set
+   it off?") with any note under it quiet, or a quiet intro at body size
+   with no heading. Never both, and never a third size. */
 :is([data-sheet='start-meal'], [data-sheet='add-meal'], [data-sheet='finish-meal'], [data-sheet='done-eating'], [data-sheet='fullness'], [data-sheet='edit-meal'], [data-sheet='outside'], [data-sheet='opening'], [data-sheet='first-bite-time'], [data-sheet='last-bite-time'], [data-sheet='outside-bite-time'], [data-sheet='window-times'], [data-sheet='begin-fast']) .form-hero {
   font-weight: 900;
   font-size: var(--t-title-2-size);
@@ -69,9 +72,8 @@
   color: var(--text-quiet);
 }
 
-[data-sheet='outside-bite-time'] .form-intro {
-  font-size: var(--t-callout-size);
-  line-height: var(--t-callout-lh);
+:is([data-sheet='start-meal'], [data-sheet='add-meal'], [data-sheet='finish-meal'], [data-sheet='done-eating'], [data-sheet='fullness'], [data-sheet='edit-meal'], [data-sheet='outside'], [data-sheet='opening'], [data-sheet='first-bite-time'], [data-sheet='last-bite-time'], [data-sheet='outside-bite-time'], [data-sheet='window-times'], [data-sheet='begin-fast']) .form-intro:empty {
+  display: none;
 }
 
 /* A fixed day where Add a meal would offer Today or Yesterday. */
@@ -205,18 +207,6 @@
 }
 
 /* ---------- Start a meal ---------- */
-/* Inside an open window there is nothing to say: it takes no room. */
-[data-sheet='start-meal'] .meal-context:empty {
-  display: none;
-}
-
-[data-sheet='start-meal'] .meal-context {
-  font-weight: 800;
-  font-size: var(--t-headline-size);
-  line-height: var(--t-headline-lh);
-  color: var(--text-display);
-}
-
 /* Three lines to eat by, on their own soft card. */
 [data-sheet='start-meal'] .coach {
   display: flex;
@@ -259,8 +249,8 @@
   grid-column: span 3;
 }
 
-/* A name typed before, as a pill; a long one ends in an ellipsis. */
-:is([data-sheet='start-meal'], [data-sheet='add-meal'], [data-sheet='finish-meal'], [data-sheet='done-eating'], [data-sheet='fullness'], [data-sheet='edit-meal'], [data-sheet='outside'], [data-sheet='opening'], [data-sheet='first-bite-time'], [data-sheet='last-bite-time'], [data-sheet='outside-bite-time'], [data-sheet='window-times'], [data-sheet='begin-fast']) .meal-name .btn-2 {
+/* A name typed before, as a chip; a long one ends in an ellipsis. */
+:is([data-sheet='start-meal'], [data-sheet='add-meal'], [data-sheet='finish-meal'], [data-sheet='done-eating'], [data-sheet='fullness'], [data-sheet='edit-meal'], [data-sheet='outside'], [data-sheet='opening'], [data-sheet='first-bite-time'], [data-sheet='last-bite-time'], [data-sheet='outside-bite-time'], [data-sheet='window-times'], [data-sheet='begin-fast']) .meal-name .chip {
   max-width: 100%;
 }
 
@@ -268,13 +258,6 @@
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-/* ---------- I'm done eating ---------- */
-[data-sheet='done-eating'] .form-hero {
-  font-size: var(--t-title-3-size);
-  line-height: var(--t-title-3-lh);
-  letter-spacing: var(--t-title-3-track);
 }
 
 /* ---------- Outside the window: the slip line ---------- */

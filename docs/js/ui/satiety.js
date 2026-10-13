@@ -56,8 +56,9 @@ function focusable(svg) {
   const focus = F.focus;
   svg.classList.add('pickable');
   svg.addEventListener('click', (e) => {
-    const el = e.target.closest('[data-series]');
-    const stop = el && el.dataset.series;
+    // The lag chart's end marks carry their way as data-ends, so they never count as a series of their own.
+    const el = e.target.closest('[data-series], [data-ends]');
+    const stop = el && (el.dataset.series || el.dataset.ends);
     if (STOPS.includes(stop)) pick(focus === stop ? null : stop);
   });
   return dimOthers(svg, focus);
@@ -171,6 +172,28 @@ function spread(ys, gap, lo, hi) {
   return out;
 }
 
+/**
+ * Places the marks at one post side by side where their values sit close, so
+ * no mark hides another: marks closer than `near` units share a row, each
+ * `step` apart around the post, in the order of the ways of finishing.
+ * Returns each mark's offset from the post.
+ */
+function dodge(ys, near = 12, step = 14) {
+  const order = ys.map((y, i) => ({ y, i })).sort((a, b) => a.y - b.y || a.i - b.i);
+  const out = ys.map(() => 0);
+  let group = [];
+  const flush = () => {
+    group.sort((a, b) => a.i - b.i).forEach((o, k) => { out[o.i] = (k - (group.length - 1) / 2) * step; });
+    group = [];
+  };
+  for (const o of order) {
+    if (group.length && o.y - group[group.length - 1].y >= near) flush();
+    group.push(o);
+  }
+  flush();
+  return out;
+}
+
 // Between the three lines: the rings' own step.
 const lagStep = () => token('--delay-ring-step', 80);
 const lagRise = () => token('--dur-chart', 600) + 2 * lagStep();
@@ -179,8 +202,8 @@ let lagWatch = null;
 
 /**
  * The 20-minute lag, after the person's earlier page: average fullness right
- * after eating and 20 minutes on, one line per way of finishing. The steeper
- * the line, the more the body was still catching up.
+ * after eating and 20 minutes on, one line per way of finishing, with its mark
+ * at both ends. The steeper the line, the more the body was still catching up.
  */
 function lagChart(st) {
   const rows = st.byStop.filter((r) => r.rises);
@@ -194,15 +217,15 @@ function lagChart(st) {
   const posts = [X0, X1].map((px) => s('line', { x1: px, x2: px, y1: y(10) - 6, y2: y(1), stroke: C.EDGE, 'stroke-width': 1 }));
   const leftY = spread(rows.map((r) => y(r.now)), 16, P.top, HT - P.bottom);
   const rightY = spread(rows.map((r) => y(r.at20)), 18, P.top, HT - P.bottom);
-  // Lines that end on (nearly) the same spot meet at the second post with
-  // their round caps, as every line meets at the first: no end mark, which
-  // would cover the other's.
-  const tied = rows.map((r, i) => rows.some((o, j) => j !== i && Math.abs(y(o.at20) - y(r.at20)) < 10));
-  // A figure on the right needs its line's shape when a close neighbour pushed
-  // it off its line's end, or its line ends tied. Then every figure on the
-  // right carries its shape, as every figure on the left does.
-  const shaped = rows.some((r, i) => tied[i] || Math.abs(rightY[i] - y(r.at20)) > 1);
-  const textX = shaped ? X1 + 26 : X1 + 14;
+  // Marks at both ends of every line. Ends that sit on (nearly) the same value
+  // stand side by side across the post, so none hides another; the figures
+  // beside the post move out to make room.
+  const dx0 = dodge(rows.map((r) => y(r.now)));
+  const dx1 = dodge(rows.map((r) => y(r.at20)));
+  const room0 = Math.max(0, ...dx0.map((d) => -d));
+  const room1 = Math.max(0, ...dx1);
+  const leftEnd = X0 - 14 - room0;
+  const rightMark = X1 + 16 + room1;
   const step = lagStep();
   // The first time the chart is seen in a session, each line starts flat at
   // its right-after value and rises to its 20-minute value; a redraw while it
@@ -210,15 +233,23 @@ function lagChart(st) {
   if (lagWatch) { lagWatch.disconnect(); lagWatch = null; }
   const waiting = !still() && !started.has('lag') && typeof IntersectionObserver === 'function';
   const into = waiting ? 0 : still() ? null : onceIn('lag', lagRise());
+  const halos = [];
+  const ends = [];
   const lines = rows.map((r, i) => {
     const y0 = y(r.now);
     const y1 = y(r.at20);
     const ln = s('line', { x1: X0, y1: y0, x2: X1, y2: y1, stroke: STOP_STYLE[r.stop].line, 'stroke-width': 3, 'stroke-linecap': 'round', 'data-lag': r.stop });
-    const endHalo = tied[i] ? null : halo(X1, y1, 8);
-    const end = tied[i] ? null : mark(r.stop, X1, y1, 5.5);
+    // The end marks sit above every line (one layer), so no line crosses a mark.
+    const startMark = mark(r.stop, X0 + dx0[i], y0, 5.5);
+    const endMark = mark(r.stop, X1 + dx1[i], y1, 5.5);
+    for (const m of [startMark, endMark]) m.removeAttribute('data-series');
+    const startHalo = halo(X0 + dx0[i], y0, 7);
+    const endHalo = halo(X1 + dx1[i], y1, 7);
+    halos.push(startHalo, endHalo);
+    ends.push(s('g', { class: `lag-ends${F.focus && F.focus !== r.stop ? ' faded' : ''}`, 'data-ends': r.stop }, startMark, endMark));
     const label = s('g', { class: 'lag-label' },
-      shaped ? mark(r.stop, X1 + 16, rightY[i], 4) : null,
-      s('text', { x: textX, y: rightY[i] + 4.5, class: 'chart-end lag-value' }, `${r.at20.toFixed(1)} `, s('tspan', { class: 'rise' }, signed(r.rise))));
+      mark(r.stop, rightMark, rightY[i], 4),
+      s('text', { x: rightMark + 10, y: rightY[i] + 4.5, class: 'chart-end lag-value' }, `${r.at20.toFixed(1)} `, s('tspan', { class: 'rise' }, signed(r.rise))));
     if (into != null) {
       // The rise shows as the line climbs, so a waiting chart never reads ahead of its lines.
       label.classList.add('lag-label-in');
@@ -227,18 +258,16 @@ function lagChart(st) {
     if (into != null && Math.abs(y0 - y1) > 0.5) {
       ln.classList.add('lag-rise', y1 < y0 ? 'up' : 'down');
       ln.style.setProperty('--skew', `${(Math.atan((y0 - y1) / (X1 - X0)) * 180) / Math.PI}deg`);
-      for (const el of [endHalo, end].filter(Boolean)) {
+      for (const el of [endHalo, endMark]) {
         el.classList.add('lag-end');
         el.style.setProperty('--drop', `${y0 - y1}px`);
       }
-      for (const el of [ln, endHalo, end].filter(Boolean)) el.style.setProperty('--delay', `${i * step - into}ms`);
+      for (const el of [ln, endHalo, endMark]) el.style.setProperty('--delay', `${i * step - into}ms`);
     }
-    // The lines meet at the first post with their round caps; the figure on the left carries the shape.
     return s('g', { 'data-series': r.stop },
       ln,
-      endHalo, end,
-      mark(r.stop, X0 - 48, leftY[i], 4),
-      s('text', { x: X0 - 14, y: leftY[i] + 4.5, 'text-anchor': 'end', class: 'chart-end lag-value' }, r.now.toFixed(1)),
+      mark(r.stop, leftEnd - 34, leftY[i], 4),
+      s('text', { x: leftEnd, y: leftY[i] + 4.5, 'text-anchor': 'end', class: 'chart-end lag-value' }, r.now.toFixed(1)),
       label);
   });
   // The target: one area under every line and mark, with no data-series. A
@@ -258,7 +287,7 @@ function lagChart(st) {
     ...grid, ...posts,
     s('text', { class: 'col-head', x: X0, y: 14, 'text-anchor': 'middle' }, 'right after'),
     s('text', { class: 'col-head', x: X1, y: 14, 'text-anchor': 'middle' }, 'after 20 min'),
-    area, ...lines,
+    area, ...lines, ...halos, ...ends,
     s('text', { x: 0, y: HT - 4 }, 'average fullness, 1 to 10, by how you stopped')));
   const { focus, pick } = F;
   area.addEventListener('click', (e) => {
@@ -352,16 +381,13 @@ function hungerChart(st) {
 /** A chart's one-line caption. */
 const caption = (words) => h('p', { class: 'chart-note' }, nowrapTerms(words));
 
-/** Add a meal: a meal already eaten, added whole with no timer. */
-const addMealPill = (addMeal) => h('div', { class: 'add-meal-row' }, button('Add a meal', addMeal, { kind: 'secondary', name: 'add-meal', icon: 'plus' }));
 
-function insightsView(ctx, app, st, addMeal) {
+function insightsView(ctx, app, st) {
   if (!st.rated) {
     // Nothing rated yet: no key, since there is nothing for it to key.
     return h('div', { class: 'satiety-empty insights-empty', 'data-block': 'satiety-insights' },
       h('p', { class: 'empty-message' }, 'Your insights start with your first rated meal.'), ' ',
-      h('p', { class: 'empty-how' }, nowrapTerms('Finish a meal and rate how it ended, then answer the fullness check 20 minutes later.')),
-      addMealPill(addMeal));
+      h('p', { class: 'empty-how' }, nowrapTerms('Finish a meal and rate how it ended, then answer the fullness check 20 minutes later.')));
   }
   const pct = (n, d) => (d ? figureParts([[Math.round((n / d) * 100), '%']]) : 'none');
   // What each chart leads with.
@@ -377,33 +403,30 @@ function insightsView(ctx, app, st, addMeal) {
         st.drift == null ? 'not yet' : figureParts([[signed(st.drift), ' pts']])),
       h('p', { class: climbing ? 'hero-note climbing' : 'hero-note' },
         nowrapTerms(st.drift == null ? 'Needs a meal with both fullness readings.' : climbing ? 'Fullness keeps climbing after you stop. Stopping earlier would still land you satisfied.' : 'How much fullness rises in the 20 minutes after a meal.')),
-      h('p', { class: 'hero-count', 'data-testid': 'satiety-count' },
-        nowrapTerms(`${st.rated} rated ${st.rated === 1 ? 'meal' : 'meals'}; ${st.done} with the 20-minute check.`)),
       h('div', { class: 'group contrib-group' },
         contributor('Landed in zone', figureParts([[st.landed, ` of ${st.done}`]]), `Meals that ended between ${ZONE[0]} and ${ZONE[1]} out of 10.`, 'tile-zone'),
         contributor('Meals complete', figureParts([[st.done, ` of ${st.meals}`]]), st.done === st.meals ? 'Every meal has both readings.' : nowrapTerms(`${st.meals - st.done} still missing the 20-minute check.`), 'tile-complete'),
         contributor('Stopped past full', pct(st.pastFull, st.rated), st.pastFull ? 'Share of rated meals that ended overfull.' : 'You have not ended a meal overfull.', 'tile-past'))),
     card('Where you land',
       landing != null ? lead([[landing.toFixed(1), ' of 10']], 'lead-landing') : null,
-      caption('Fullness 20 minutes after each meal.'),
+      caption('Average fullness 20 minutes after a meal, over the meals below. Each point is one meal; the shaded band is your comfortable zone, and the shape and colour show how the meal ended.'),
       st.landings.length ? landingChart(st) : h('p', { class: 'chart-wait' }, 'Answer one fullness check and your first point appears here.')),
-    // The lag's figure is the hero's: the card shows its lines only.
     card('The 20-minute lag',
-      caption('The steeper the line, the bigger the lag.'),
+      st.drift != null ? lead([[signed(st.drift), ' pts']], 'lead-lag') : null,
+      caption('The average rise in fullness over the 20 minutes after a meal. Below, by how you stopped: fullness right after and 20 minutes later. The steeper the line, the more your body was still catching up; the figure on the right is the rise.'),
       st.done ? lagChart(st) : h('p', { class: 'chart-wait' }, 'Answer one fullness check and the lines appear here.')),
     card('How often you stop where',
       lead([[wanting.count, ` of ${st.rated}`]], 'lead-stops'),
-      caption('Meals left wanting, the goal.'),
+      caption('Meals you left wanting, the goal, out of every rated meal. Below, how often you stop each way.'),
       h('div', { class: 'chart-block' }, stopChart(st))),
     card('Arriving hungry',
       hunger != null ? lead([[hunger.toFixed(1), ' of 10']], 'lead-hunger') : null,
-      caption('Average hunger before a meal.'),
+      caption('Average hunger before a meal, 1 to 10. Below, by how the meal ended.'),
       h('div', { class: 'chart-block' }, hungerChart(st))),
     findings(ctx),
     app.ui.showSatietyTable ? h('div', { class: 'section table-card' }, mealTable(ctx)) : null,
     h('div', { class: 'table-toggle' },
-      button(app.ui.showSatietyTable ? 'Hide the table' : 'Show as a table', () => { app.ui.showSatietyTable = !app.ui.showSatietyTable; app.refresh(); }, { kind: 'secondary', name: 'satiety-table' }),
-      button('Add a meal', addMeal, { kind: 'secondary', name: 'add-meal', icon: 'plus' })));
+      button(app.ui.showSatietyTable ? 'Hide the table' : 'Show as a table', () => { app.ui.showSatietyTable = !app.ui.showSatietyTable; app.refresh(); }, { kind: 'secondary', name: 'satiety-table' })));
 }
 
 function findings(ctx) {
@@ -494,7 +517,7 @@ function checkRow(app, m) {
     h('div', { class: 'check-row-action' }, button('Score my fullness now', () => showFullnessSheet(app, m.id), { kind: 'secondary', name: 'score-now' })));
 }
 
-function nowView(ctx, app, addMeal) {
+function nowView(ctx, app) {
   const { mode, rec } = ctx.mode;
   const day = rec && (mode === 'open' || mode === 'forgot' || mode === 'closed') ? rec.day : ctx.todayKey;
   const eating = mealInProgress(ctx, day);
@@ -508,8 +531,7 @@ function nowView(ctx, app, addMeal) {
         h('p', { class: 'eating-line' }, `Eating: ${eating.name || 'a meal'}, since ${fmtTime(eating.startedAt)}.`),
         h('div', { class: 'eating-action' }, button('Finished this meal', () => showFinishMealSheet(app, eating.id), { kind: 'win', block: true, name: 'finish-meal' })))
       : null,
-    fullnessCard(ctx, day),
-    addMealPill(addMeal));
+    fullnessCard(ctx, day));
 }
 
 // ---------- Meals ----------
@@ -550,25 +572,22 @@ function mealRow(app, m) {
   return li;
 }
 
-function mealsView(ctx, app, addMeal) {
+function mealsView(ctx, app) {
   const from = addDays(ctx.todayKey, -29);
   const recent = ctx.meals.filter((m) => m.day >= from && (!F.focus || m.stop === F.focus)).sort((a, b) => b.startedAt - a.startedAt);
   if (!recent.length && F.focus) {
     return h('div', { 'data-block': 'satiety-meals' },
-      addMealPill(addMeal),
       h('div', { class: 'meals-key' }, stopLegend([], 'meals-legend')),
       h('p', { class: 'meals-empty' }, `No ${STOP_STYLE[F.focus].word.toLowerCase()} meals in the last 30 days.`));
   }
   if (!recent.length) {
+    // Nothing listed: no key, since there is nothing for it to key.
     return h('div', { class: 'satiety-empty', 'data-block': 'satiety-meals' },
-      legend(STOPS.map((k) => [stopIcon(k), STOP_STYLE[k].word])),
       h('p', { class: 'empty-message' }, 'No meals in the last 30 days.'), ' ',
-      h('p', { class: 'empty-how' }, 'Start a meal from Today, or add one you already ate, and it collects here, newest first.'),
-      addMealPill(addMeal));
+      h('p', { class: 'empty-how' }, 'Start a meal from Today, or add one you already ate, and it collects here, newest first.'));
   }
   const days = [...new Set(recent.map((m) => m.day))];
   return h('div', { 'data-block': 'satiety-meals' },
-    addMealPill(addMeal),
     h('div', { class: 'meals-key' },
       stopLegend([[key('unrated'), 'Not rated yet']], 'meals-legend'),
       // Each arrow ends the reading before it, so a line never starts with one.
@@ -631,8 +650,13 @@ export function renderSatiety(ctx, app) {
   barShown = focused;
   return h('div', { class: `satiety${focused ? ' focused' : ''}`, 'data-view': view },
     header(ctx, app, { title: 'Satiety' }),
+    // The summary on every view, and Add a meal: a meal already eaten, added whole with no timer.
+    h('div', { class: 'satiety-summary' },
+      h('p', { class: 'summary-line', 'data-testid': 'satiety-count' },
+        nowrapTerms(st.rated ? `${st.rated} rated ${st.rated === 1 ? 'meal' : 'meals'}; ${st.done} with the 20-minute check.` : 'How your meals end, and what 20 minutes changes.')),
+      button('Add a meal', addMeal, { kind: 'outline', name: 'add-meal' })),
     h('div', { class: 'page-switch' }, choice({ options, value: view, cols: 3, name: 'satiety-view', ariaLabel: 'Satiety views', onChange: (v) => store.setSettings({ satietyView: v }) })),
     h('div', { class: 'satiety-content' },
-      view === 'insights' ? insightsView(ctx, app, st, addMeal) : view === 'now' ? nowView(ctx, app, addMeal) : mealsView(ctx, app, addMeal)),
+      view === 'insights' ? insightsView(ctx, app, st) : view === 'now' ? nowView(ctx, app) : mealsView(ctx, app)),
     bar);
 }

@@ -345,7 +345,10 @@
   height: var(--glyph);
 }
 
-/* A tertiary pill: white, an edge, 44 tall. */
+/* A tertiary pill: white, a grey edge, callout words, 36 drawn and 44 to
+   touch (its ::after). Three tiers, each a step down in height, weight and
+   edge: primary 56 filled, secondary 48 with an ink outline, tertiary 36
+   with a grey one. */
 .btn-2 {
   --btn-fg: var(--ink);
   position: relative;
@@ -353,7 +356,7 @@
   align-items: center;
   justify-content: center;
   column-gap: var(--space-2);
-  min-height: var(--hit);
+  min-height: var(--slim-h);
   padding: 0 var(--space-4);
   font-family: var(--font-ui);
   font-weight: 800;
@@ -374,6 +377,18 @@
 .btn-2.pressed {
   background: var(--shade);
   transform: scale(var(--press-scale));
+}
+
+/* The tertiary pill's 44px hit area: taller, never wider (its border is
+   the pill's own), so it never overflows the words' box. */
+.btn-2::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: var(--hit);
+  transform: translateY(-50%);
 }
 
 /* Back: a chevron before the words. */
@@ -1710,10 +1725,11 @@ html.sheet-open .flash-root {
   outline-color: var(--focus-on-ink);
 }
 
-/* Undo: a white pill on the ink. */
+/* Undo: a white pill on the ink, the toast's one action, 44 drawn. */
 .flash .btn-2 {
   --btn-fg: var(--ink);
   flex: none;
+  min-height: var(--hit);
   padding: 0 var(--space-4);
   font-size: var(--t-headline-size);
   line-height: var(--t-headline-lh);
@@ -2029,24 +2045,32 @@ html.sheet-open .flash-root {
   overflow: visible;
 }
 
-/* A legend you can tap: each item a chip, 36 drawn and 44 to touch. */
-.legend:has(.legend-pick) {
-  row-gap: var(--space-3);
+/* A legend you can tap: each filter a soft chip, 36 drawn and 44 to touch,
+   the way a track's options look, so a legend never reads as a row of
+   buttons. The chips come first; the plain keys share the line under them
+   (a break before them), 16 below. Chip rows are 8 apart, so their 44 hit
+   areas meet and never overlap. */
+.legend:has(.legend-pick) > .legend-item:not(.legend-pick) {
+  order: 2;
 }
 
-.legend:has(.legend-pick) > .legend-item:not(.legend-pick) {
+.legend:has(.legend-pick):has(> .legend-item:not(.legend-pick))::after {
+  content: '';
   order: 1;
+  flex-basis: 100%;
+  height: 0;
 }
 
 .legend-pick {
   position: relative;
   min-height: var(--slim-h);
-  padding: 0 var(--space-3);
+  padding: 0 var(--space-3) 0 var(--space-2);
+  column-gap: var(--space-2);
   font: inherit;
   font-weight: 800;
   color: var(--text-display);
-  background: var(--bg-raised-2);
-  border: 2px solid var(--edge);
+  background: var(--shade);
+  border: 0;
   border-radius: var(--r-pill);
   transition:
     color var(--dur-fast) var(--ease-out),
@@ -2054,7 +2078,16 @@ html.sheet-open .flash-root {
     transform var(--dur-press) var(--ease-out);
 }
 
-.legend-pick::after,
+.legend-pick::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: var(--hit);
+  transform: translateY(-50%);
+}
+
 .hit-44::after {
   content: '';
   position: absolute;
@@ -2071,7 +2104,7 @@ html.sheet-open .flash-root {
 }
 
 .legend-pick:active {
-  background: var(--shade);
+  background: var(--track);
   transform: scale(var(--press-scale));
 }
 
