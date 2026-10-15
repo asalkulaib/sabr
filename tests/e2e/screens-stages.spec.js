@@ -144,22 +144,24 @@ test.describe('layout', () => {
       return { colour: a.borderTopColor, opacity: a.opacity, words: getComputedStyle(el.parentElement).color };
     });
     expect(ringed).toEqual({ colour: 'rgb(14, 14, 18)', opacity: '1', words: 'rgb(14, 14, 18)' });
-    // Neutral cards, each as tall as its words: Read more 16 under the text and
-    // the card's padding under Read more, so no card holds an empty block.
-    // The list is as tall as the card in view; the note sits 24 under it.
+    // Neutral cards, all as tall as the longest, with Read more level at the
+    // foot of every card (the card's padding under it), as in Fast: 16 under
+    // the longest card's words, more under shorter ones. The list is as tall
+    // as the cards; the note sits 24 under it.
     const cards = await s.locator('.stage-card').evaluateAll((els) => els.map((e) => {
       const card = e.getBoundingClientRect();
       const text = e.querySelector('.stage-text').getBoundingClientRect();
       const more = e.querySelector('[data-action^="more-"]').getBoundingClientRect();
       return {
         bg: getComputedStyle(e).backgroundColor,
-        h: card.height,
+        h: Math.round(card.height),
         gap: Math.round(more.top - text.bottom),
         foot: Math.round(card.bottom - more.bottom - parseFloat(getComputedStyle(e).paddingBottom)),
       };
     }));
     expect(new Set(cards.map((c) => c.bg))).toEqual(new Set(['rgb(243, 243, 246)']));
-    expect(cards.map((c) => c.gap)).toEqual(Array(6).fill(16));
+    expect(new Set(cards.map((c) => c.h)).size).toBe(1);
+    expect(Math.min(...cards.map((c) => c.gap))).toBe(16);
     expect(cards.map((c) => c.foot)).toEqual(Array(6).fill(0));
     const list = await s.locator('.stage-cards').evaluate((el) => ({
       h: el.getBoundingClientRect().height,

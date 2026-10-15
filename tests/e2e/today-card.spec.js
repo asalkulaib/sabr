@@ -154,6 +154,37 @@ test('the stages show three at a time; the line swipes on its own and follows th
   expect(await inLine('sparing')).toBe(false);
 });
 
+test('the cards keep one size at every point of a swipe, so a swipe comes to rest on a card', async ({ page }) => {
+  await openAt(page, '2026-09-27T13:10'); // 16 h 10 min: the metabolic switch
+  await seed(page, LAST_NIGHT);
+  await tap(page, 'open-stages');
+  const s = sheet(page, 'stages');
+  await expect(s.locator('[data-action="stage-switch"]')).toHaveAttribute('aria-current', 'true');
+  // Every card is as tall as the list, and nothing restyles or resizes the
+  // list as the cards pass: on iPhone a snapping list resized mid-swipe left
+  // the cards at rest between two stages.
+  const seen = await s.locator('.stage-cards').evaluate(async (el) => {
+    const frame = () => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)));
+    const step = el.children[1].offsetLeft - el.children[0].offsetLeft;
+    // Held between cards, as a finger holds them.
+    el.style.setProperty('scroll-snap-type', 'none');
+    let restyled = 0;
+    const watch = new MutationObserver((changes) => { restyled += changes.length; });
+    watch.observe(el, { attributes: true, attributeFilter: ['style', 'class'] });
+    const sizes = new Set();
+    for (const at of [0, 0.3, 0.5, 1.5, 2.7, 3.5, 4.2, 5, 2]) {
+      el.scrollLeft = at * step;
+      await frame();
+      sizes.add(Math.round(el.getBoundingClientRect().height));
+      for (const card of el.children) sizes.add(Math.round(card.getBoundingClientRect().height));
+    }
+    watch.disconnect();
+    return { sizes: [...sizes], restyled };
+  });
+  expect(seen.sizes).toHaveLength(1);
+  expect(seen.restyled).toBe(0);
+});
+
 test('starting the first meal ends the fast: its length, gold when it reached the goal; Close puts it away', async ({ page }) => {
   await openAt(page, '2026-09-27T17:30'); // 20 h 30 min after the last bite
   await seed(page, LAST_NIGHT);

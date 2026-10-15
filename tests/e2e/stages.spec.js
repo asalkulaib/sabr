@@ -181,6 +181,24 @@ test('with Reduce Motion on, the stage icons rest', async ({ page }) => {
   expect(stops).toEqual([0, 0, 0, 0, 0, 0]);
 });
 
+test('the ring round the stage in view fades its colour alone, so it never covers the Now tag', async ({ page }) => {
+  await openAt(page, '2026-09-27T13:10'); // the metabolic switch, marked Now
+  await seed(page, LAST_NIGHT);
+  await tap(page, 'open-stages');
+  const s = sheet(page, 'stages');
+  await expect(s.locator('[data-action="stage-switch"]')).toHaveAttribute('aria-current', 'true');
+  // A ring that faded or grew got a layer of its own while it ran, and iPhone
+  // drew that layer over the Now tag. Only its colour changes now.
+  const rings = await s.locator('.stage-stop .stop-mark').evaluateAll((els) => els.map((el) => {
+    const ring = getComputedStyle(el, '::after');
+    return { fades: ring.transitionProperty, opacity: ring.opacity, transform: ring.transform, colour: ring.borderTopColor };
+  }));
+  // Ink round the stage in view only; the others' rings are see-through.
+  const ink = 'rgb(14, 14, 18)';
+  const none = 'rgba(0, 0, 0, 0)';
+  expect(rings).toEqual([none, none, ink, none, none, none].map((colour) => ({ fades: 'border-color', opacity: '1', transform: 'none', colour })));
+});
+
 test('no bite logged yet: no ring', async ({ page }) => {
   await openAt(page, '2026-09-27T13:10');
   await expect(page.locator('[data-block="before"]')).toContainText('Fasting');

@@ -1,7 +1,7 @@
 // Sabr service worker. Every file is precached, so the app works fully offline.
 // VERSION and ASSETS are stamped by tools/release.mjs on every release.
 
-const VERSION = '2026.10.13-22ba8eca';
+const VERSION = '2026.10.15-574e05f1';
 const ASSETS = [
   'css/base.css',
   'css/components.css',

@@ -109,24 +109,21 @@
   margin-bottom: var(--space-4);
 }
 
-/* The stage in view: an ink ring round its disc. */
+/* The stage in view: an ink ring round its disc. It fades in by its colour
+   alone: while it faded and grew in a layer of its own, iPhone drew it over
+   the Now tag. */
 [data-sheet='stages'] .stage-stop .stop-mark::after {
   content: '';
   position: absolute;
   inset: calc(-1.5 * var(--space-1));
-  border: 2px solid var(--select);
+  border: 2px solid transparent;
   border-radius: var(--r-pill);
-  opacity: 0;
-  transform: scale(0.92);
-  transition:
-    opacity var(--dur-fast) var(--ease-out),
-    transform var(--dur-fast) var(--ease-out);
+  transition: border-color var(--dur-fast) var(--ease-out);
   pointer-events: none;
 }
 
 [data-sheet='stages'] .stage-stop[aria-current='true'] .stop-mark::after {
-  opacity: 1;
-  transform: none;
+  border-color: var(--select);
 }
 
 /* Now sits on the lower edge of the stage the fast is in. */
@@ -162,22 +159,20 @@
   margin-top: var(--space-1);
 }
 
-/* ---------- The cards: neutral, one at a time, each as tall as its words ---------- */
-/* The list is as tall as the card in view (--cards-h, set as the cards
-   swipe), so the note under it sits a fixed gap under the card's Read more.
-   Without the script it is as tall as the longest card. */
+/* ---------- The cards: neutral, one at a time, all one height ---------- */
+/* Every card is as tall as the longest, with Read more level at the foot of
+   each, as in Fast. The list never changes size while it scrolls: when it
+   followed the height of the card in view on every frame of a swipe, the
+   cards on iPhone came to rest between two stages. */
 [data-sheet='stages'] .stage-cards {
   display: grid;
-  align-items: start;
   grid-auto-flow: column;
   grid-auto-columns: 100%;
   column-gap: var(--card-gap);
   margin: var(--space-4) 0 0;
   padding: 0;
   list-style: none;
-  height: var(--cards-h, auto);
   overflow-x: auto;
-  overflow-y: hidden;
   scroll-snap-type: x mandatory;
   overscroll-behavior-x: contain;
   scrollbar-width: none;
@@ -218,9 +213,10 @@
   margin-top: var(--space-2);
 }
 
-/* Read more follows the stage's words at one fixed gap. */
+/* Read more sits at the card's foot, at least one fixed gap under the words. */
 [data-sheet='stages'] .stage-more-row {
-  margin-top: var(--space-4);
+  margin-top: auto;
+  padding-top: var(--space-4);
 }
 
 /* ---------- Under the cards ---------- */
@@ -380,13 +376,9 @@
 }
 
 /* ---------- Reduce Motion ---------- */
-/* The ring round the stage in view fades in place; no icon on the line moves. */
+/* No icon on the line moves. The ring round the stage in view fades its
+   colour here too. */
 @media (prefers-reduced-motion: reduce) {
-  [data-sheet='stages'] .stage-stop .stop-mark::after {
-    transform: none;
-    transition: opacity var(--dur-reduced) var(--ease-out);
-  }
-
   [data-sheet='stages'] .stage-stop .stage-icon,
   [data-sheet='stages'] .stage-stop .stage-icon * {
     animation: none !important;
