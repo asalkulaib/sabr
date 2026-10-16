@@ -322,6 +322,12 @@ test('a narrow phone: 320 wide', async ({ page }) => {
   await scrollSheet(page, 'start-meal', 'top');
   await shot(page, 'F90-narrow-start-meal');
   await noOverflow(page);
+  // The longest words for a number still fit on one line, 320 wide.
+  await pick(page, 'hunger', 4);
+  await page.getByTestId('hunger-meaning').scrollIntoViewIfNeeded();
+  await expect(page.getByTestId('hunger-meaning')).toHaveText('4: Getting hungry. Thinking about food.');
+  await shot(page, 'F90b-narrow-hunger-words');
+  await noOverflow(page);
   await tap(page, 'close-sheet');
   await tap(page, 'add-meal');
   await page.locator('[data-sheet="add-meal"] [data-time="added-finish"]').scrollIntoViewIfNeeded();

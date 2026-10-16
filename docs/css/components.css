@@ -808,6 +808,19 @@ a.chip {
   color: var(--text-quiet);
 }
 
+/* What the number in hand means, under the ends. Its line is kept while it
+   is blank, so choosing a number never moves what follows. Every phrase fits
+   on one line from 320 wide (the longest, 274 of 280px there). */
+.scale-meaning {
+  min-height: var(--t-callout-lh);
+  margin-top: var(--space-2);
+  font-weight: 700;
+  font-size: var(--t-callout-size);
+  line-height: var(--t-callout-lh);
+  letter-spacing: var(--t-callout-track);
+  color: var(--text-display);
+}
+
 /* A chart's own switch: 44 tall, options 36 drawn and 44 to touch. */
 .choice.slim {
   display: inline-grid;

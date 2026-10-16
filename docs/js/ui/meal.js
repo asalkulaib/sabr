@@ -152,9 +152,39 @@ function mealTypeSection(ctx, draft, guessAt = null, { titled = false } = {}) {
   return box;
 }
 
+// What each number means, 1 to 10, in the words the owner approved: drawn
+// from the hunger and fullness scale dietitians use (5 neutral, 7 comfortably
+// full), told by how the body feels, never in the words of "How did you
+// finish?". The same words show wherever a number is chosen.
+const HUNGER_WORDS = [
+  'Not hungry at all.',
+  'Barely hungry. Could easily wait.',
+  'A little hungry. Food sounds good.',
+  'Getting hungry. Thinking about food.',
+  'Hungry. Ready to eat.',
+  'Hungry. Stomach starting to growl.',
+  'Very hungry. Stomach growling.',
+  'Very hungry. Low on energy.',
+  'Ravenous. Irritable, hard to focus.',
+  'Starving. Weak or shaky.',
+];
+
+const FULLNESS_WORDS = [
+  'Empty. Very hungry.',
+  'Nearly empty. Still very hungry.',
+  'Hungry. Could eat a meal.',
+  'A little hungry. Could eat more.',
+  'Neither hungry nor full.',
+  'Comfortable. No longer hungry.',
+  'Comfortably full.',
+  "Full. You've had enough.",
+  'Too full. Uncomfortable.',
+  'Stuffed. Painfully full.',
+];
+
 const hungerScale = (draft) => scale({
   n: 10, value: draft.hungerBefore, onChange: (v) => { draft.hungerBefore = v; },
-  label: 'Hunger before', low: '1 not hungry', high: '10 very hungry', name: 'hunger',
+  label: 'Hunger before', low: '1 not hungry', high: '10 very hungry', name: 'hunger', meanings: HUNGER_WORDS,
 });
 
 // Each option as wide as its words, so "Left wanting" never wraps, and each
@@ -168,7 +198,7 @@ const stopChoice = (draft) => choice({
 
 const fullnessScale = (draft, key = 'fullnessNow', label = 'Fullness now') => scale({
   n: 10, value: draft[key], onChange: (v) => { draft[key] = v; },
-  label, low: '1 empty', high: '10 stuffed', name: key === 'fullnessNow' ? 'fullness-now' : 'fullness-20',
+  label, low: '1 empty', high: '10 stuffed', name: key === 'fullnessNow' ? 'fullness-now' : 'fullness-20', meanings: FULLNESS_WORDS,
 });
 
 // ---------- How a day becomes a miss, in words ----------
@@ -688,7 +718,7 @@ export function showFullnessSheet(app, mealId) {
     // Asked for a number, the line goes once one is picked.
     const hintEl = errLine(hint);
     const rating = scale({
-      n: 10, value: draft.fullness20, label: 'Fullness now', low: '1 empty', high: '10 stuffed', name: 'fullness-20',
+      n: 10, value: draft.fullness20, label: 'Fullness now', low: '1 empty', high: '10 stuffed', name: 'fullness-20', meanings: FULLNESS_WORDS,
       onChange: (v) => { draft.fullness20 = v; hint = ''; say(hintEl, ''); },
     });
     return {

@@ -100,7 +100,9 @@ Every colour-coded visual has a legend that names each colour in words: the week
 
 ## Fullness
 
-When you finish a meal, Sabr asks how you finished: Left wanting (the goal), Satisfied, or Overfull. A day counts as left wanting only when every meal was. When the day's meals were not all rated, and on paused days, Satiety › Now asks once how the day's eating ended, and the worst answer of the day counts. Once every meal is rated, the meals alone decide. Satiety's charts and findings use each meal's own ratings. Fullness is logged every day, holidays and pauses included. The 1 to 10 ratings and the 20-minute check stay as before.
+When you finish a meal, Sabr asks how you finished: Left wanting (the goal), Satisfied, or Overfull. A day counts as left wanting only when every meal was. When the day's meals were not all rated, and on paused days, Satiety › Now asks once how the day's eating ended, and the worst answer of the day counts. Once every meal is rated, the meals alone decide. Satiety's charts and findings use each meal's own ratings. Fullness is logged every day, holidays and pauses included.
+
+As you pick a number for hunger or fullness, a line under the scale says what that number means, the same words wherever you rate. Hunger runs from "1: Not hungry at all." to "10: Starving. Weak or shaky." Fullness runs from "1: Empty. Very hungry." through "7: Comfortably full." to "10: Stuffed. Painfully full." The words follow the hunger and fullness scale dietitians use; on fullness, 5 is neutral and 7 comfortably full. The line stays blank until you pick.
 
 ## Streak
 

@@ -22,9 +22,10 @@ const GLIDE_MS = 600;
  * dragged along. The chosen button carries aria-checked, or aria-current for
  * the tabs. Returns { choose(button, { tap }), sync() }: choose marks a
  * button, moves the pill and calls pick(button); sync follows a choice
- * made elsewhere.
+ * made elsewhere. onMark(button or null) hears every mark, the button under
+ * a dragging finger included, before anything is picked.
  */
-export function sliding(track, buttons, { key = null, line = false, pick, current = false }) {
+export function sliding(track, buttons, { key = null, line = false, pick, current = false, onMark = null }) {
   const pill = h('span', { class: 'pill', 'aria-hidden': 'true', hidden: true });
   track.prepend(pill);
   const isChosen = current ? (b) => b.getAttribute('aria-current') === 'page' : (b) => b.getAttribute('aria-checked') === 'true';
@@ -45,6 +46,7 @@ export function sliding(track, buttons, { key = null, line = false, pick, curren
       else if (x === b) x.setAttribute('aria-current', 'page');
       else x.removeAttribute('aria-current');
     }
+    if (onMark) onMark(b);
   };
   const show = (b) => {
     pill.hidden = !b;
@@ -138,13 +140,17 @@ export function sliding(track, buttons, { key = null, line = false, pick, curren
 /**
  * A rating: the numbers on one track, an ink pill under the one chosen.
  * Tap a number or drag the pill along.
- * opts: { n, value, onChange, label, low, high, start = 1 }
+ * opts: { n, value, onChange, label, low, high, start = 1, meanings }
+ * meanings: the words for each number, first to last. A line under the ends
+ * then says what the number in hand means ("6: Comfortable. No longer
+ * hungry."), following a dragging finger; it is blank until one is chosen.
  */
-export function scale({ n, value, onChange, label, low, high, start = 1, name }) {
+export function scale({ n, value, onChange, label, low, high, start = 1, name, meanings = null }) {
   const labelId = nextId('scale');
   const short = n <= 5;
   const row = h('div', { class: short ? 'scale short' : 'scale', role: 'radiogroup', 'aria-labelledby': labelId });
   row.style.setProperty('--n', String(n));
+  const words = (v) => (meanings && meanings[v - start]) || null;
   const buttons = [];
   let slide = null;
   for (let i = 0; i < n; i++) {
@@ -153,18 +159,29 @@ export function scale({ n, value, onChange, label, low, high, start = 1, name })
       type: 'button',
       role: 'radio',
       'aria-checked': String(v === value),
-      'aria-label': `${v}`,
+      // A screen reader hears the words with each number, so the line is not read twice.
+      'aria-label': words(v) ? `${v}, ${words(v)}` : `${v}`,
       dataset: { value: String(v), scale: name || '' },
       onclick: () => slide.choose(b, { tap: true }),
     }, String(v));
     buttons.push(b);
     row.append(b);
   }
-  slide = sliding(row, buttons, { key: name ? `scale:${name}` : null, line: true, pick: (b) => onChange(Number(b.dataset.value)) });
+  // A div, so the sheets' paragraph spacing never reaches it.
+  const meaning = meanings ? h('div', { class: 'scale-meaning', 'aria-hidden': 'true', 'data-testid': name ? `${name}-meaning` : null }) : null;
+  const tell = (b) => {
+    const v = b ? Number(b.dataset.value) : null;
+    meaning.textContent = v != null && words(v) ? `${v}: ${words(v)}` : '';
+  };
+  slide = sliding(row, buttons, {
+    key: name ? `scale:${name}` : null, line: true, pick: (b) => onChange(Number(b.dataset.value)), onMark: meaning ? tell : null,
+  });
+  if (meaning) tell(buttons.find((b) => b.getAttribute('aria-checked') === 'true') || null);
   const wrap = h('div', { class: short ? 'scale-wrap short' : 'scale-wrap' },
     label ? h('div', { class: 'label field-label', id: labelId }, label) : null,
     row,
     low || high ? h('div', { class: 'scale-ends' }, h('span', {}, low || ''), h('span', {}, high || '')) : null,
+    meaning,
   );
   wrap.style.setProperty('--n', String(n));
   return wrap;
