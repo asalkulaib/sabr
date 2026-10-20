@@ -58,6 +58,41 @@ test('otherwise there is no clear difference yet, with the counts', () => {
   ]);
 });
 
+/**
+ * One meal a day from 1 August at hunger 6, so only the finding on twenty
+ * minutes on can show: the meals left wanting land at `lw`, the others at
+ * `rest`, each checked on time; `unread` more rated meals have no reading.
+ */
+function landings(lw, rest, unread = 0) {
+  const day = (i) => new Date(Date.UTC(2026, 7, 1 + i)).toISOString().slice(0, 10);
+  return [
+    ...lw.map((at20, i) => meal(day(i), 18, 6, 'before_full', at20)),
+    ...rest.map((at20, i) => meal(day(lw.length + i), 18, 6, 'full', at20)),
+    ...Array.from({ length: unread }, (_, i) => meal(day(lw.length + rest.length + i), 18, 6, 'full')),
+  ];
+}
+
+test('twenty minutes on: readings at the middle value go to whichever side splits them all nearer half', () => {
+  // Ratings bunch at the target, so the middle value of them all is often a
+  // reading itself. Every other meal landed at 7, the middle: the meals left
+  // wanting lower, or higher, read the same way.
+  assert.deepEqual(satietyInsights(landings(Array(10).fill(5), Array(30).fill(7))),
+    ['Twenty minutes on, fullness averaged 5.0 after meals left wanting, and 7.0 after the rest.']);
+  assert.deepEqual(satietyInsights(landings(Array(10).fill(9), Array(30).fill(7))),
+    ['Twenty minutes on, fullness averaged 9.0 after meals left wanting, and 7.0 after the rest.']);
+  // As meals come: left wanting mostly at 6, the others mostly at 7.
+  assert.deepEqual(satietyInsights(landings([6, 6, 6, 5, 6, 7, 6, 6], [7, 7, 8, 7, 7, 7, 8, 7, 7, 7, 7, 7, 6, 7, 8, 7, 7, 7, 7, 7])),
+    ['Twenty minutes on, fullness averaged 6.0 after meals left wanting, and 7.1 after the rest.']);
+  // Three readings against three can never tell, readings at the middle or not.
+  assert.deepEqual(satietyInsights(landings([6, 6, 7], [7, 7, 7], 4)),
+    ['No clear difference yet: twenty minutes on, fullness averaged 6.3 after 3 meals left wanting, against 7.0 after 3 others.']);
+  assert.deepEqual(satietyInsights(landings([5, 5, 5], [9, 9, 9], 4)),
+    ['No clear difference yet: twenty minutes on, fullness averaged 5.0 after 3 meals left wanting, against 9.0 after 3 others.']);
+  // With no difference, none is stated.
+  assert.deepEqual(satietyInsights(landings([6, 7, 7, 7, 8], [6, 7, 7, 7, 8])),
+    ['No clear difference yet: twenty minutes on, fullness averaged 7.0 after 5 meals left wanting, against 7.0 after 5 others.']);
+});
+
 test('twenty minutes on rests on checks answered on time', () => {
   // Late and added readings, however telling, are left out of the average.
   const meals = [

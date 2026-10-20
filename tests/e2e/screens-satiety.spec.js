@@ -76,11 +76,15 @@ test('insights: a rough stop point after the quiet note, and no check on time ye
   await expect(page.getByTestId('stop-point')).toHaveText('Rough so far: stop near 6: 6 of your 7 meals stopped there landed in 6 to 8, 1 past 8.');
   await expect(page.getByTestId('drift-basis')).toHaveCount(0);
   await shot(page, 'SA70n-satiety-stop-rough');
-  // Only readings late or added: no drift yet, and the line says what was left out.
+  // Only readings late or added: no drift yet, the line says what was left out,
+  // and the charts wait for a check answered on time.
   const offTime = [satietyMeal(20, 5, 7, 'before_full', 6, 'added-now'), satietyMeal(22, 6, 8, 'full', 7, 'late', '19:10'), satietyMeal(23, 5, 7, 'before_full', 6, 'added')];
   await seed(page, { ...WEEK, meals: offTime, settings: install });
   await expect(page.getByTestId('drift-basis')).toHaveText('Left out: 1 late, 2 added.');
   await shot(page, 'SA70o-satiety-none-on-time');
+  await expect(page.locator('.chart-wait')).toHaveCount(2);
+  await page.locator('.chart-wait').first().evaluate((el) => el.scrollIntoView({ block: 'center' }));
+  await shot(page, 'SA70q-satiety-none-on-time-charts');
 });
 
 /** The same meal three hours later in its day, with its own id: a day's later meal. */

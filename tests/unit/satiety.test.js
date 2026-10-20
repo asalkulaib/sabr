@@ -80,6 +80,7 @@ test('drift, landing in the zone and the lag rest on on-time checks; how often a
   assert.equal(s.meals, 9);
   assert.equal(s.rated, 9);
   assert.equal(s.done, 4); // both readings, the 20-minute one on time
+  assert.equal(s.both, 8); // both readings, however the 20-minute one was taken: the count at the top
   assert.deepEqual(s.leftOut, { late: 1, early: 1, recalled: 2, total: 4 });
   assert.equal(s.drift, (2 + 1 + 1 + 2) / 4);
   assert.equal(s.landed, 3); // 7, 6 and 8 are in the 6 to 8 zone
@@ -102,6 +103,7 @@ test('with no on-time check there is no drift, and what was left out is still co
   const s = satietyStats([meal({ how: 'added' }), meal({ how: 'late' }), meal({ at20: null })]);
   assert.equal(s.drift, null);
   assert.equal(s.done, 0);
+  assert.equal(s.both, 2);
   assert.deepEqual(s.leftOut, { late: 1, early: 0, recalled: 1, total: 2 });
   assert.deepEqual(s.landings, []);
   assert.ok(s.byStop.every((r) => r.rises === 0 && r.rise == null));

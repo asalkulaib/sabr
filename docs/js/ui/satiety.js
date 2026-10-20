@@ -437,8 +437,11 @@ function insightsView(ctx, app, st) {
   const climbing = st.drift != null && st.drift >= 1.5;
   // Where to stop, read off the person's own on-time checks: the note's second sentence, climbing or not.
   const point = stopPointWords(stopPoint(ctx.meals));
+  // Checks answered, but none on time: what the drift and the charts wait for says so.
+  const offTime = !st.done && st.leftOut.total > 0;
+  const onTimeCheck = `a fullness check ${ON_TIME[0]} to ${ON_TIME[1]} minutes after a meal`;
   const note = st.drift == null
-    ? (st.leftOut.total ? `Needs a fullness check answered ${ON_TIME[0]} to ${ON_TIME[1]} minutes after a meal.` : 'Needs a meal with both fullness readings.')
+    ? (offTime ? `Needs a fullness check answered ${ON_TIME[0]} to ${ON_TIME[1]} minutes after a meal.` : 'Needs a meal with both fullness readings.')
     : climbing ? 'Fullness keeps climbing after you stop.' : 'How much fullness rises in the 20 minutes after a meal.';
   return h('div', { 'data-block': 'satiety-insights' },
     // The hero: the drift on the page, the checks it rests on, what it means and
@@ -458,11 +461,13 @@ function insightsView(ctx, app, st) {
     card('Where you land',
       landing != null ? lead([[landing.toFixed(1), ' of 10']], 'lead-landing') : null,
       caption('Average fullness 20 minutes after a meal, over the meals below. Each point is one meal; the shaded band is your comfortable zone, and the shape and colour show how the meal ended.'),
-      st.landings.length ? landingChart(st) : h('p', { class: 'chart-wait' }, 'Answer one fullness check and your first point appears here.')),
+      st.landings.length ? landingChart(st)
+        : h('p', { class: 'chart-wait' }, offTime ? `Answer ${onTimeCheck} and your first point appears here.` : 'Answer one fullness check and your first point appears here.')),
     card('The 20-minute lag',
       st.drift != null ? lead([[signed(st.drift), ' pts']], 'lead-lag') : null,
       caption('The average rise in fullness over the 20 minutes after a meal. Below, by how you stopped: fullness right after and 20 minutes later. The steeper the line, the more your body was still catching up; the figure on the right is the rise.'),
-      st.done ? lagChart(st) : h('p', { class: 'chart-wait' }, 'Answer one fullness check and the lines appear here.')),
+      st.done ? lagChart(st)
+        : h('p', { class: 'chart-wait' }, offTime ? `Answer ${onTimeCheck} and the lines appear here.` : 'Answer one fullness check and the lines appear here.')),
     card('How often you stop where',
       lead([[wanting.count, ` of ${st.rated}`]], 'lead-stops'),
       caption('Meals you left wanting, the goal, out of every rated meal. Below, how often you stop each way.'),
@@ -715,7 +720,7 @@ export function renderSatiety(ctx, app) {
     // The summary on every view, and Add a meal: a meal already eaten, added whole with no timer.
     h('div', { class: 'satiety-summary' },
       h('p', { class: 'summary-line', 'data-testid': 'satiety-count' },
-        nowrapTerms(st.rated ? `${st.rated} rated ${st.rated === 1 ? 'meal' : 'meals'}; ${st.done} with the 20-minute check.` : 'How your meals end, and what 20 minutes changes.')),
+        nowrapTerms(st.rated ? `${st.rated} rated ${st.rated === 1 ? 'meal' : 'meals'}; ${st.both} with the 20-minute check.` : 'How your meals end, and what 20 minutes changes.')),
       button('Add a meal', addMeal, { kind: 'outline', name: 'add-meal' })),
     h('div', { class: 'page-switch' }, choice({ options, value: view, cols: 3, name: 'satiety-view', ariaLabel: 'Satiety views', onChange: (v) => store.setSettings({ satietyView: v }) })),
     h('div', { class: 'satiety-content' },

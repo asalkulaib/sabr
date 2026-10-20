@@ -22,12 +22,21 @@ const ratesDiffer = (x, y) => differs(wanting(x), x.length, wanting(y), y.length
 
 /**
  * Whether two sets of fullness readings differ: the exact test on how many
- * of each lie above the middle value of them all (a median test).
+ * of each lie above the middle value of them all (a median test). Ratings
+ * are whole numbers that bunch at the target, so many readings can equal
+ * the middle: they go to the upper side or the lower one, whichever leaves
+ * the split nearer half of all readings (the lower one when both are as
+ * near). The choice looks at all the readings together, never at the
+ * groups, so the test stays exact.
  */
 function valuesDiffer(xs, ys) {
   const all = [...xs, ...ys].sort((p, q) => p - q);
   const middle = (all[(all.length - 1) >> 1] + all[all.length >> 1]) / 2;
-  const above = (v) => v.filter((x) => x > middle).length;
+  const half = all.length / 2;
+  const over = all.filter((x) => x > middle).length;
+  const from = all.filter((x) => x >= middle).length;
+  const upper = Math.abs(over - half) <= Math.abs(from - half) ? (x) => x > middle : (x) => x >= middle;
+  const above = (v) => v.filter(upper).length;
   return differs(above(xs), xs.length, above(ys), ys.length);
 }
 

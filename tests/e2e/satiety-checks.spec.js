@@ -20,7 +20,8 @@ test('the 20-minute figures rest on checks answered on time; the line under the 
   await expect(page.getByTestId('tile-zone')).toContainText('11 of 18');
   await expect(page.getByTestId('tile-complete')).toContainText('18 of 26');
   await expect(page.getByTestId('tile-complete')).toContainText('1 still missing the 20-minute check, 7 not checked on time.');
-  await expect(page.getByTestId('satiety-count')).toHaveText('26 rated meals; 18 with the 20-minute check.');
+  // The count at the top counts every meal with both readings, however the 20-minute one was taken.
+  await expect(page.getByTestId('satiety-count')).toHaveText('26 rated meals; 25 with the 20-minute check.');
   // Where you land and the lag show the on-time checks only.
   await expect(page.getByTestId('landing-chart').locator('path[data-stop]')).toHaveCount(18);
   await expect(items(page, 'lag-legend')).toHaveText(['Left wanting (9)', 'Satisfied (4)', 'Overfull (5)']);
@@ -57,6 +58,20 @@ test('the stop point: rough under 10 meals and after the note when the drift is 
   await expect(page.getByTestId('drift-basis')).toHaveText('Left out: 1 late, 2 added.');
   await expect(page.getByTestId('drift-note')).toHaveText('Needs a fullness check answered 15 to 40 minutes after a meal.');
   await expect(page.getByTestId('tile-complete')).toContainText('3 not checked on time.');
+  await expect(page.getByTestId('satiety-count')).toHaveText('3 rated meals; 3 with the 20-minute check.');
+  // The charts wait for a check on time, too.
+  await expect(page.locator('.chart-wait')).toHaveText([
+    'Answer a fullness check 15 to 40 minutes after a meal and your first point appears here.',
+    'Answer a fullness check 15 to 40 minutes after a meal and the lines appear here.',
+  ]);
+  // No 20-minute reading at all: the charts wait for a first check.
+  await seed(page, { ...WEEK, meals: [satietyMeal(20, 5, null, 'full', 7, 'none')], settings: install });
+  await expect(page.getByTestId('satiety-count')).toHaveText('1 rated meal; 0 with the 20-minute check.');
+  await expect(page.getByTestId('drift-note')).toHaveText('Needs a meal with both fullness readings.');
+  await expect(page.locator('.chart-wait')).toHaveText([
+    'Answer one fullness check and your first point appears here.',
+    'Answer one fullness check and the lines appear here.',
+  ]);
 });
 
 test('Meals and the table mark each reading not taken on time, in words', async ({ page }) => {
@@ -182,4 +197,42 @@ test('checks answered early, on time and late: each says how, and only the one o
   await choose(page, 'satiety-view', 'insights');
   await expect(page.getByTestId('tile-drift')).toHaveText('+2.0 pts');
   await expect(page.getByTestId('drift-basis')).toHaveText('From 1 on-time check. Left out: 1 late, 1 early.');
+});
+
+test('a check answered on time stays on time when the window\'s first bite is corrected', async ({ page }) => {
+  await openAt(page, '2026-09-27T18:00');
+  await seed(page, { settings: install });
+  // Started at 18:00, finished at 18:30, the check answered when it asks, 22 minutes on.
+  await tap(page, 'start-meal');
+  await tap(page, 'start-eating');
+  await advance(page, 30);
+  await tab(page, 'satiety').click();
+  await choose(page, 'satiety-view', 'now');
+  await tap(page, 'finish-meal');
+  await choose(page, 'stop', 'before_full');
+  await pick(page, 'fullness-now', 5);
+  await tap(page, 'save-finish');
+  await expect(sheet(page, 'finish-meal')).toHaveCount(0);
+  await advance(page, 22);
+  await expect(sheet(page, 'fullness')).toBeVisible();
+  await pick(page, 'fullness-20', 7);
+  await tap(page, 'save-fullness');
+  await expect(sheet(page, 'fullness')).toHaveCount(0);
+  // Forgot to tap: eating really started at 17:30. The first meal moves with
+  // the first bite, its check with it, so the check still reads 22 minutes on.
+  await tab(page, 'today').click();
+  await tap(page, 'change-opening');
+  await setTime(page, 'opened-at', '17:30');
+  await tap(page, 'save-opening');
+  await expect(sheet(page, 'opening')).toHaveCount(0);
+  const [moved] = (await readDb(page)).meals;
+  expect(moved).toMatchObject({ startedAt: ms('2026-09-27T17:30'), finishedAt: ms('2026-09-27T18:00'), fullness20DueAt: ms('2026-09-27T18:20') });
+  expect(Math.round((moved.fullness20At - moved.finishedAt) / 60_000)).toBe(22);
+  await tab(page, 'satiety').click();
+  await choose(page, 'satiety-view', 'insights');
+  await expect(page.getByTestId('tile-drift')).toHaveText('+2.0 pts');
+  await expect(page.getByTestId('drift-basis')).toHaveCount(0);
+  await choose(page, 'satiety-view', 'meals');
+  await expect(page.locator('[data-block="satiety-meals"]')).toContainText('5 → 7 +2.0');
+  await expect(page.locator('[data-block="satiety-meals"] .read-how')).toHaveCount(0);
 });

@@ -198,7 +198,9 @@ export const undoOpen = cancelWindow;
 /**
  * Changes a window's first bite and last bite (null while it is open), in
  * one transaction. The window follows its first bite to that bite's day, and
- * the first meal (the one that started at the old first bite) moves with it.
+ * the first meal (the one that started at the old first bite) moves with it,
+ * its 20-minute check too: when it is due and when it was answered, so a
+ * check answered on time stays on time (readingKind in core/satiety.js).
  * Meals still open end at a new last bite. Refuses times that would leave
  * another meal outside the window, or that would overwrite another day's
  * record. Resolves with { key, undo } or { error }.
@@ -218,7 +220,10 @@ export async function adjustWindow(oldKey, firstTs, lastTs) {
   const shift = (t) => (t == null ? t : t + delta);
   const meals = [...state.meals.values()].filter((m) => m.day === oldKey).map((m) => {
     const moved = m.startedAt === old.firstBite
-      ? { ...m, day: newKey, startedAt: first, finishedAt: shift(m.finishedAt), fullness20DueAt: shift(m.fullness20DueAt) }
+      ? {
+        ...m, day: newKey, startedAt: first, finishedAt: shift(m.finishedAt), fullness20DueAt: shift(m.fullness20DueAt),
+        ...(m.fullness20At != null ? { fullness20At: shift(m.fullness20At) } : {}),
+      }
       : { ...m, day: newKey };
     if (last != null) {
       if (!moved.finishedAt) moved.finishedAt = Math.max(last, moved.startedAt);

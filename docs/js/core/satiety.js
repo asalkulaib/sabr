@@ -86,6 +86,8 @@ export function satietyStats(meals) {
   return {
     meals: meals.length,
     rated: rated.length,
+    // Meals with both readings, however the 20-minute one was taken: the count at the top.
+    both: both.length,
     // Meals with both readings, the 20-minute one on time.
     done: done.length,
     leftOut,
