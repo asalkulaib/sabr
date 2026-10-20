@@ -476,7 +476,9 @@ export function startMeal({ day, name, startedAt, hungerBefore }) {
  * Saves a finished meal added after it was eaten, together with what it
  * does to its day (place, from placeAddedMeal: the window's new times, or
  * eating outside it), in one transaction. Without a fullness at 20 minutes,
- * a meal that has only just ended still gets its check. Resolves with { meal, undo }.
+ * a meal that has only just ended still gets its check; one given here is
+ * recalled, not checked, so Satiety's 20-minute figures leave it out.
+ * Resolves with { meal, undo }.
  */
 export async function addFinishedMeal(place, { name, startedAt, finishedAt, hungerBefore, stop, fullnessNow, fullness20 }) {
   const key = place.day;
@@ -493,7 +495,7 @@ export async function addFinishedMeal(place, { name, startedAt, finishedAt, hung
     fullness20DueAt: fullness20 == null ? fullnessDueAt(end) : null,
     fullness20: fullness20 ?? null,
     fullness20Skipped: false,
-    ...(fullness20 != null ? { fullness20At: end + FULLNESS_DELAY } : {}),
+    ...(fullness20 != null ? { fullness20At: end + FULLNESS_DELAY, fullness20Recalled: true } : {}),
     ...(place.outside ? { outside: true } : {}),
   };
   const rec = place.rec ? { ...place.rec, day: key, updatedAt: now() } : null;

@@ -11,7 +11,7 @@ import { h, s, live, dimOthers } from './dom.js';
 import { button, choice, figureParts, focusLine, key, legend, nowrapTerms, STOP_TEXT } from './components.js';
 import * as store from '../store.js';
 import { addDays, fmtDayShort, fmtDuration, fmtTime } from '../core/time.js';
-import { STOPS, ZONE, completed, satietyStats } from '../core/satiety.js';
+import { ON_TIME, STOPS, ZONE, completed, readingKind, satietyStats, stopPoint, stopPointWords } from '../core/satiety.js';
 import { satietyInsights } from '../core/insights.js';
 import { fullnessCard } from './fullness.js';
 import { showAddMealSheet, showFinishMealSheet, showFullnessSheet, showMealEditSheet } from './meal.js';
@@ -32,6 +32,10 @@ export const STOP_STYLE = {
 
 /** A small mark centred on (x, y). */
 const mark = (stop, x, y, r = 5) => stopMark(stop, { x, y, r });
+
+// A 20-minute reading not taken on time says how it was taken, in a word.
+const HOW = { early: 'early', late: 'late', recalled: 'added' };
+const howTaken = (m) => HOW[readingKind(m)] || null;
 
 /** The card's ground under a mark, so a line passing behind stops short of it. */
 const halo = (x, y, r) => s('circle', { class: 'mark-halo', cx: x, cy: y, r, fill: C.CARD });
@@ -385,6 +389,38 @@ function hungerChart(st) {
 /** A chart's one-line caption. */
 const caption = (words) => h('p', { class: 'chart-note' }, nowrapTerms(words));
 
+/**
+ * The quiet line under the drift: the on-time checks every 20-minute figure
+ * rests on, and the readings left out, by how they were taken ("3 late,
+ * 1 early, 2 added"). Nothing is said while none is left out.
+ */
+function basisLine(st) {
+  const out = st.leftOut;
+  if (!out.total) return null;
+  // Each count stays on one line with its word.
+  const kinds = [[out.late, 'late'], [out.early, 'early'], [out.recalled, 'added']].filter(([n]) => n)
+    .map(([n, word], i) => [i ? ', ' : '', h('span', { class: 'nowrap' }, `${n} ${word}`)]);
+  return h('p', { class: 'hero-basis', 'data-testid': 'drift-basis' },
+    st.done ? ['From ', h('span', { class: 'nowrap' }, `${st.done} on-time ${st.done === 1 ? 'check' : 'checks'}`), '. '] : null,
+    'Left out: ', kinds, '.');
+}
+
+/** Words with the comfortable zone ("6 to 8") kept on one line. */
+function keepZone(text) {
+  const range = `${ZONE[0]} to ${ZONE[1]}`;
+  return text.split(range).flatMap((part, i) => (i ? [h('span', { class: 'nowrap' }, range), part] : [part]));
+}
+
+/** Under Meals complete: the meals still missing a reading, and those whose 20-minute one was not on time. */
+function completeNote(st) {
+  if (st.done === st.meals) return 'Every meal has both readings.';
+  const missing = st.meals - st.done - st.leftOut.total;
+  if (!st.leftOut.total) return `${missing} still missing the 20-minute check.`;
+  return missing
+    ? `${missing} still missing the 20-minute check, ${st.leftOut.total} not checked on time.`
+    : `${st.leftOut.total} not checked on time.`;
+}
+
 
 function insightsView(ctx, app, st) {
   if (!st.rated) {
@@ -399,17 +435,25 @@ function insightsView(ctx, app, st) {
   const wanting = st.byStop.find((r) => r.stop === 'before_full');
   const hunger = average(st.byStop.filter((r) => r.hungers), (r) => r.hunger, (r) => r.hungers);
   const climbing = st.drift != null && st.drift >= 1.5;
+  // Where to stop, read off the person's own on-time checks: the note's second sentence, climbing or not.
+  const point = stopPointWords(stopPoint(ctx.meals));
+  const note = st.drift == null
+    ? (st.leftOut.total ? `Needs a fullness check answered ${ON_TIME[0]} to ${ON_TIME[1]} minutes after a meal.` : 'Needs a meal with both fullness readings.')
+    : climbing ? 'Fullness keeps climbing after you stop.' : 'How much fullness rises in the 20 minutes after a meal.';
   return h('div', { 'data-block': 'satiety-insights' },
-    // The hero: the drift on the page, what it rests on, then what drives it.
+    // The hero: the drift on the page, the checks it rests on, what it means and
+    // where to stop, then what drives it.
     h('section', { class: 'satiety-hero' },
       h('div', { class: 'hero-label' }, 'Satiety drift'),
       h('div', { class: `hero-figure${st.drift == null ? ' none' : ''}`, 'data-testid': 'tile-drift' },
         st.drift == null ? 'not yet' : figureParts([[signed(st.drift), ' pts']])),
-      h('p', { class: climbing ? 'hero-note climbing' : 'hero-note' },
-        nowrapTerms(st.drift == null ? 'Needs a meal with both fullness readings.' : climbing ? 'Fullness keeps climbing after you stop. Stopping earlier would still land you satisfied.' : 'How much fullness rises in the 20 minutes after a meal.')),
+      basisLine(st),
+      h('p', { class: climbing ? 'hero-note climbing' : 'hero-note', 'data-testid': 'drift-note' },
+        nowrapTerms(note),
+        point ? [' ', h('span', { class: 'stop-point', 'data-testid': 'stop-point' }, keepZone(point))] : null),
       h('div', { class: 'group contrib-group' },
         contributor('Landed in zone', figureParts([[st.landed, ` of ${st.done}`]]), `Meals that ended between ${ZONE[0]} and ${ZONE[1]} out of 10.`, 'tile-zone'),
-        contributor('Meals complete', figureParts([[st.done, ` of ${st.meals}`]]), st.done === st.meals ? 'Every meal has both readings.' : nowrapTerms(`${st.meals - st.done} still missing the 20-minute check.`), 'tile-complete'),
+        contributor('Meals complete', figureParts([[st.done, ` of ${st.meals}`]]), nowrapTerms(completeNote(st)), 'tile-complete'),
         contributor('Stopped past full', pct(st.pastFull, st.rated), st.pastFull ? 'Share of rated meals that ended overfull.' : 'You have not ended a meal overfull.', 'tile-past'))),
     card('Where you land',
       landing != null ? lead([[landing.toFixed(1), ' of 10']], 'lead-landing') : null,
@@ -446,14 +490,19 @@ function mealTable(ctx) {
   const rows = ctx.meals.filter((m) => completed(m) && (!F.focus || m.stop === F.focus)).sort((a, b) => b.startedAt - a.startedAt);
   return h('table', { class: 'table', 'data-testid': 'satiety-table' },
     h('thead', {}, h('tr', {}, ['Meal', 'Hunger', 'Right after', '20 min', 'Drift'].map((t) => h('th', { scope: 'col' }, t)))),
-    h('tbody', {}, rows.map((m) => h('tr', {},
-      // Two lines that read as one: "Fri 25 Sep, left wanting".
-      h('td', { class: 'meal-cell' },
-        h('span', { class: 'meal-date' }, fmtDayShort(m.day)),
-        h('span', { class: 'sr-only' }, ', '),
-        h('span', { class: 'meal-stop' }, STOP_TEXT[m.stop] || 'not rated')),
-      h('td', {}, m.hungerBefore ?? ''), h('td', {}, m.fullnessNow), h('td', {}, m.fullness20),
-      h('td', { class: 'drift-cell' }, signed(m.fullness20 - m.fullnessNow))))));
+    h('tbody', {}, rows.map((m) => {
+      const how = howTaken(m);
+      return h('tr', {},
+        // Two lines that read as one: "Fri 25 Sep, left wanting".
+        h('td', { class: 'meal-cell' },
+          h('span', { class: 'meal-date' }, fmtDayShort(m.day)),
+          h('span', { class: 'sr-only' }, ', '),
+          h('span', { class: 'meal-stop' }, STOP_TEXT[m.stop] || 'not rated')),
+        h('td', {}, m.hungerBefore ?? ''), h('td', {}, m.fullnessNow),
+        // A reading not taken on time says so under it: "7, late".
+        h('td', {}, m.fullness20, how ? [h('span', { class: 'sr-only' }, ', '), h('span', { class: 'read-how' }, how)] : null),
+        h('td', { class: 'drift-cell' }, signed(m.fullness20 - m.fullnessNow)));
+    })));
 }
 
 // ---------- Now ----------
@@ -546,15 +595,24 @@ let addedAfter = null;
 // The meals showing themselves, so a redraw while the shade fades carries on.
 const fresh = new Set();
 
-/** Hunger before, fullness right after, fullness at 20 minutes: the last in ink, the drift under it. */
+/**
+ * Hunger before, fullness right after, fullness at 20 minutes: the last in
+ * ink, the drift under it. A 20-minute reading not taken on time says how,
+ * in a word before the drift: "late +2.0".
+ */
 function readings(m) {
   const v = (x) => String(x ?? '–');
+  const how = howTaken(m);
   return h('span', { class: 'item-side readings' },
     h('span', { class: 'reads' },
       h('span', { class: 'read-quiet' }, v(m.hungerBefore)), ' → ',
       h('span', { class: 'read-quiet' }, v(m.fullnessNow)), ' → ',
       h('span', { class: 'read-ink' }, v(m.fullness20))),
-    completed(m) ? h('span', { class: 'drift' }, ` ${signed(m.fullness20 - m.fullnessNow)}`) : null);
+    how || completed(m)
+      ? h('span', { class: 'read-foot' },
+        how ? h('span', { class: 'read-how' }, ` ${how}`) : null,
+        completed(m) ? h('span', { class: 'drift' }, ` ${signed(m.fullness20 - m.fullnessNow)}`) : null)
+      : null);
 }
 
 function mealRow(app, m) {

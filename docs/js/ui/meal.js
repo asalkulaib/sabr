@@ -14,6 +14,7 @@ import * as store from '../store.js';
 import { MIN, HOUR, addDays, at, dayKey, floorToMinute, fmtDayLong, fmtDayShort, fmtDuration, fmtOnDay, fmtTime, fmtWhen, minutesOfDay, nearestTime, now } from '../core/time.js';
 import { CUTOFF_MIN, LATE_NIGHT_END_MIN, canReopen, cutoffApplies, evaluateDay, isFlexible, plannedStartMin, timeOnOrAfter, windowMsFor, FORGOT_AFTER_MS } from '../core/rules.js';
 import { placeAddedMeal } from '../core/added-meal.js';
+import { editedReading } from '../core/satiety.js';
 import { MEAL_TYPES, guessMealType, typeOfName } from '../core/meal-types.js';
 import { mealInProgress } from './shared.js';
 import { ringIn } from './alarm.js';
@@ -818,7 +819,11 @@ export function showMealEditSheet(app, mealId, { lastBite = false } = {}) {
           stop: draft.stop ?? null,
           fullnessNow: draft.fullnessNow ?? null,
           fullness20: draft.fullness20 ?? null,
-          fullness20DueAt: sameFinish ? original.fullness20DueAt ?? null : finishedAt ? store.fullnessDueAt(finishedAt) : null,
+          // A 20-minute reading entered or changed here counts as recalled. One
+          // already taken keeps its check's due time when the finish moves, so
+          // how it was taken still reads from when it was answered.
+          ...editedReading(original, draft.fullness20 ?? null),
+          fullness20DueAt: sameFinish || original.fullness20 != null ? original.fullness20DueAt ?? null : finishedAt ? store.fullnessDueAt(finishedAt) : null,
         });
         await api.close();
         app.flash('Meal saved.', { undo });

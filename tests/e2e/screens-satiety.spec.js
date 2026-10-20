@@ -1,20 +1,24 @@
 // Satiety (Insights, Now, Meals) and the fullness card in every state, shot at
 // 390 x 844 for design review (test-results/screens, names starting with SA),
 // each with the contrast audit of shot().
-import { test, expect, openAt, seed, advance, tap, pick, choose, settings, ms, shot, settleMotion } from './helpers.js';
-import { WEEK } from './seed-data.js';
+import { test, expect, openAt, seed, advance, tap, pick, choose, settings, ms, MIN, shot, settleMotion } from './helpers.js';
+import { READINGS, WEEK, satietyMeal } from './seed-data.js';
 
 test.skip(({ browserName }) => browserName !== 'webkit', 'screens are reviewed in WebKit, the engine of iPhone Safari');
 
 const install = settings({ installedAt: ms('2026-09-20T08:00'), lastBackupAt: ms('2026-09-26T08:00'), lastImportAt: ms('2026-09-26T09:00') });
 
-/** Fourteen meals, 12 to 25 September: every way of finishing, one still without its 20-minute check. */
+/**
+ * Fourteen meals, 12 to 25 September: every way of finishing, one still
+ * without its 20-minute check; the others answered it on time, at 18:22.
+ */
 function fourteen() {
   const meals = [];
   for (let i = 0; i < 14; i++) {
     const day = new Date(Date.UTC(2026, 8, 12 + i)).toISOString().slice(0, 10);
     const stop = ['before_full', 'full', 'full', 'stuffed'][i % 4];
-    meals.push({ id: i + 1, day, name: i % 3 ? 'Dinner' : 'Lunch', startedAt: ms(`${day}T17:30`), finishedAt: ms(`${day}T18:00`), hungerBefore: 5 + (i % 4), stop, fullnessNow: 5 + (i % 3), fullness20: i === 13 ? null : 6 + (i % 4) });
+    const check = i === 13 ? { fullness20: null } : { fullness20DueAt: ms(`${day}T18:20`), fullness20: 6 + (i % 4), fullness20At: ms(`${day}T18:22`) };
+    meals.push({ id: i + 1, day, name: i % 3 ? 'Dinner' : 'Lunch', startedAt: ms(`${day}T17:30`), finishedAt: ms(`${day}T18:00`), hungerBefore: 5 + (i % 4), stop, fullnessNow: 5 + (i % 3), ...check });
   }
   return meals;
 }
@@ -51,6 +55,54 @@ test('insights: the drift hero, the four charts, findings and the table', async 
   await shot(page, 'SA70e-satiety-table');
 });
 
+test('insights rest on on-time checks: what is left out, where to stop, and the table marking the rest', async ({ page }) => {
+  await openAt(page, '2026-09-26T23:00', '#satiety');
+  await seed(page, { ...WEEK, meals: READINGS, settings: install });
+  await expect(page.getByTestId('drift-basis')).toHaveText('From 18 on-time checks. Left out: 3 late, 1 early, 3 added.');
+  await expect(page.getByTestId('stop-point')).toBeVisible();
+  await shot(page, 'SA70l-satiety-left-out');
+  // The table marks each reading not taken on time under its figure.
+  await tap(page, 'satiety-table');
+  await page.getByTestId('satiety-table').evaluate((el) => el.scrollIntoView({ block: 'start' }));
+  await shot(page, 'SA70m-satiety-table-marks');
+});
+
+test('insights: a rough stop point after the quiet note, and no check on time yet', async ({ page }) => {
+  // Seven checks on time, all stopped at 6: the drift does not climb, and nothing is left out.
+  const seven = [[7, 'before_full'], [7, 'before_full'], [7, 'full'], [8, 'full'], [6, 'before_full'], [9, 'stuffed'], [7, 'before_full']]
+    .map(([at20, stop], i) => satietyMeal(i + 10, 6, at20, stop, 6));
+  await openAt(page, '2026-09-26T23:00', '#satiety');
+  await seed(page, { ...WEEK, meals: seven, settings: install });
+  await expect(page.getByTestId('stop-point')).toHaveText('Rough so far: stop near 6: 6 of your 7 meals stopped there landed in 6 to 8, 1 past 8.');
+  await expect(page.getByTestId('drift-basis')).toHaveCount(0);
+  await shot(page, 'SA70n-satiety-stop-rough');
+  // Only readings late or added: no drift yet, and the line says what was left out.
+  const offTime = [satietyMeal(20, 5, 7, 'before_full', 6, 'added-now'), satietyMeal(22, 6, 8, 'full', 7, 'late', '19:10'), satietyMeal(23, 5, 7, 'before_full', 6, 'added')];
+  await seed(page, { ...WEEK, meals: offTime, settings: install });
+  await expect(page.getByTestId('drift-basis')).toHaveText('Left out: 1 late, 2 added.');
+  await shot(page, 'SA70o-satiety-none-on-time');
+});
+
+/** The same meal three hours later in its day, with its own id: a day's later meal. */
+function laterOn(m) {
+  const by = (t) => (t == null ? t : t + 180 * MIN);
+  return { ...m, id: m.id + 100, startedAt: by(m.startedAt), finishedAt: by(m.finishedAt), fullness20DueAt: by(m.fullness20DueAt), fullness20At: by(m.fullness20At) };
+}
+
+test('findings: no clear difference yet, with the counts', async ({ page }) => {
+  // Six days of two meals: too few, and too evenly split, for any difference to be clear.
+  const meals = [];
+  for (let i = 0; i < 6; i++) {
+    meals.push(satietyMeal(10 + i, 5, i < 3 ? 6 : null, i < 5 ? 'before_full' : 'full', i < 4 ? 5 : 8, i < 3 ? 'on-time' : 'none'));
+    meals.push(laterOn(satietyMeal(10 + i, 6, i >= 3 ? 8 : null, i < 2 ? 'before_full' : 'stuffed', 8, i >= 3 ? 'on-time' : 'none')));
+  }
+  await openAt(page, '2026-09-26T23:00', '#satiety');
+  await seed(page, { ...WEEK, meals, settings: install });
+  await expect(page.getByTestId('insights').locator('li')).toHaveCount(3);
+  await page.getByTestId('insights').evaluate((el) => el.scrollIntoView({ block: 'center' }));
+  await shot(page, 'SA70p-satiety-no-clear-difference');
+});
+
 test('insights: few meals, and none rated yet', async ({ page }) => {
   await openAt(page, '2026-09-26T23:00', '#satiety');
   await seed(page, { ...WEEK, settings: install });
@@ -67,7 +119,7 @@ test('insights: few meals, and none rated yet', async ({ page }) => {
 test('meals: one list with sticky days, an outside meal, an unrated one, a filter', async ({ page }) => {
   const meals = [
     ...fourteen(),
-    { id: 20, day: '2026-09-26', name: 'Dessert', startedAt: ms('2026-09-26T21:30'), finishedAt: ms('2026-09-26T21:45'), outside: true, hungerBefore: 3, stop: 'full', fullnessNow: 7, fullness20: 8 },
+    { id: 20, day: '2026-09-26', name: 'Dessert', startedAt: ms('2026-09-26T21:30'), finishedAt: ms('2026-09-26T21:45'), outside: true, hungerBefore: 3, stop: 'full', fullnessNow: 7, fullness20DueAt: ms('2026-09-26T22:05'), fullness20: 8, fullness20At: ms('2026-09-26T22:07') },
     { id: 21, day: '2026-09-26', name: 'Lunch', startedAt: ms('2026-09-26T16:40'), finishedAt: ms('2026-09-26T17:10'), hungerBefore: 6 },
   ];
   await openAt(page, '2026-09-26T23:00', '#satiety');
@@ -88,6 +140,14 @@ test('meals: one list with sticky days, an outside meal, an unrated one, a filte
   await page.getByTestId('meals-legend').locator('button[data-series="before_full"]').click();
   await expect(page.getByTestId('satiety-focus')).toBeVisible();
   await shot(page, 'SA71e-satiety-meals-left-wanting');
+});
+
+test('meals: a 20-minute reading not taken on time says how, before the drift', async ({ page }) => {
+  await openAt(page, '2026-09-26T23:00', '#satiety');
+  await seed(page, { ...WEEK, meals: READINGS, settings: install });
+  await choose(page, 'satiety-view', 'meals');
+  await expect(page.locator('[data-meal="25"]')).toContainText('6 → 5 → 7 late +2.0');
+  await shot(page, 'SA71i-satiety-meals-marks', { full: true });
 });
 
 test('meals: a filter with nothing in it, and no meals at all', async ({ page }) => {
@@ -202,5 +262,15 @@ test.describe('at 320 wide', () => {
     await shot(page, 'SA80c-satiety-320-meals');
     await choose(page, 'satiety-view', 'now');
     await shot(page, 'SA80d-satiety-320-now');
+  });
+
+  test('what is left out, where to stop, and the marks hold at 320', async ({ page }) => {
+    await openAt(page, '2026-09-26T23:00', '#satiety');
+    await seed(page, { ...WEEK, meals: READINGS, settings: install });
+    await expect(page.getByTestId('stop-point')).toBeVisible();
+    await shot(page, 'SA80e-satiety-320-left-out');
+    await choose(page, 'satiety-view', 'meals');
+    await page.locator('[data-meal="22"]').scrollIntoViewIfNeeded();
+    await shot(page, 'SA80f-satiety-320-meals-marks');
   });
 });
