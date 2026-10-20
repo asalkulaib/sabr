@@ -1,7 +1,7 @@
 // Sabr service worker. Every file is precached, so the app works fully offline.
 // VERSION and ASSETS are stamped by tools/release.mjs on every release.
 
-const VERSION = '2026.10.16-303478de';
+const VERSION = '2026.10.20-ce36a067';
 const ASSETS = [
   'css/base.css',
   'css/components.css',
@@ -29,9 +29,12 @@ const ASSETS = [
   'import/index.html',
   'index.html',
   'js/app.js',
+  'js/copies.js',
   'js/core/added-meal.js',
   'js/core/backup.js',
+  'js/core/copies.js',
   'js/core/csv.js',
+  'js/core/fisher.js',
   'js/core/fullness.js',
   'js/core/history.js',
   'js/core/ics.js',
@@ -46,6 +49,7 @@ const ASSETS = [
   'js/core/weight.js',
   'js/db.js',
   'js/import-page.js',
+  'js/rescue.js',
   'js/store.js',
   'js/strip-hash.js',
   'js/ui/alarm.js',
@@ -53,6 +57,7 @@ const ASSETS = [
   'js/ui/begin-fast.js',
   'js/ui/chart.js',
   'js/ui/components.js',
+  'js/ui/copies.js',
   'js/ui/day.js',
   'js/ui/dom.js',
   'js/ui/fullness.js',

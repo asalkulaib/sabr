@@ -31,7 +31,7 @@ test('a backup from Fast: what it covers, what it removes, its calendar note, an
   // Before you confirm: the days it runs over, and what this iPhone holds after them.
   await pickFile(page);
   const s = sheet(page, 'restore');
-  await expect(s).toContainText('Backup from Wednesday 14 October: 20 windows, 20 meals, 7 weigh-ins and 1 temptations.');
+  await expect(s).toContainText('Backup from Wednesday 14 October: 20 windows, 20 meals, 7 weigh-ins and 1 temptation.');
   await expect(s.getByTestId('restore-span')).toHaveText('This backup runs 25 Sep to 14 Oct.');
   await expect(s.getByTestId('restore-loss')).toHaveText('3 days logged on this iPhone after 14 Oct will be removed.');
   await tap(page, 'confirm-restore');

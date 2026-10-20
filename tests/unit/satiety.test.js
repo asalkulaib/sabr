@@ -127,7 +127,7 @@ test('the stop point is rough under 10 meals, and nothing before any value has 5
   assert.equal(stopPointWords(null), '');
   const rough = stopPoint(at(6, 6, [7, 7, 7, 9, 5, 8]));
   assert.deepEqual(rough, { value: 6, meals: 6, inZone: 4, past: 1 });
-  assert.equal(stopPointWords(rough), 'Rough so far: stop near 6: 4 of your 6 meals stopped there landed in 6 to 8, 1 past 8.');
+  assert.equal(stopPointWords(rough), 'Rough so far, stop near 6: 4 of your 6 meals stopped there landed in 6 to 8, 1 past 8.');
   // A value none of whose meals landed in the zone is never named.
   assert.equal(stopPoint(at(3, 6, [4, 5])), null);
 });
@@ -154,7 +154,7 @@ test('the stop point reads the meals themselves, never 7 minus the drift', () =>
   const point = stopPoint(meals);
   assert.equal(point.value, 4);
   assert.notEqual(point.value, 7 - s.drift);
-  assert.equal(stopPointWords(point), 'Rough so far: stop near 4: 6 of your 6 meals stopped there landed in 6 to 8, none past 8.');
+  assert.equal(stopPointWords(point), 'Rough so far, stop near 4: 6 of your 6 meals stopped there landed in 6 to 8, none past 8.');
 });
 
 test('the stop point looks at the last 60 on-time checks only, and never at late, early or added ones', () => {

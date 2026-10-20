@@ -73,7 +73,7 @@ test('insights: a rough stop point after the quiet note, and no check on time ye
     .map(([at20, stop], i) => satietyMeal(i + 10, 6, at20, stop, 6));
   await openAt(page, '2026-09-26T23:00', '#satiety');
   await seed(page, { ...WEEK, meals: seven, settings: install });
-  await expect(page.getByTestId('stop-point')).toHaveText('Rough so far: stop near 6: 6 of your 7 meals stopped there landed in 6 to 8, 1 past 8.');
+  await expect(page.getByTestId('stop-point')).toHaveText('Rough so far, stop near 6: 6 of your 7 meals stopped there landed in 6 to 8, 1 past 8.');
   await expect(page.getByTestId('drift-basis')).toHaveCount(0);
   await shot(page, 'SA70n-satiety-stop-rough');
   // Only readings late or added: no drift yet, the line says what was left out,

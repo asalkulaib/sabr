@@ -92,7 +92,7 @@ Satiety has its own tab, laid out after your earlier satiety page. It has three 
 
 Every figure that uses fullness at 20 minutes rests on checks answered on time: 15 to 40 minutes after the meal finished. A check answered sooner (Score my fullness now while the timer runs) is early, one answered more than 40 minutes after is late, and a reading given in Add a meal, or entered or changed when you edit a meal, is added. The drift, Where you land, meals landed in the zone, meals complete, The 20-minute lag and the finding on fullness 20 minutes on leave those out; How often you stop where and Arriving hungry count every rated meal. A quiet line under the drift says how many checks it rests on and what was left out ("From 18 on-time checks. Left out: 3 late, 1 early, 3 added."), and says nothing when none was. In Meals and in the table, a reading not taken on time says so in a word: late, early or added. Until a check is answered on time, the drift reads "not yet", and Where you land and The 20-minute lag ask for one. Moving a window's first bite moves its first meal with its check, so a check answered on time stays on time.
 
-Where to stop: over your last 60 meals with an on-time check, Sabr takes each fullness right after and counts the meals that landed in 6 to 8 twenty minutes on, and those that went past 8. It names the one whose meals most often landed in 6 to 8 (a tie goes to fewer past 8, then the lower number), once at least 5 meals stopped there and one of them landed in the zone: "Stop near 5: 8 of your 10 meals stopped there landed in 6 to 8, none past 8." Under 10 meals at that number it begins "Rough so far:". It is read off your own meals, never worked out from the drift. It follows the sentence under the drift: "Fullness keeps climbing after you stop." when the drift is 1.5 or more, otherwise what the drift means.
+Where to stop: over your last 60 meals with an on-time check, Sabr takes each fullness right after and counts the meals that landed in 6 to 8 twenty minutes on, and those that went past 8. It names the one whose meals most often landed in 6 to 8 (a tie goes to fewer past 8, then the lower number), once at least 5 meals stopped there and one of them landed in the zone: "Stop near 5: 8 of your 10 meals stopped there landed in 6 to 8, none past 8." Under 10 meals at that number it begins "Rough so far,". It is read off your own meals, never worked out from the drift. It follows the sentence under the drift: "Fullness keeps climbing after you stop." when the drift is 1.5 or more, otherwise what the drift means.
 
 A finding that compares two groups states a difference only when the counts support it: a two-sided Fisher exact test, with p below 0.05. For fullness 20 minutes on, the test compares how many meals on each side were above the middle value of them all; readings at that value count above it or below it, whichever splits all of them nearer half. Otherwise the finding says there is no clear difference yet, with its counts.
 
@@ -218,11 +218,11 @@ More, Add to Calendar creates four repeating alerts: hold the line at 13:00 and 
 
 Everything lives only on the phone. More, Back up now saves a JSON file: save it to iCloud Drive, in a folder named Sabr (On My iPhone goes with the phone). Sabr reminds you after 7 days without a backup. More, Restore from a backup brings everything back. Before you confirm, the sheet says which days the file runs over ("This backup runs 25 Sep to 16 Oct.") and how many days logged on this iPhone after its last day it would remove. A copy of what was there is kept first, so the message after a restore offers Undo. Export CSV files gives five files for Excel, one fact per column:
 
-- `fast-windows.csv`: every day from the start of tracking to today, gaps marked not logged. Weekday, workday or weekend, planned start or feasting hours, the time zone, the planned time, first and last bite, the window's length and goal, the result with its reasons, the fast before it (when it began, how long, its goal and whether it was reached) and how full the day ended. A day that begins inside a long fast's goal, with nothing eaten, reads fasted.
-- `fast-meals.csv`: each meal, its type (Snack, Breakfast, Lunch, Dinner or Other) and name, start, finish and minutes, hunger before, how you stopped, fullness right after and at 20 minutes, the rise, and a skipped 20-minute check. Eating logged outside the window is listed too, with its trigger and amount.
-- `fast-weight.csv`: every weigh-in in kg, one per row.
-- `fast-checkins.csv`: energy at 4 PM and training.
-- `fast-temptations.csv`: when, where the day stood, the trigger, the outcome, the urge at 0, 3, 6 and 9 minutes, and how long it took.
+- `sabr-windows.csv`: every day from the start of tracking to today, gaps marked not logged. Weekday, workday or weekend, planned start or feasting hours, the time zone, the planned time, first and last bite, the window's length and goal, the result with its reasons, the fast before it (when it began, how long, its goal and whether it was reached) and how full the day ended. A day that begins inside a long fast's goal, with nothing eaten, reads fasted.
+- `sabr-meals.csv`: each meal, its type (Snack, Breakfast, Lunch, Dinner or Other) and name, start, finish and minutes, hunger before, how you stopped, fullness right after and at 20 minutes, the rise, and a skipped 20-minute check. Eating logged outside the window is listed too, with its trigger and amount.
+- `sabr-weight.csv`: every weigh-in in kg, one per row.
+- `sabr-checkins.csv`: energy at 4 PM and training.
+- `sabr-temptations.csv`: when, where the day stood, the trigger, the outcome, the urge at 0, 3, 6 and 9 minutes, and how long it took.
 
 ## Copies on this iPhone
 
@@ -230,7 +230,7 @@ Sabr also keeps copies of everything, in a small database of its own on the phon
 
 ## If Sabr cannot start
 
-If Sabr has not shown its first screen 6 seconds after it opens, or an error stops it starting, a plain screen says "Sabr could not start." and "Your data is safe on this iPhone." Save my data reads the data straight from the phone and hands over the same backup file Back up now makes, ready for Restore from a backup. Try again opens Sabr afresh.
+If Sabr has not shown its first screen 6 seconds after it opens, or an error stops it starting, a plain screen says "Sabr could not start." and, once it has read the data on the phone, "Your data is safe on this iPhone." When it cannot open its storage at all, it says so instead, and that in Private Browsing Sabr should be opened from the Home Screen. Save my data reads the data straight from the phone and hands over the same backup file Back up now makes, ready for Restore from a backup. Try again opens Sabr afresh.
 
 ## Moving from Fast
 

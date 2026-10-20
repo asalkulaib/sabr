@@ -34,6 +34,9 @@ let tabSlide = null; // the tabs' sliding pill, once the app has started
 const sheetRoot = document.getElementById('sheet-root');
 
 const ROUTES = ['today', 'week', 'day', 'satiety', 'history', 'weight', 'more', 'help'];
+
+/** "1 meal", "3 meals". */
+const count = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
 let route = parseRoute(location.hash);
 let lastSignature = '';
 let lastStateKey = '';
@@ -422,7 +425,7 @@ async function restoreFrom(file) {
     head: sheetHead(api, 'Restore'),
     body: h('div', {},
       h('p', { class: 'statement' }, 'Replace everything on this iPhone with this backup?'),
-      h('p', { class: 'gap' }, `Backup from ${when}: ${info.windows} windows, ${info.meals} meals, ${info.weighIns} weigh-ins and ${info.temptations} temptations.`),
+      h('p', { class: 'gap' }, `Backup from ${when}: ${count(info.windows, 'window')}, ${count(info.meals, 'meal')}, ${count(info.weighIns, 'weigh-in')} and ${count(info.temptations, 'temptation')}.`),
       lines.span ? h('p', { class: 'gap restore-span', 'data-testid': 'restore-span' }, lines.span) : null,
       lines.loss ? h('p', { class: 'callout gap restore-loss', 'data-testid': 'restore-loss' }, lines.loss) : null,
       info.skipped ? h('p', { class: 'small quiet gap-s' }, `${info.skipped} damaged ${info.skipped === 1 ? 'entry' : 'entries'} will be left out.`) : null),

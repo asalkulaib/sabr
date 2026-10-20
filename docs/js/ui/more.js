@@ -88,9 +88,9 @@ function showResetSheet(app) {
     return {
       head: sheetHead(api, 'Reset'),
       body: h('div', { class: 'reset-step' },
-        h('h3', { class: 'reset-title', 'data-testid': 'reset-final' }, 'This cannot be undone.'),
+        h('h3', { class: 'reset-title', 'data-testid': 'reset-final' }, 'This deletes all your history.'),
         h('p', { class: 'reset-body' },
-          ...resetWords(`${plural(windows, 'window')}, ${plural(d.meals.length, 'meal')}, ${plural(d.weights.size, 'weigh-in')} and ${plural(d.temptations.length, 'temptation')} will be deleted for good.`, { counts: true }))),
+          ...resetWords(`${plural(windows, 'window')}, ${plural(d.meals.length, 'meal')}, ${plural(d.weights.size, 'weigh-in')} and ${plural(d.temptations.length, 'temptation')} will be deleted. Sabr keeps a copy first, in Copies on this iPhone.`, { counts: true }))),
       actions: [
         button('Delete all history', async () => {
           // A copy of everything is kept first: Copies on this iPhone can bring it back.
@@ -232,7 +232,7 @@ export function renderMore(ctx, app) {
     h('section', { class: 'section group help-link', 'data-block': 'help' },
       h('button', { type: 'button', class: 'setting-row help-row', 'data-action': 'help', onclick: () => app.go('help') },
         glyph('book', { size: 20 }),
-        h('span', {}, 'Weight Shortcut and Home Screen setup'))),
+        h('span', {}, 'Weight Shortcut, Home Screen, backups, moving from Fast'))),
 
     groupTitle('Reset'),
     h('section', { class: 'section', 'data-block': 'reset' },

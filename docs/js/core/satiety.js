@@ -137,6 +137,6 @@ export function stopPointWords(point) {
   if (!point) return '';
   const evidence = `${point.inZone} of your ${point.meals} meals stopped there landed in ${ZONE[0]} to ${ZONE[1]}, ${point.past || 'none'} past ${ZONE[1]}.`;
   return point.meals < STOP_POINT.sure
-    ? `Rough so far: stop near ${point.value}: ${evidence}`
+    ? `Rough so far, stop near ${point.value}: ${evidence}`
     : `Stop near ${point.value}: ${evidence}`;
 }

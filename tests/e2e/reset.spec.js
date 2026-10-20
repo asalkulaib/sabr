@@ -24,8 +24,8 @@ test('reset asks twice; backing out at either step keeps everything', async ({ p
 
   await tap(page, 'reset');
   await tap(page, 'reset-continue');
-  await expect(page.getByTestId('reset-final')).toHaveText('This cannot be undone.');
-  await expect(sheet(page, 'reset')).toContainText('7 windows, 4 meals, 6 weigh-ins and 4 temptations will be deleted for good.');
+  await expect(page.getByTestId('reset-final')).toHaveText('This deletes all your history.');
+  await expect(sheet(page, 'reset')).toContainText('7 windows, 4 meals, 6 weigh-ins and 4 temptations will be deleted. Sabr keeps a copy first, in Copies on this iPhone.');
   await tap(page, 'reset-keep');
   const db = await readDb(page);
   expect(db.days).toHaveLength(7);

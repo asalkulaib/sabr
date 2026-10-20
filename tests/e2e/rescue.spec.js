@@ -36,7 +36,7 @@ test('a module that throws: the rescue at once, and Save my data hands over the 
   const rescue = page.getByTestId('rescue');
   await expect(rescue).toBeVisible();
   await expect(rescue.locator('h1')).toHaveText('Sabr could not start.');
-  await expect(rescue).toContainText('Your data is safe on this iPhone.');
+  await expect(page.getByTestId('rescue-note')).toHaveText('Your data is safe on this iPhone.');
   await expect(page.locator('#view')).not.toHaveAttribute('aria-busy', 'true');
   // The tabs need the app.
   await expect(page.locator('#tabbar')).toBeHidden();
@@ -110,10 +110,31 @@ test('storage the app cannot open: the rescue at once, and it still saves the da
   });
   await page.reload();
   await expect(page.getByTestId('rescue')).toBeVisible({ timeout: 3000 });
+  await expect(page.getByTestId('rescue-note')).toHaveText('Your data is safe on this iPhone.');
   await page.locator('[data-action="rescue-save"]').click();
   await expect(page.getByTestId('rescue-status')).toHaveText('Backup handed to iOS. Keep it in iCloud Drive, in a folder named Sabr.');
   const [saved] = await sharedFiles(page);
   expect(JSON.parse(saved.text).data.days).toHaveLength(7);
+  expect(errors).toEqual([]);
+});
+
+test('storage that cannot be opened at all: the rescue says so, never that the data is safe', async ({ page, errors }) => {
+  await captureShares(page);
+  // As when Private Browsing or a setting blocks storage.
+  await page.addInitScript(() => {
+    IDBFactory.prototype.open = function () {
+      throw new DOMException('The operation is insecure.', 'SecurityError');
+    };
+  });
+  await page.clock.install({ time: T('2026-09-27T10:00') });
+  await page.goto('./');
+  await expect(page.getByTestId('rescue')).toBeVisible({ timeout: 3000 });
+  const note = page.getByTestId('rescue-note');
+  await expect(note).toHaveText('Sabr could not open its storage. In Private Browsing, open Sabr from the Home Screen instead.');
+  await page.locator('[data-action="rescue-save"]').click();
+  await expect(page.getByTestId('rescue-status')).toHaveText('Sabr could not read its data.');
+  await expect(note).not.toContainText('safe');
+  expect(await sharedFiles(page)).toEqual([]);
   expect(errors).toEqual([]);
 });
 

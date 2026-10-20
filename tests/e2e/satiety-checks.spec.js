@@ -42,7 +42,7 @@ test('the stop point: rough under 10 meals and after the note when the drift is 
   const seven = [7, 7, 7, 8, 6, 9, 7].map((at20, i) => satietyMeal(i + 10, 6, at20, 'before_full', 6));
   await seed(page, { ...WEEK, meals: seven, settings: install });
   await expect(page.getByTestId('tile-drift')).toHaveText('+1.3 pts');
-  await expect(page.getByTestId('drift-note')).toHaveText('How much fullness rises in the 20 minutes after a meal. Rough so far: stop near 6: 6 of your 7 meals stopped there landed in 6 to 8, 1 past 8.');
+  await expect(page.getByTestId('drift-note')).toHaveText('How much fullness rises in the 20 minutes after a meal. Rough so far, stop near 6: 6 of your 7 meals stopped there landed in 6 to 8, 1 past 8.');
   // Nothing left out: nothing said under the drift.
   await expect(page.getByTestId('drift-basis')).toHaveCount(0);
   // Four meals at one value: no stop point yet, and the climbing note keeps its first sentence only.

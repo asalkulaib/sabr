@@ -105,9 +105,21 @@ test('the rescue screen, when Sabr cannot start', async ({ page }) => {
   await page.route('**/sabr/js/app.js', (route) => route.fulfill({ contentType: 'text/javascript', body: 'export {};' }));
   await page.goto('./');
   await page.clock.runFor(6500);
-  await expect(page.getByTestId('rescue')).toBeVisible();
+  await expect(page.getByTestId('rescue-note')).toHaveText('Your data is safe on this iPhone.');
   await shot(page, '95-rescue');
   await page.locator('[data-action="rescue-save"]').click();
   await expect(page.getByTestId('rescue-status')).not.toBeEmpty();
   await shot(page, '95b-rescue-saved');
+});
+
+test('the rescue screen, when storage cannot be opened', async ({ page }) => {
+  await page.addInitScript(() => {
+    IDBFactory.prototype.open = function () {
+      throw new DOMException('The operation is insecure.', 'SecurityError');
+    };
+  });
+  await page.clock.install({ time: T('2026-09-27T10:00') });
+  await page.goto('./');
+  await expect(page.getByTestId('rescue-note')).toContainText('could not open its storage');
+  await shot(page, '95c-rescue-no-storage');
 });

@@ -4,7 +4,9 @@
 // (app.js sets window.__sabrDrawn once it is), or an error escapes before
 // then, it replaces the view with two pills: Save my data reads the 'sabr'
 // database directly and hands over the same backup file Back up now makes;
-// Try again reloads. It uses the app's own styles and words only.
+// Try again reloads. It says the data is safe only once it has read it, and
+// that storage could not be opened when it cannot. It uses the app's own
+// styles and words only.
 (function () {
   'use strict';
 
@@ -133,8 +135,10 @@
     var status = el('p', { class: 't-callout gap', role: 'status', 'data-testid': 'rescue-status' });
     var actions = el('div', { class: 'stack gap-xl' });
     actions.append(save, retry);
+    // Says the data is safe only once it has been read.
+    var note = el('p', { class: 't-body gap', 'data-testid': 'rescue-note' });
     var hero = el('section', { class: 'hero' });
-    hero.append(title, el('p', { class: 't-body gap' }, 'Your data is safe on this iPhone.'));
+    hero.append(title, note);
     var box = el('div', { class: 'rescue', 'data-testid': 'rescue' });
     box.append(hero, actions, status);
 
@@ -146,7 +150,12 @@
         made = backupFile(all);
         return made;
       });
-      reading.catch(function () { reading = null; });
+      reading.then(function () {
+        note.textContent = 'Your data is safe on this iPhone.';
+      }, function () {
+        reading = null;
+        if (!made) note.textContent = 'Sabr could not open its storage. In Private Browsing, open Sabr from the Home Screen instead.';
+      });
       return reading;
     };
     read();
