@@ -41,3 +41,41 @@ export const WEEK = {
     { key: 'lastImportAt', value: T('2026-09-26T09:00') },
   ],
 };
+
+const dayAt = (i) => new Date(Date.UTC(2026, 8, 25 + i)).toISOString().slice(0, 10); // 25 September + i
+
+/** What Fast's Back up now writes (docs/js/core/backup.js in Fast): 25 September to 14 October. */
+export function fastBackup() {
+  const days = [];
+  const meals = [];
+  const weights = [];
+  for (let i = 0; i < 20; i++) {
+    const day = dayAt(i);
+    days.push({ day, firstBite: T(`${day}T17:30`), lastBite: T(`${day}T21:00`), noEating: false, updatedAt: T(`${day}T21:00`) });
+    meals.push({
+      id: i + 1, day, name: 'Dinner', startedAt: T(`${day}T17:30`), finishedAt: T(`${day}T18:10`), hungerBefore: 6, stop: 'before_full',
+      fullnessNow: 6, fullness20DueAt: T(`${day}T18:30`), fullness20: 7, fullness20Skipped: false, fullness20At: T(`${day}T18:31`),
+    });
+    if (i % 3 === 0) weights.push({ date: day, kg: 104 - i / 10 });
+  }
+  return {
+    app: 'fast',
+    schema: 1,
+    version: '2026.10.14-0f1e2d3c',
+    exportedAt: new Date(T('2026-10-14T22:00')).toISOString(),
+    data: {
+      days,
+      meals,
+      outside: [],
+      temptations: [{ id: 1, day: '2026-10-01', startedAt: T('2026-10-01T13:00'), endedAt: T('2026-10-01T13:10'), trigger: 'boredom', outcome: 'held', urges: [], context: 'before', step: 'held' }],
+      weights,
+      // Fast writes every setting it knows, its defaults included.
+      settings: Object.entries({
+        workdayStart: '17:30', weekendStart: '14:00', holdTime: '13:00', trainingTime: '16:30',
+        installedAt: T('2026-09-24T08:00'), lastBackupAt: T('2026-10-14T22:00'), lastImportAt: T('2026-10-12T10:00'),
+        icsSequence: 1, icsTimes: 'local|13:00|16:30|17:30|14:00', persisted: true, goalChanges: [], alarms: false,
+        zoneSeenAt: T('2026-10-14T22:00'), historyMetric: 'fast', climb: { fast: true, fullness: true },
+      }).map(([key, value]) => ({ key, value })),
+    },
+  };
+}

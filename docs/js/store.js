@@ -15,6 +15,7 @@ export const DEFAULTS = {
   lastImportAt: null,
   icsSequence: 0,
   icsTimes: null,
+  fastCalendar: false, // Fast's calendar events may still be in Calendar, after a restore from Fast
   persisted: null,
   goalChanges: [], // [{ from: 'YYYY-MM-DD', hours }]: the eating-window goal from that day on
   alarms: false, // timers through the Fast Timer shortcut
@@ -612,20 +613,41 @@ export async function resetHistory() {
 
 // ---------- Restore ----------
 
-export async function restore(backup) {
+/**
+ * Replaces everything with a backup: a file (from Sabr or Fast), or with own
+ * a copy kept on this iPhone, in the same shape.
+ */
+export async function restore(backup, { own = false } = {}) {
   const d = backup.data;
-  // The file is itself a backup, made when it was exported, so the backup
+  const recorded = (key) => {
+    const s = d.settings.find((x) => x.key === key);
+    return s ? s.value : null;
+  };
+  // A file is itself a backup, made when it was exported, so the backup
   // reminder counts from the latest of that, the file's own record and ours.
-  const recorded = d.settings.find((s) => s.key === 'lastBackupAt');
-  const exported = Date.parse(backup.exportedAt);
-  const lastBackupAt = Math.max(
+  // A copy on this iPhone is no backup: the reminder counts from the copy's
+  // own record, so data brought back is backed up afresh when it is due.
+  const exported = own ? NaN : Date.parse(backup.exportedAt);
+  const lastBackupAt = own ? recorded('lastBackupAt') || null : Math.max(
     state.settings.lastBackupAt || 0,
-    (recorded && recorded.value) || 0,
+    recorded('lastBackupAt') || 0,
     Number.isFinite(exported) ? exported : 0,
   ) || null;
-  const seen = d.settings.find((s) => s.key === 'zoneSeenAt');
-  const zoneSeenAt = Math.max((seen && seen.value) || 0, Number.isFinite(exported) ? exported : 0) || null;
-  const keep = { installedAt: state.settings.installedAt, persisted: state.settings.persisted, lastBackupAt, zoneSeenAt };
+  const zoneSeenAt = Math.max(recorded('zoneSeenAt') || 0, Number.isFinite(exported) ? exported : 0) || null;
+  // A file leaves this install's start as it is. A copy on this iPhone holds
+  // this install's own start as it was then (before a reset, the earlier
+  // one), and brings it back with everything else.
+  const installed = recorded('installedAt');
+  const installedAt = own && installed ? installed : state.settings.installedAt;
+  const keep = { installedAt, persisted: state.settings.persisted, lastBackupAt, zoneSeenAt };
+  if (backup.app === 'fast') {
+    // Fast's calendar file is Fast's own: its events stay in Calendar under
+    // Fast's name. Its record is left out and Sabr keeps its own, noting
+    // that Fast's events are there to delete.
+    keep.icsTimes = state.settings.icsTimes;
+    keep.icsSequence = state.settings.icsSequence;
+    keep.fastCalendar = !!recorded('icsTimes') || !!state.settings.fastCalendar;
+  }
   const settings = d.settings.filter((s) => !(s.key in keep));
   await db.replaceAll({ ...d, settings: [...settings, ...Object.entries(keep).map(([key, value]) => ({ key, value }))] });
   await load();

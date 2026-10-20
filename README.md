@@ -145,7 +145,7 @@ Weight shows your 7-day average as a big figure: the average of every weigh-in i
 
 ## More
 
-More opens with your goal: the fast and the window as two figures, the presets 16:8, 18:6, 20:4 and 23:1, and Custom, with a note that a change applies from today on. Under it, the settings come in groups. Settings, with a line on what it covers, holds what makes a day a success and the planned window start. Reminders holds the reminder times, the calendar file and Alarms. Pauses lists the pauses running or ahead, with Add a pause. Your data holds Backup, Export and Storage, with Back up now as the one main button. Then Help, a row to the help page (the weight Shortcut and the Home Screen), Reset, with Reset all history, and the version. Each time is a row with its value in a pill; tap it to roll a new time, which saves as it settles.
+More opens with your goal: the fast and the window as two figures, the presets 16:8, 18:6, 20:4 and 23:1, and Custom, with a note that a change applies from today on. Under it, the settings come in groups. Settings, with a line on what it covers, holds what makes a day a success and the planned window start. Reminders holds the reminder times, the calendar file and Alarms. Pauses lists the pauses running or ahead, with Add a pause. Your data holds Backup, Copies on this iPhone, Export and Storage, with Back up now as the one main button. Then Help, a row to the help page (the weight Shortcut, the Home Screen, backups and moving from Fast), Reset, with Reset all history, and the version. Each time is a row with its value in a pill; tap it to roll a new time, which saves as it settles.
 
 Tempted? at the top of a screen opens a full-screen flow, one step at a time. Every step has the same frame: its label and headline at the top, what supports it under them, and its buttons at the foot. The steps: what is pulling at you, what waiting gives you, a 10-minute urge timer as an ink ring that drains, ways out when you are with people or cannot avoid eating, and how it ended.
 
@@ -206,11 +206,11 @@ Each day keeps the times it happened in. Back home Sabr says "Back on Kuwait tim
 
 ## Calendar reminders
 
-More, Add to Calendar creates four repeating alerts: hold the line at 13:00 and training at 16:30 on workdays, and the window start at your workday and weekend times. With Feasting hours the file keeps the first two and cancels the two window alerts. In the share sheet choose Calendar, or Save to Files and then open the file and tap Add All. If you change the times, add the new file and delete the old Sabr events (open one, Delete Event, Delete All Future Events). The alerts use local times, so on a trip they ring by your phone's clock. A file added before 1 October 2026 rang by Kuwait time; More asks you to add the new one.
+More, Add to Calendar creates four repeating alerts: hold the line at 13:00 and training at 16:30 on workdays, and the window start at your workday and weekend times. With Feasting hours the file keeps the first two and cancels the two window alerts. In the share sheet choose Calendar, or Save to Files and then open the file and tap Add All. If you change the times, add the new file and delete the old Sabr events (open one, Delete Event, Delete All Future Events). The alerts use local times, so on a trip they ring by your phone's clock. A file added before 1 October 2026 rang by Kuwait time; More asks you to add the new one. After a restore from Fast, More says to delete the Fast events first (see Moving from Fast).
 
 ## Backups
 
-Everything lives only on the phone. More, Back up now saves a JSON file; keep it in Files or iCloud Drive. Sabr reminds you after 7 days without a backup. More, Restore from a backup brings everything back. Export CSV files gives five files for Excel, one fact per column:
+Everything lives only on the phone. More, Back up now saves a JSON file: save it to iCloud Drive, in a folder named Sabr (On My iPhone goes with the phone). Sabr reminds you after 7 days without a backup. More, Restore from a backup brings everything back. Before you confirm, the sheet says which days the file runs over ("This backup runs 25 Sep to 16 Oct.") and how many days logged on this iPhone after its last day it would remove. A copy of what was there is kept first, so the message after a restore offers Undo. Export CSV files gives five files for Excel, one fact per column:
 
 - `fast-windows.csv`: every day from the start of tracking to today, gaps marked not logged. Weekday, workday or weekend, planned start or feasting hours, the time zone, the planned time, first and last bite, the window's length and goal, the result with its reasons, the fast before it (when it began, how long, its goal and whether it was reached) and how full the day ended. A day that begins inside a long fast's goal, with nothing eaten, reads fasted.
 - `fast-meals.csv`: each meal, its type (Snack, Breakfast, Lunch, Dinner or Other) and name, start, finish and minutes, hunger before, how you stopped, fullness right after and at 20 minutes, the rise, and a skipped 20-minute check. Eating logged outside the window is listed too, with its trigger and amount.
@@ -218,9 +218,29 @@ Everything lives only on the phone. More, Back up now saves a JSON file; keep it
 - `fast-checkins.csv`: energy at 4 PM and training.
 - `fast-temptations.csv`: when, where the day stood, the trigger, the outcome, the urge at 0, 3, 6 and 9 minutes, and how long it took.
 
+## Copies on this iPhone
+
+Sabr also keeps copies of everything, in a small database of its own on the phone: one each day you open it with something logged, and one just before a restore, a reset or bringing back a copy. It keeps the 7 newest daily copies, the newest daily copy of each of the 4 weeks (Sunday to Saturday) before the week those 7 begin in, and the 5 newest of the other kinds, so the daily copies reach back about a month. It lets the rest go after each new copy, but never the copy being brought back. More, Copies on this iPhone lists them, newest first: when ("Today, 07:12" or "Mon 19 Oct, 07:30"), what kind and what each holds. Bring back asks once, keeps a copy of now, then puts that copy back; the message offers Undo. Copies protect against a wrong restore or reset, not against a lost phone: for that, save backups to iCloud Drive. If the phone cannot keep them, Sabr carries on without.
+
+## If Sabr cannot start
+
+If Sabr has not shown its first screen 6 seconds after it opens, or an error stops it starting, a plain screen says "Sabr could not start." and "Your data is safe on this iPhone." Save my data reads the data straight from the phone and hands over the same backup file Back up now makes, ready for Restore from a backup. Try again opens Sabr afresh.
+
+## Moving from Fast
+
+Restore from a backup also takes Fast's backups. To move:
+
+1. In Fast, tap Back up now and save the file to iCloud Drive.
+2. In Sabr, tap Restore from a backup and pick that file.
+3. Check that Week and History match in both apps.
+4. In Calendar, delete the Fast events, then add Sabr's file from More.
+5. Keep Fast on the Home Screen, unused, until Sabr has made two backups of its own, then remove it.
+
+Fast's calendar file stays Fast's: Sabr leaves its record out, so More says "Restored from Fast." with how to delete the Fast events (open one, tap Delete Event, then Delete All Future Events), next to Add to Calendar for Sabr's own file. Undo, right after the restore, brings back what Sabr held before.
+
 ## Start again
 
-More, Reset all history deletes every window, meal, check-in, pause, temptation and weigh-in from the phone. It asks twice, and the first step offers a backup. Your planned times and reminder times stay. A backup made before the reset can bring everything back with Restore from a backup.
+More, Reset all history deletes every window, meal, check-in, pause, temptation and weigh-in from the phone. It asks twice, and the first step offers a backup. Your planned times and reminder times stay. A backup made before the reset can bring everything back with Restore from a backup, and so can the copy Sabr keeps just before it, in Copies on this iPhone.
 
 ## Redeploy after a change
 
@@ -237,7 +257,7 @@ git commit -m "Describe the change"
 git push
 ```
 
-- `npm test` runs the unit tests (rules, streaks, weekly review, weight import, calendar, CSV and backup formats, design and copy guards).
+- `npm test` runs the unit tests (rules, streaks, weekly review, weight import, calendar, CSV and backup formats, which copies stay, design and copy guards).
 - `npm run e2e` stamps a release and runs the browser tests in WebKit and Chromium at iPhone size, including offline use. Screenshots of every screen land in `test-results/screens`.
 - `npm run release` stamps the service worker with the list of files and a new version. Always run it before pushing, or phones keep the old version.
 - GitHub Pages publishes the `docs` folder a minute or two after the push. The phone picks up the new version the next time Sabr is opened (close it from the app switcher and open it again).
@@ -245,7 +265,7 @@ git push
 
 ## Project layout
 
-- `docs/`: the app exactly as served. `index.html`, `import/index.html`, `sw.js`, `manifest.webmanifest`, `css/`, `fonts/` (Nunito, SIL Open Font License), `icons/`, `js/core/` (pure rules and file formats), `js/ui/` (screens), `js/db.js` (IndexedDB), `js/store.js`.
+- `docs/`: the app exactly as served. `index.html`, `import/index.html`, `sw.js`, `manifest.webmanifest`, `css/`, `fonts/` (Nunito, SIL Open Font License), `icons/`, `js/core/` (pure rules and file formats), `js/ui/` (screens), `js/db.js` (IndexedDB), `js/store.js`, `js/copies.js` (the copies on the phone), `js/rescue.js` (the screen for when Sabr cannot start).
 - `tests/unit/`: Node's built-in test runner.
 - `tests/e2e/`: Playwright tests.
 - `tools/`: local server (`npm run serve`), font download, icon rendering, release stamp.

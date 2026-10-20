@@ -80,6 +80,34 @@ export async function readDb(page) {
   });
 }
 
+/** Every copy in the copies database, its data counted store by store; none before the app makes it. */
+export async function copiesInDb(page) {
+  return page.evaluate(async () => {
+    if (!(await indexedDB.databases()).some((d) => d.name === 'sabr-copies')) return [];
+    return new Promise((resolve, reject) => {
+      const req = indexedDB.open('sabr-copies');
+      req.onerror = () => reject(req.error);
+      req.onsuccess = () => {
+        const db = req.result;
+        if (!db.objectStoreNames.contains('copies')) {
+          db.close();
+          resolve([]);
+          return;
+        }
+        const all = db.transaction('copies').objectStore('copies').getAll();
+        all.onsuccess = () => {
+          db.close();
+          resolve(all.result.sort((a, b) => a.at - b.at).map(({ data, ...rest }) => ({
+            ...rest,
+            stores: Object.fromEntries(Object.entries(data).map(([k, v]) => [k, v.length])),
+          })));
+        };
+        all.onerror = () => reject(all.error);
+      };
+    });
+  });
+}
+
 /** Moves the clock forward; the app's one-second tick then re-renders. */
 export async function advance(page, minutes) {
   await page.clock.fastForward(minutes * MIN);

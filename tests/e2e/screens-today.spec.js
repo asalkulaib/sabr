@@ -182,6 +182,11 @@ test('notices, paused, the undo bar', async ({ page }) => {
   await openAt(page, '2026-09-27T09:00');
   await seed(page, { days: [WEEK.days[0]], settings: settings({ installedAt: ms('2026-09-18T08:00') }) });
   await shot(page, 'T16-today-notices');
+  // The last backup a week old: due again, with where to save it.
+  await openAt(page, '2026-09-27T09:00');
+  await seed(page, { ...WEEK, settings: settings({ installedAt: ms('2026-09-20T08:00'), lastBackupAt: ms('2026-09-20T08:30'), lastImportAt: ms('2026-09-26T09:00') }) });
+  await expect(page.locator('[data-notice="backup"]')).toContainText('Backup due. The last one was 7 days ago.');
+  await shot(page, 'T16b-today-backup-due');
   await openAt(page, '2026-09-30T12:00');
   await seed(page, {
     days: [...WEEK.days, ...['2026-09-29', '2026-09-30', '2026-10-01'].map((day) => ({ day, paused: 'travel' }))],

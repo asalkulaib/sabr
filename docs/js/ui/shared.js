@@ -197,7 +197,7 @@ export function notices(ctx, app) {
   if (backupDue(ctx)) {
     const last = ctx.settings.lastBackupAt;
     items.push(h('div', { class: 'notice', 'data-notice': 'backup' },
-      h('span', {}, last ? `Backup due. The last one was ${ago(last, ctx.nowTs)}.` : 'No backup yet.'),
+      h('span', {}, last ? `Backup due. The last one was ${ago(last, ctx.nowTs)}. Save it to iCloud Drive, in a folder named Sabr.` : 'No backup yet. Save one to iCloud Drive, in a folder named Sabr.'),
       button('Back up', () => app.backup(), { kind: 'secondary', name: 'backup-now' })));
   }
   if (weightImportDue(ctx)) {
