@@ -1,5 +1,6 @@
 // A known week, Sunday 20 to Saturday 26 September 2026 (the same numbers as
-// the unit test in tests/unit/review.test.js).
+// the unit test in tests/unit/review.test.js). Each 20-minute reading was
+// answered in its check, 22 minutes after the meal finished: on time.
 const T = (s) => new Date(`${s}:00+03:00`).getTime();
 
 const day = (d, first, last, extra = {}) => ({
@@ -20,9 +21,9 @@ export const WEEK = {
     day(26, '19:00', '22:00'),
   ],
   meals: [
-    { id: 1, day: '2026-09-20', name: 'Dinner', startedAt: T('2026-09-20T17:30'), finishedAt: T('2026-09-20T18:00'), hungerBefore: 7, stop: 'before_full', fullnessNow: 5, fullness20: 7 },
-    { id: 2, day: '2026-09-22', name: 'Dinner', startedAt: T('2026-09-22T17:40'), finishedAt: T('2026-09-22T18:10'), hungerBefore: 6, stop: 'full', fullnessNow: 6, fullness20: 7 },
-    { id: 3, day: '2026-09-23', name: 'Dinner', startedAt: T('2026-09-23T17:30'), finishedAt: T('2026-09-23T18:15'), hungerBefore: 8, stop: 'stuffed', fullnessNow: 8, fullness20: 9 },
+    { id: 1, day: '2026-09-20', name: 'Dinner', startedAt: T('2026-09-20T17:30'), finishedAt: T('2026-09-20T18:00'), hungerBefore: 7, stop: 'before_full', fullnessNow: 5, fullness20DueAt: T('2026-09-20T18:20'), fullness20: 7, fullness20At: T('2026-09-20T18:22') },
+    { id: 2, day: '2026-09-22', name: 'Dinner', startedAt: T('2026-09-22T17:40'), finishedAt: T('2026-09-22T18:10'), hungerBefore: 6, stop: 'full', fullnessNow: 6, fullness20DueAt: T('2026-09-22T18:30'), fullness20: 7, fullness20At: T('2026-09-22T18:32') },
+    { id: 3, day: '2026-09-23', name: 'Dinner', startedAt: T('2026-09-23T17:30'), finishedAt: T('2026-09-23T18:15'), hungerBefore: 8, stop: 'stuffed', fullnessNow: 8, fullness20DueAt: T('2026-09-23T18:35'), fullness20: 9, fullness20At: T('2026-09-23T18:37') },
     { id: 4, day: '2026-09-24', name: 'Dinner', startedAt: T('2026-09-24T18:00'), finishedAt: T('2026-09-24T18:30'), hungerBefore: 5, stop: 'before_full', fullnessNow: 5, fullness20: null },
   ],
   outside: [{ id: 1, day: '2026-09-24', at: T('2026-09-24T22:00'), trigger: 'boredom', amount: 'little', source: 'today' }],
@@ -79,3 +80,48 @@ export function fastBackup() {
     },
   };
 }
+
+/**
+ * A meal of 1 to 26 September, finished at 18:00, its 20-minute reading
+ * taken as `how` says: answered in the check on time (18:22), early (18:06)
+ * or late (`late`, a clock time); added in Add a meal (no check, so no due
+ * time; `flag` as Add a meal now marks it); changed in the meal sheet; or none.
+ */
+export function satietyMeal(d, now, at20, stop, hunger, how = 'on-time', late = '19:35') {
+  const day = `2026-09-${String(d).padStart(2, '0')}`;
+  const meal = { id: d, day, name: d % 3 ? 'Dinner' : 'Lunch', startedAt: T(`${day}T17:30`), finishedAt: T(`${day}T18:00`), hungerBefore: hunger, stop, fullnessNow: now, fullness20DueAt: T(`${day}T18:20`), fullness20: at20, fullness20Skipped: false };
+  const at = (hhmm) => T(`${day}T${hhmm}`);
+  return {
+    'on-time': { ...meal, fullness20At: at('18:22') },
+    early: { ...meal, fullness20At: at('18:06') },
+    late: { ...meal, fullness20At: at(late) },
+    added: { ...meal, fullness20DueAt: null, fullness20At: at('18:20') },
+    'added-now': { ...meal, fullness20DueAt: null, fullness20At: at('18:20'), fullness20Recalled: true },
+    edited: { ...meal, fullness20At: at('18:22'), fullness20Recalled: true },
+    none: { ...meal, fullness20DueAt: null },
+  }[how];
+}
+
+/**
+ * Twenty-six meals with every way a 20-minute reading is taken. The 18 checks
+ * answered on time (1 to 18 September) drift +1.8; 10 of them stopped at 5,
+ * and 8 of those landed in 6 to 8, none past 8. Then 3 late, 1 early and
+ * 3 added (two in Add a meal, one changed in the meal sheet), and on the
+ * 26th a meal with no reading.
+ */
+export const READINGS = [
+  satietyMeal(1, 5, 7, 'before_full', 6), satietyMeal(2, 6, 7, 'full', 7), satietyMeal(3, 5, 7, 'before_full', 5),
+  satietyMeal(4, 6, 9, 'stuffed', 8), satietyMeal(5, 5, 7, 'before_full', 6), satietyMeal(6, 5, 6, 'before_full', 5),
+  satietyMeal(7, 6, 8, 'full', 7), satietyMeal(8, 7, 9, 'stuffed', 8), satietyMeal(9, 5, 8, 'full', 6),
+  satietyMeal(10, 6, 9, 'stuffed', 8), satietyMeal(11, 5, 7, 'before_full', 6), satietyMeal(12, 5, 6, 'before_full', 5),
+  satietyMeal(13, 6, 7, 'full', 7), satietyMeal(14, 5, 7, 'before_full', 6), satietyMeal(15, 7, 10, 'stuffed', 9),
+  satietyMeal(16, 5, 5, 'before_full', 5), satietyMeal(17, 6, 9, 'stuffed', 8), satietyMeal(18, 5, 5, 'before_full', 6),
+  satietyMeal(19, 5, 9, 'full', 7, 'late'),
+  satietyMeal(20, 4, 6, 'before_full', 6, 'added-now'),
+  satietyMeal(21, 6, 6, 'full', 7, 'early'),
+  satietyMeal(22, 6, 8, 'full', 7, 'late', '19:10'),
+  satietyMeal(23, 5, 7, 'before_full', 6, 'added'),
+  satietyMeal(24, 7, 8, 'stuffed', 8, 'edited'),
+  satietyMeal(25, 5, 7, 'before_full', 6, 'late', '20:30'),
+  satietyMeal(26, 6, null, 'full', 7, 'none'),
+];

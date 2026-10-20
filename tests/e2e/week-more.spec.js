@@ -31,7 +31,8 @@ test('satiety insights appear once ten meals are rated', async ({ page }) => {
   const meals = [];
   for (let i = 0; i < 12; i++) {
     const day = `2026-09-${String(10 + i).padStart(2, '0')}`;
-    meals.push({ id: i + 1, day, name: 'Dinner', startedAt: ms(`${day}T18:00`), finishedAt: ms(`${day}T18:30`), hungerBefore: i < 6 ? 5 : 8, stop: i < 6 ? 'before_full' : 'full', fullnessNow: 6, fullness20: i < 6 ? 6 : 8 });
+    meals.push({ id: i + 1, day, name: 'Dinner', startedAt: ms(`${day}T18:00`), finishedAt: ms(`${day}T18:30`), hungerBefore: i < 6 ? 5 : 8, stop: i < 6 ? 'before_full' : 'full', fullnessNow: 6,
+      fullness20DueAt: ms(`${day}T18:50`), fullness20: i < 6 ? 6 : 8, fullness20At: ms(`${day}T18:52`) }); // answered in the check, on time
   }
   await seed(page, { ...WEEK, meals });
   await expect(page.getByTestId('insights')).toContainText('Left wanting at 6 of 6 meals started at hunger 6 or less, and 0 of 6 started at 7 or more.');

@@ -4,15 +4,19 @@
 // fades the focus bar out, and only a meal saved by Add a meal on Satiety
 // shows itself in the list.
 import { test, expect, openAt, seed, tap, choose, settings, ms, settleMotion } from './helpers.js';
-import { WEEK } from './seed-data.js';
+import { READINGS, WEEK } from './seed-data.js';
 
-/** Fourteen meals, 12 to 25 September: every way of finishing, one still without its 20-minute check. */
+/**
+ * Fourteen meals, 12 to 25 September: every way of finishing, one still
+ * without its 20-minute check; the others answered it on time, at 18:22.
+ */
 function fourteen() {
   const meals = [];
   for (let i = 0; i < 14; i++) {
     const day = new Date(Date.UTC(2026, 8, 12 + i)).toISOString().slice(0, 10);
     const stop = ['before_full', 'full', 'full', 'stuffed'][i % 4];
-    meals.push({ id: i + 1, day, name: i % 3 ? 'Dinner' : 'Lunch', startedAt: ms(`${day}T17:30`), finishedAt: ms(`${day}T18:00`), hungerBefore: 5 + (i % 4), stop, fullnessNow: 5 + (i % 3), fullness20: i === 13 ? null : 6 + (i % 4) });
+    const check = i === 13 ? { fullness20: null } : { fullness20DueAt: ms(`${day}T18:20`), fullness20: 6 + (i % 4), fullness20At: ms(`${day}T18:22`) };
+    meals.push({ id: i + 1, day, name: i % 3 ? 'Dinner' : 'Lunch', startedAt: ms(`${day}T17:30`), finishedAt: ms(`${day}T18:00`), hungerBefore: 5 + (i % 4), stop, fullnessNow: 5 + (i % 3), ...check });
   }
   return meals;
 }
@@ -227,16 +231,19 @@ test('lag lines that end together keep both end marks, side by side, and every r
 
 test.describe('at 320 wide', () => {
   test.use({ viewport: { width: 320, height: 700 } });
-  test('the table fits its card, and its heads share one baseline', async ({ page }) => {
+  test('the table fits its card, and its heads share one baseline, with readings marked or not', async ({ page }) => {
     await openAt(page, '2026-09-26T23:00', '#satiety');
-    await seed(page, { ...WEEK, settings: install });
-    await tap(page, 'satiety-table');
-    const fit = await page.getByTestId('satiety-table').evaluate((t) => {
-      const card = t.closest('.table-card').getBoundingClientRect();
-      const heads = [...t.querySelectorAll('th')].map((th) => th.getBoundingClientRect());
-      return { over: t.getBoundingClientRect().right - card.right, bottoms: heads.map((b) => Math.round(b.bottom)) };
-    });
-    expect(fit.over).toBeLessThanOrEqual(-4);
-    expect(new Set(fit.bottoms).size).toBe(1);
+    for (const meals of [WEEK.meals, READINGS]) {
+      await seed(page, { ...WEEK, meals, settings: install });
+      await tap(page, 'satiety-table');
+      const fit = await page.getByTestId('satiety-table').evaluate((t) => {
+        const card = t.closest('.table-card').getBoundingClientRect();
+        const heads = [...t.querySelectorAll('th')].map((th) => th.getBoundingClientRect());
+        return { over: t.getBoundingClientRect().right - card.right, bottoms: heads.map((b) => Math.round(b.bottom)) };
+      });
+      expect(fit.over).toBeLessThanOrEqual(-4);
+      expect(new Set(fit.bottoms).size).toBe(1);
+    }
+    await expect(page.getByTestId('satiety-table').locator('.read-how')).toHaveCount(7);
   });
 });

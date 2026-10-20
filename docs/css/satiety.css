@@ -169,6 +169,16 @@ body.has-flash .satiety .focus-bar {
   letter-spacing: var(--t-title-1-track);
 }
 
+/* Under the drift, quiet: the on-time checks it rests on, and what it leaves out. */
+.satiety-hero .hero-basis {
+  margin: var(--space-1) 0 0;
+  font-weight: 600;
+  font-size: var(--t-footnote-size);
+  line-height: var(--t-footnote-lh);
+  color: var(--text-quiet);
+  text-wrap: pretty;
+}
+
 .satiety-hero .hero-note {
   margin: var(--space-2) 0 0;
   font-weight: 600;
@@ -182,6 +192,12 @@ body.has-flash .satiety .focus-bar {
   font-weight: 700;
   font-size: var(--t-body-size);
   line-height: var(--t-body-lh);
+  color: var(--text-display);
+}
+
+/* Where to stop: in ink after the quiet note; in the climbing note, its second sentence. */
+.satiety-hero .hero-note:not(.climbing) .stop-point {
+  font-weight: 800;
   color: var(--text-display);
 }
 
@@ -445,6 +461,15 @@ body.has-flash .satiety .focus-bar {
 .satiety .table .drift-cell {
   font-weight: 900;
   color: var(--text-display);
+}
+
+/* A 20-minute reading not taken on time says how under it, as the meal's own words do. */
+.satiety .table .read-how {
+  display: block;
+  font-weight: 700;
+  font-size: var(--t-footnote-size);
+  line-height: var(--t-footnote-lh);
+  color: var(--text-quiet);
 }
 
 /* On the narrowest phones the columns sit closer, so the table keeps inside its card. */
@@ -735,12 +760,21 @@ body.has-flash .satiety .focus-bar {
   color: var(--text-display);
 }
 
-.satiety .meal-entry .drift {
+/* Under the readings: how the 20-minute one was taken when not on time, then the drift. */
+.satiety .meal-entry .read-foot {
   display: block;
-  font-weight: 900;
   font-size: var(--t-footnote-size);
   line-height: var(--t-footnote-lh);
+}
+
+.satiety .meal-entry .drift {
+  font-weight: 900;
   color: var(--text-display);
+}
+
+.satiety .meal-entry .read-how {
+  font-weight: 700;
+  color: var(--text-quiet);
 }
 
 /* A meal just added from here shows itself once: a shade that fades. */
