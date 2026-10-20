@@ -5,11 +5,12 @@ import * as store from './store.js';
 import { requestPersistence } from './db.js';
 import { h, fadeIn, fadeOut, updateLive } from './ui/dom.js';
 import { button, sliding } from './ui/components.js';
-import { MIN, HOME_ZONE, now, dayKey, isDayKey, fmtDayLong, sameClock, switchZone, zoneName } from './core/time.js';
+import { MIN, HOME_ZONE, now, dayKey, isDayKey, fmtDayLong, fmtDayMonth, sameClock, switchZone, zoneName } from './core/time.js';
 import { makeEvaluator, noWindowAlerts, streaks, todayMode, trackingStart, windowMsFor } from './core/rules.js';
 import { buildIcs, icsTimes } from './core/ics.js';
 import { buildCsvFiles } from './core/csv.js';
-import { buildBackup, backupFileName, describeBackup, parseBackup } from './core/backup.js';
+import { buildBackup, backupFileName, backupSpan, daysAfter, describeBackup, parseBackup } from './core/backup.js';
+import { dailyCopy, keepCopyFirst } from './copies.js';
 import { renderToday, signature as todaySignature } from './ui/today.js';
 import { renderWeek } from './ui/week.js';
 import { renderDay } from './ui/day.js';
@@ -258,10 +259,17 @@ function prompts(ctx) {
   }
 }
 
+let copyDay = null; // the day the daily copy was last looked for
+
 function tick() {
   if (document.hidden || !store.state.ready) return;
   if (now() - zoneCheckedAt >= 5 * MIN) followZone();
   const ctx = context();
+  // Left open past midnight: the new day gets its copy too.
+  if (copyDay && ctx.todayKey !== copyDay) {
+    copyDay = ctx.todayKey;
+    dailyCopy();
+  }
   if (flash && flash.until <= ctx.nowTs) {
     flash = null;
     clearFlash();
@@ -351,7 +359,7 @@ async function backup() {
   const result = await deliverFiles([{ name: backupFileName(nowTs, dayKey), text, type: 'application/json' }], 'Sabr backup');
   if (result === 'cancelled') return;
   await store.setSettings({ lastBackupAt: nowTs });
-  showFlash(result === 'shared' ? 'Backup handed to iOS. Keep it in Files or iCloud Drive.' : 'Backup file downloaded.');
+  showFlash(result === 'shared' ? 'Backup handed to iOS. Keep it in iCloud Drive, in a folder named Sabr.' : 'Backup file downloaded.');
 }
 
 async function exportCsv() {
@@ -371,8 +379,32 @@ async function addCalendar() {
   const text = buildIcs(s, { nowTs: ctx.nowTs, todayKey: ctx.todayKey, sequence, flexible });
   const result = await deliverFiles([{ name: 'sabr-reminders.ics', text, type: 'text/calendar' }], 'Sabr reminders');
   if (result === 'cancelled') return;
-  await store.setSettings({ icsTimes: fingerprint, icsSequence: sequence });
+  // Sabr's own file is in Calendar now: Fast's events were to go before it.
+  await store.setSettings({ icsTimes: fingerprint, icsSequence: sequence, fastCalendar: false });
   showFlash(result === 'shared' ? 'Calendar file handed to iOS.' : 'Calendar file downloaded.');
+}
+
+/** '25 Sep to 16 Oct', with each year when the two differ. */
+function spanText({ first, last }) {
+  const years = first.slice(0, 4) !== last.slice(0, 4);
+  const day = (k) => (years ? `${fmtDayMonth(k)} ${k.slice(0, 4)}` : fmtDayMonth(k));
+  return `${day(first)} to ${day(last)}`;
+}
+
+/**
+ * What a backup covers, and what restoring it removes from this iPhone that
+ * it does not hold: the days logged after its last day.
+ */
+function restoreLines(backupObj, ctx) {
+  const span = backupSpan(backupObj, dayKey);
+  const later = daysAfter(store.data(), span ? span.last : null, ctx.todayKey);
+  const days = `${later} ${later === 1 ? 'day' : 'days'}`;
+  return {
+    span: !span ? null
+      : span.first === span.last ? `This backup holds ${fmtDayMonth(span.first)} only.` : `This backup runs ${spanText(span)}.`,
+    loss: !later ? null
+      : span ? `${days} logged on this iPhone after ${fmtDayMonth(span.last)} will be removed.` : `${days} logged on this iPhone will be removed.`,
+  };
 }
 
 async function restoreFrom(file) {
@@ -385,17 +417,22 @@ async function restoreFrom(file) {
   }
   const info = describeBackup(backupObj);
   const when = info.exportedAt ? fmtDayLong(dayKey(Date.parse(info.exportedAt))) : 'an unknown date';
+  const lines = restoreLines(backupObj, context());
   openSheet((api) => ({
     head: sheetHead(api, 'Restore'),
     body: h('div', {},
       h('p', { class: 'statement' }, 'Replace everything on this iPhone with this backup?'),
       h('p', { class: 'gap' }, `Backup from ${when}: ${info.windows} windows, ${info.meals} meals, ${info.weighIns} weigh-ins and ${info.temptations} temptations.`),
+      lines.span ? h('p', { class: 'gap restore-span', 'data-testid': 'restore-span' }, lines.span) : null,
+      lines.loss ? h('p', { class: 'callout gap restore-loss', 'data-testid': 'restore-loss' }, lines.loss) : null,
       info.skipped ? h('p', { class: 'small quiet gap-s' }, `${info.skipped} damaged ${info.skipped === 1 ? 'entry' : 'entries'} will be left out.`) : null),
     actions: [
       button('Replace my data', async () => {
+        // A copy of now is kept first, so Undo can bring it back.
+        const undo = await keepCopyFirst('before-restore');
         await store.restore(backupObj);
         await api.close();
-        showFlash('Backup restored.');
+        showFlash('Backup restored.', { undo });
       }, { block: true, name: 'confirm-restore' }),
       button('Cancel', () => api.close(), { kind: 'outline', block: true, name: 'cancel-restore' }),
     ],
@@ -455,6 +492,11 @@ function registerServiceWorker() {
 // ---------- Boot ----------
 
 function fatal(err) {
+  // The rescue screen (rescue.js) offers to save the data and try again.
+  if (typeof window.__sabrRescue === 'function') {
+    window.__sabrRescue();
+    return;
+  }
   view.removeAttribute('aria-busy');
   view.replaceChildren(h('div', {},
     h('div', { class: 'label' }, 'Sabr'),
@@ -506,9 +548,12 @@ async function boot() {
     }
     render(false);
     prompts(context());
+    dailyCopy();
   });
 
   render(true);
+  // The first screen is up: the rescue screen (rescue.js) stays away from now on.
+  window.__sabrDrawn = true;
 
   if (window.__fastPayload) {
     const payload = window.__fastPayload;
@@ -524,6 +569,9 @@ async function boot() {
   prompts(context());
   setInterval(tick, 1000);
   registerServiceWorker();
+  // Today's copy on this iPhone, once the screen is up and in no save's way.
+  copyDay = dayKey(now());
+  setTimeout(dailyCopy, 1500);
 }
 
 boot();

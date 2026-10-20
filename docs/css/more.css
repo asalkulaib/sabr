@@ -1,4 +1,4 @@
-/* More, Help, and the Goal, Pause, Reset, Tempted, Restore and time sheets. */
+/* More, Help, and the Goal, Pause, Reset, Tempted, Restore, Copies and time sheets. */
 
 @layer screens {
 
@@ -180,6 +180,22 @@
 .more .help-row > .glyph {
   width: var(--icon-chip);
   height: var(--icon-chip);
+}
+
+/* Copies on this iPhone: one row, its name and a chevron, in a part of its
+   own; the row's height makes most of its room. */
+.more .copies-row {
+  grid-template-columns: minmax(0, 1fr) var(--chevron-w);
+  font-weight: 700;
+}
+
+.more .data-part[data-block='copies'] {
+  margin-top: var(--space-3);
+  padding-top: var(--space-2);
+}
+
+.more .data-part[data-block='copies'] + .data-part {
+  margin-top: var(--space-2);
 }
 
 /* The page's intro: one quiet line under the More title, summing up the page. */
@@ -414,6 +430,70 @@
   font-size: var(--t-title-2-size);
   line-height: var(--t-title-2-lh);
   letter-spacing: var(--t-title-2-track);
+}
+
+/* ---------- Copies on this iPhone ---------- */
+[data-sheet='copies'] .copies-lead {
+  margin: 0;
+  font-weight: 600;
+  font-size: var(--t-callout-size);
+  line-height: var(--t-callout-lh);
+  color: var(--text-quiet);
+}
+
+[data-sheet='copies'] .copy-list {
+  margin-top: var(--space-3);
+}
+
+/* A copy: when and its kind beside Bring back, what it holds under them. */
+[data-sheet='copies'] .copy {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: var(--space-3);
+  align-items: center;
+  padding: var(--space-4) 0;
+}
+
+[data-sheet='copies'] .copy-main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+[data-sheet='copies'] .copy-when {
+  font-weight: 800;
+  font-size: var(--t-headline-size);
+  line-height: var(--t-headline-lh);
+  color: var(--text-display);
+}
+
+[data-sheet='copies'] .copy-kind {
+  font-weight: 700;
+  font-size: var(--t-callout-size);
+  line-height: var(--t-callout-lh);
+  color: var(--text-body);
+}
+
+[data-sheet='copies'] .copy-counts {
+  grid-column: 1 / -1;
+  margin: var(--space-1) 0 0;
+  font-weight: 600;
+  font-size: var(--t-callout-size);
+  line-height: var(--t-callout-lh);
+  color: var(--text-quiet);
+}
+
+[data-sheet='copies'] .copy-confirm {
+  grid-column: 1 / -1;
+  margin-top: var(--space-3);
+}
+
+[data-sheet='copies'] .copies-empty {
+  margin: var(--space-4) 0 0;
+  font-weight: 700;
+  font-size: var(--t-callout-size);
+  line-height: var(--t-callout-lh);
+  color: var(--text-display);
 }
 
 /* ---------- Tempted ---------- */

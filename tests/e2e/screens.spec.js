@@ -4,7 +4,7 @@
 // H history and weight, SA satiety, M more, help, goal, pause, Tempted and the
 // welcome); this file holds only the states no group shoots, so every state
 // is shot once, under one name.
-import { test, expect, openAt, seed, tap, pick, choose, sheet, setDate, setPick, settings, ms, shot, scrollSheet } from './helpers.js';
+import { test, expect, T, openAt, seed, tap, pick, choose, sheet, setDate, setPick, settings, ms, shot, scrollSheet, captureShares } from './helpers.js';
 import { WEEK } from './seed-data.js';
 
 test.skip(({ browserName }) => browserName !== 'webkit', 'screens are reviewed in WebKit, the engine of iPhone Safari');
@@ -96,4 +96,18 @@ test('the stages sheet: Brain fuel', async ({ page }) => {
   await tap(page, 'open-stages');
   await tap(page, 'stage-brain');
   await shot(page, '87-stages-brain');
+});
+
+test('the rescue screen, when Sabr cannot start', async ({ page }) => {
+  await captureShares(page);
+  await page.clock.install({ time: T('2026-09-27T10:00') });
+  // An app that never draws its first screen.
+  await page.route('**/sabr/js/app.js', (route) => route.fulfill({ contentType: 'text/javascript', body: 'export {};' }));
+  await page.goto('./');
+  await page.clock.runFor(6500);
+  await expect(page.getByTestId('rescue')).toBeVisible();
+  await shot(page, '95-rescue');
+  await page.locator('[data-action="rescue-save"]').click();
+  await expect(page.getByTestId('rescue-status')).not.toBeEmpty();
+  await shot(page, '95b-rescue-saved');
 });

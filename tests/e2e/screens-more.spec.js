@@ -1,13 +1,23 @@
 // The More group in every state, shot at 390 x 844 for design review
 // (test-results/screens, names starting with M), each with the contrast
-// audit of shot(): More, Help, the Goal, Pause, Reset, Restore and time
-// sheets, the Tempted flow and the first-run welcome.
-import { test, expect, openAt, seed, advance, tap, pick, choose, sheet, setDate, setPick, setTime, settings, ms, shot, scrollSheet, captureShares, sharedFiles } from './helpers.js';
-import { WEEK } from './seed-data.js';
+// audit of shot(): More, Help, the Goal, Pause, Reset, Restore, Copies and
+// time sheets, the Tempted flow and the first-run welcome.
+import { test, expect, openAt, seed, advance, tap, pick, choose, sheet, setDate, setPick, setTime, settings, ms, shot, scrollSheet, captureShares, sharedFiles, copiesInDb } from './helpers.js';
+import { WEEK, fastBackup } from './seed-data.js';
 
 test.skip(({ browserName }) => browserName !== 'webkit', 'screens are reviewed in WebKit, the engine of iPhone Safari');
 
 const install = settings({ installedAt: ms('2026-09-20T08:00'), lastBackupAt: ms('2026-09-26T08:00'), lastImportAt: ms('2026-09-26T09:00') });
+
+/** Sabr before the move from Fast: three days logged after Fast's last one. */
+const FAST_PHONE = {
+  days: [
+    { day: '2026-10-15', firstBite: ms('2026-10-15T17:40'), lastBite: ms('2026-10-15T21:00') },
+    { day: '2026-10-16', firstBite: ms('2026-10-16T14:00'), lastBite: ms('2026-10-16T17:30') },
+  ],
+  weights: [{ date: '2026-10-17', kg: 103.2 }],
+  settings: settings({ installedAt: ms('2026-10-15T08:00'), lastBackupAt: ms('2026-10-16T21:00'), lastImportAt: ms('2026-10-17T09:00') }),
+};
 
 test('more: the goal hero, the groups, help and reset', async ({ page }) => {
   await openAt(page, '2026-09-26T23:00', '#more');
@@ -30,6 +40,8 @@ test('more: the goal hero, the groups, help and reset', async ({ page }) => {
   await tap(page, 'help');
   await shot(page, 'M35-help');
   await shot(page, 'M35b-help-full', { full: true });
+  await page.locator('[data-block="moving"]').scrollIntoViewIfNeeded();
+  await shot(page, 'M35c-help-backups-moving');
 });
 
 test('more: a calendar file to add again, feasting hours, Alarms on', async ({ page }) => {
@@ -105,6 +117,67 @@ test('restore: the sheet before replacing everything', async ({ page }) => {
   await page.getByTestId('restore-input').setInputFiles({ name: file.name, mimeType: 'application/json', buffer: Buffer.from(file.text) });
   await expect(sheet(page, 'restore')).toBeVisible();
   await shot(page, 'M40-restore-sheet');
+});
+
+test('restore from Fast: what the file covers and removes, the message with Undo, the calendar note', async ({ page }) => {
+  await openAt(page, '2026-10-17T10:00', '#more');
+  await seed(page, FAST_PHONE);
+  await page.getByTestId('restore-input').setInputFiles({ name: 'fast-backup-2026-10-14.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(fastBackup())) });
+  await expect(sheet(page, 'restore').getByTestId('restore-loss')).toBeVisible();
+  await shot(page, 'M40b-restore-sheet-from-fast');
+  await tap(page, 'confirm-restore');
+  await expect(page.getByTestId('flash')).toHaveText('Backup restored.');
+  await shot(page, 'M40c-restored-undo');
+  await page.locator('[data-block="calendar"]').scrollIntoViewIfNeeded();
+  await shot(page, 'M34f-more-calendar-from-fast');
+});
+
+test('copies on this iPhone: the list, Bring back asking, the message after', async ({ page }) => {
+  await openAt(page, '2026-09-27T10:00', '#more');
+  await seed(page, { ...WEEK, settings: install });
+  await page.clock.runFor(2000);
+  await expect.poll(async () => (await copiesInDb(page)).length).toBe(1);
+  // Earlier copies of the same data, of every kind.
+  await page.evaluate(async (list) => {
+    const db = await new Promise((resolve, reject) => {
+      const req = indexedDB.open('sabr-copies');
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+    await new Promise((resolve, reject) => {
+      const tx = db.transaction('copies', 'readwrite');
+      const os = tx.objectStore('copies');
+      const read = os.getAll();
+      read.onsuccess = () => {
+        const [today] = read.result;
+        for (const [kind, at] of list) {
+          const { id, ...rest } = today;
+          os.put({ ...rest, kind, at });
+        }
+      };
+      tx.oncomplete = resolve;
+      tx.onerror = () => reject(tx.error);
+    });
+    db.close();
+  }, [['before-reset', ms('2026-09-24T07:12')], ['before-bring-back', ms('2026-09-24T22:05')], ['daily', ms('2026-09-25T07:30')], ['before-restore', ms('2026-09-26T21:40')]]);
+  await page.locator('[data-block="copies"]').scrollIntoViewIfNeeded();
+  await tap(page, 'copies');
+  const s = sheet(page, 'copies');
+  await expect(s.locator('li.copy')).toHaveCount(5);
+  await shot(page, 'M41-copies-sheet');
+  await s.locator('li.copy').nth(1).locator('[data-action="bring-back"]').click();
+  await expect(s.locator('.copy-confirm')).toBeVisible();
+  await shot(page, 'M41b-copies-confirm');
+  await tap(page, 'confirm-bring-back');
+  await expect(page.getByTestId('flash')).toHaveText('Copy brought back.');
+  await shot(page, 'M41c-copies-brought-back');
+});
+
+test('copies on this iPhone: none yet', async ({ page }) => {
+  await openAt(page, '2026-09-27T10:00', '#more');
+  await tap(page, 'copies');
+  await expect(sheet(page, 'copies').getByTestId('copies-empty')).toBeVisible();
+  await shot(page, 'M41d-copies-none-yet');
 });
 
 test('tempted: every step before the window', async ({ page }) => {

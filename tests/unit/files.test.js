@@ -2,8 +2,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { buildIcs, foldLine, escapeText, icsTimes } from '../../docs/js/core/ics.js';
 import { buildCsvFiles, csvCell, toCsv } from '../../docs/js/core/csv.js';
-import { buildBackup, parseBackup, describeBackup } from '../../docs/js/core/backup.js';
-import { setZones } from '../../docs/js/core/time.js';
+import { backupSpan, buildBackup, checkBackup, daysAfter, describeBackup, historyDays, parseBackup } from '../../docs/js/core/backup.js';
+import { dayKey, setZones } from '../../docs/js/core/time.js';
 
 const T = (s) => Date.parse(`${s}:00+03:00`);
 const SETTINGS = { workdayStart: '17:30', weekendStart: '14:00', holdTime: '13:00', trainingTime: '16:30' };
@@ -169,4 +169,48 @@ test('backup: round trip and validation messages', () => {
   assert.equal(partial.data.weights.length, 1);
   assert.equal(partial.data.meals.length, 1);
   assert.equal(describeBackup(partial).skipped, 2);
+});
+
+test('backup: a file from Fast reads as one from Sabr; a copy checks as a file does', () => {
+  const backup = buildBackup(sample(), { nowTs: T('2026-09-26T12:00'), version: 'test' });
+  const fast = parseBackup(JSON.stringify({ ...backup, app: 'fast' }));
+  assert.equal(fast.app, 'fast');
+  assert.equal(fast.data.days.length, 2);
+  // A copy kept on this iPhone: the backup's data in hand, with no file around it.
+  const copy = checkBackup({ app: 'sabr', schema: 1, version: 'test', data: backup.data });
+  assert.equal(copy.skipped, 0);
+  assert.deepEqual(copy.data.meals, backup.data.meals);
+  assert.throws(() => checkBackup({ app: 'sabr', schema: 1, data: { ...backup.data, weights: undefined } }), /incomplete/);
+});
+
+test('backup: the days it runs over, and the days a restore would remove', () => {
+  const data = sample();
+  data.days.set('2026-09-21', { day: '2026-09-21', paused: 'travel' });
+  data.days.set('2026-09-23', { day: '2026-09-23', updatedAt: T('2026-09-23T10:00') }); // a record left empty
+  // A pause set ahead, after the backup was made.
+  data.days.set('2026-10-10', { day: '2026-10-10', paused: 'ramadan' });
+  const backup = buildBackup(data, { nowTs: T('2026-09-26T12:00'), version: 'test' });
+  assert.deepEqual(historyDays(backup.data), ['2026-09-20', '2026-09-21', '2026-09-25', '2026-10-10']);
+  // The pause ahead does not stretch it: nothing is logged after the day it was made.
+  assert.deepEqual(backupSpan(backup, dayKey), { first: '2026-09-20', last: '2026-09-25' });
+  assert.equal(backupSpan({ ...backup, exportedAt: undefined }, dayKey).last, '2026-10-10');
+  const empty = buildBackup({ days: new Map(), meals: [], outside: [], temptations: [], weights: new Map(), settings: {} }, { nowTs: T('2026-09-26T12:00'), version: 'test' });
+  assert.equal(backupSpan(empty, dayKey), null);
+
+  // This iPhone: days logged after 25 September up to today, whatever holds them.
+  const phone = {
+    days: new Map([
+      ['2026-09-24', { day: '2026-09-24', firstBite: T('2026-09-24T17:00'), lastBite: T('2026-09-24T20:00') }],
+      ['2026-09-26', { day: '2026-09-26', firstBite: T('2026-09-26T17:00'), lastBite: null }],
+      ['2026-09-28', { day: '2026-09-28', energy4pm: 3 }],
+      ['2026-10-12', { day: '2026-10-12', paused: true }], // still ahead
+    ]),
+    meals: [{ id: 1, day: '2026-09-26', startedAt: T('2026-09-26T17:00') }],
+    outside: [],
+    temptations: [{ id: 1, day: '2026-09-27', startedAt: T('2026-09-27T13:00') }],
+    weights: new Map([['2026-09-29', 104.1], ['2026-09-25', 104.5]]),
+  };
+  assert.equal(daysAfter(phone, '2026-09-25', '2026-09-30'), 4); // the 26th, 27th, 28th and 29th
+  assert.equal(daysAfter(phone, '2026-09-29', '2026-09-30'), 0);
+  assert.equal(daysAfter(phone, null, '2026-09-30'), 6); // with no last day, every day logged
 });

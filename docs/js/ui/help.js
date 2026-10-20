@@ -1,4 +1,5 @@
-// Help: the weight Shortcut, the weekly automation, the Home Screen.
+// Help: the weight Shortcut, the weekly automation, the Home Screen, backups
+// and moving from Fast.
 
 import { h } from './dom.js';
 import { header } from './shared.js';
@@ -65,5 +66,20 @@ export function renderHelp(ctx, app) {
         fix('No weight data on the clipboard:', 'run the Shortcut again, come back to Sabr and tap Import weight.'),
         fix('Entries skipped:', 'in the Health app, open Weight and set its unit to kg. In Settings, General, Language and Region, set Calendar to Gregorian.'),
         fix('The Paste bubble does not appear:', 'tap Import weight again, or use the paste box that appears on the Weight screen.'))),
+
+    h('section', { class: 'section help-card', 'data-block': 'backups' },
+      h('h3', { class: 'card-title' }, 'Backups'),
+      h('p', {}, 'Everything lives only on this iPhone. Once a week, tap ', b('Back up now'), ' in More and save the file to ', b('iCloud Drive'), ', in a folder named ', code('Sabr'), ' (On My iPhone goes with the phone).'),
+      h('p', {}, 'Sabr also keeps copies of its own: in More, tap ', b('Copies on this iPhone'), '. They protect against a wrong restore or reset, not against a lost phone.'),
+      h('p', {}, 'If Sabr ever cannot start, it says so and offers ', b('Save my data'), ' and ', b('Try again'), '.')),
+
+    h('section', { class: 'section help-card', 'data-block': 'moving' },
+      h('h3', { class: 'card-title' }, 'Moving from Fast'),
+      h('ol', { class: 'steps badges' },
+        step('In Fast, tap ', b('Back up now'), ' and save the file to ', b('iCloud Drive'), '.'),
+        step('In Sabr, tap ', b('Restore from a backup'), ' and pick that file.'),
+        step('Check that ', b('Week'), ' and ', b('History'), ' match in both apps.'),
+        step('In ', b('Calendar'), ', delete the Fast events, then add Sabr\'s file from More.'),
+        step('Keep Fast on the Home Screen, unused, until Sabr has made two backups of its own, then remove it.'))),
   );
 }

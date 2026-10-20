@@ -12,6 +12,8 @@ import { pausesSection } from './pause.js';
 import { goalSection } from './goal.js';
 import { isFlexible, noWindowAlerts } from '../core/rules.js';
 import { glyph } from './icons.js';
+import { keepCopyFirst } from '../copies.js';
+import { showCopiesSheet } from './copies.js';
 
 /** A time shown as a row; tapping it opens its wheel in a sheet, where each roll saves. */
 function timeSetting(label, key, ctx) {
@@ -91,6 +93,8 @@ function showResetSheet(app) {
           ...resetWords(`${plural(windows, 'window')}, ${plural(d.meals.length, 'meal')}, ${plural(d.weights.size, 'weigh-in')} and ${plural(d.temptations.length, 'temptation')} will be deleted for good.`, { counts: true }))),
       actions: [
         button('Delete all history', async () => {
+          // A copy of everything is kept first: Copies on this iPhone can bring it back.
+          await keepCopyFirst('before-reset');
           await store.resetHistory();
           await api.close();
           app.go('today');
@@ -132,6 +136,11 @@ function timingSection(ctx, app) {
 
 function calendarStatus(ctx) {
   const s = ctx.settings;
+  // Restored from Fast: Fast's own events are still in Calendar until deleted.
+  if (s.fastCalendar) {
+    return h('p', { class: 'ics-status callout', 'data-testid': 'ics-status' },
+      'Restored from Fast. In Calendar, delete the Fast events: open one, tap Delete Event, then Delete All Future Events. Then add Sabr\'s file.');
+  }
   if (!s.icsTimes) return h('p', { class: 'ics-status', 'data-testid': 'ics-status' }, 'Not added yet.');
   if (icsPinnedToKuwait(s.icsTimes)) {
     return h('p', { class: 'ics-status callout', 'data-testid': 'ics-status' },
@@ -197,10 +206,14 @@ export function renderMore(ctx, app) {
       h('div', { class: 'data-part', 'data-block': 'backup' },
         cardTitle('Backup'),
         h('p', { class: 'backup-status', 'data-testid': 'backup-status' }, s.lastBackupAt ? `Last backup ${ago(s.lastBackupAt, ctx.nowTs)}.` : 'No backup yet.'),
-        h('p', { class: 'more-body quiet' }, 'Everything lives only on this iPhone. Back up once a week and keep the file in Files or iCloud Drive.'),
+        h('p', { class: 'more-body quiet' }, 'Everything lives only on this iPhone. Back up once a week and save the file to iCloud Drive, in a folder named Sabr (On My iPhone goes with the phone).'),
         button('Back up now', () => app.backup(), { block: true, name: 'backup' }),
         h('div', { class: 'pill-row' }, button('Restore from a backup', () => restoreInput.click(), { kind: 'secondary', name: 'restore' })),
         restoreInput),
+      // Copies Sabr keeps by itself, to undo a wrong restore or reset.
+      h('div', { class: 'data-part', 'data-block': 'copies' },
+        h('button', { type: 'button', class: 'setting-row copies-row', 'data-action': 'copies', onclick: () => showCopiesSheet(app) },
+          h('span', {}, 'Copies on this iPhone'))),
       h('div', { class: 'data-part', 'data-block': 'export' },
         cardTitle('Export'),
         h('p', { class: 'more-body' }, 'CSV files for Excel: every day with its window and the fast before it, meals, weight, check-ins and temptations. The weight file holds your raw entries.'),
