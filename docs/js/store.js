@@ -634,10 +634,11 @@ export async function restore(backup, { own = false } = {}) {
     Number.isFinite(exported) ? exported : 0,
   ) || null;
   const zoneSeenAt = Math.max(recorded('zoneSeenAt') || 0, Number.isFinite(exported) ? exported : 0) || null;
-  // This install keeps its own start, unless a copy of its own data began
-  // earlier (one taken before a reset).
+  // A file leaves this install's start as it is. A copy on this iPhone holds
+  // this install's own start as it was then (before a reset, the earlier
+  // one), and brings it back with everything else.
   const installed = recorded('installedAt');
-  const installedAt = own && installed && (!state.settings.installedAt || installed < state.settings.installedAt) ? installed : state.settings.installedAt;
+  const installedAt = own && installed ? installed : state.settings.installedAt;
   const keep = { installedAt, persisted: state.settings.persisted, lastBackupAt, zoneSeenAt };
   if (backup.app === 'fast') {
     // Fast's calendar file is Fast's own: its events stay in Calendar under

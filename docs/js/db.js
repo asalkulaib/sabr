@@ -50,7 +50,8 @@ function connection() {
   return dbPromise;
 }
 
-function lost(err) {
+/** Whether an error says the connection is gone (iOS drops it while the app is suspended). */
+export function lost(err) {
   const text = `${err && err.name} ${err && err.message}`;
   return /InvalidStateError|UnknownError|TransactionInactiveError|closing|closed|Connection/i.test(text);
 }

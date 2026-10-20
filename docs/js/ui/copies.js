@@ -53,7 +53,9 @@ export function showCopiesSheet(app) {
               button('Bring back', async () => {
                 let undo = null;
                 try {
-                  undo = await keepCopyFirst('before-bring-back');
+                  // The copy of now never pushes out the one brought back,
+                  // so after an Undo it is still there to bring back again.
+                  undo = await keepCopyFirst('before-bring-back', { protect: [c.id] });
                   await restoreCopy(c);
                 } catch {
                   asking = null;

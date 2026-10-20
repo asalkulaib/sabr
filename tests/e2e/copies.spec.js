@@ -25,6 +25,29 @@ const restoreFile = (page, obj) => page.getByTestId('restore-input').setInputFil
 
 const HISTORY = ['days', 'meals', 'outside', 'temptations', 'weights'];
 
+const settingsOf = (db) => Object.fromEntries(db.settings.map((x) => [x.key, x.value]));
+
+/** The Kuwait day a copy was taken. */
+const kuwaitDay = (at) => new Date(at + 3 * 3600000).toISOString().slice(0, 10);
+
+/** Puts copies straight into the copies database, as earlier days would have left them. */
+async function putCopies(page, list) {
+  await page.evaluate(async (copies) => {
+    const db = await new Promise((resolve, reject) => {
+      const req = indexedDB.open('sabr-copies');
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+    await new Promise((resolve, reject) => {
+      const tx = db.transaction('copies', 'readwrite');
+      for (const c of copies) tx.objectStore('copies').put(c);
+      tx.oncomplete = resolve;
+      tx.onerror = () => reject(tx.error);
+    });
+    db.close();
+  }, list);
+}
+
 test('a daily copy, once a day, in a database of its own', async ({ page }) => {
   await openAt(page, '2026-09-27T09:00');
   await seed(page, WEEK);
@@ -45,6 +68,10 @@ test('a daily copy, once a day, in a database of its own', async ({ page }) => {
   await reopen(page);
   await page.clock.runFor(2000);
   await page.waitForTimeout(300);
+  expect(await copiesInDb(page)).toHaveLength(1);
+  // Back on the screen the same day, as after another app: Sabr looks again
+  // and finds today's copy kept. That quick look must not stop the next one.
+  await page.evaluate(async () => (await import('/sabr/js/copies.js')).dailyCopy());
   expect(await copiesInDb(page)).toHaveLength(1);
 
   // Left open into the next day: the new day gets its own.
@@ -110,7 +137,8 @@ test('Bring back asks once, keeps a copy of now first, and Undo returns to it', 
   await tap(page, 'reset-continue');
   await tap(page, 'reset-confirm');
   await expect(page.getByTestId('flash')).toHaveText('All history deleted.');
-  expect((await readDb(page)).days).toHaveLength(0);
+  const afterReset = await readDb(page);
+  expect(afterReset.days).toHaveLength(0);
   expect((await copiesInDb(page)).map((c) => c.kind)).toEqual(['daily', 'before-reset']);
 
   await page.locator('.tab[data-tab="more"]').click();
@@ -132,13 +160,91 @@ test('Bring back asks once, keeps a copy of now first, and Undo returns to it', 
   expect(back.days).toHaveLength(7);
   expect(back.meals).toHaveLength(4);
   // The install's own start comes back with it, from before the reset.
-  expect(Object.fromEntries(back.settings.map((x) => [x.key, x.value])).installedAt).toBe(ms('2026-09-20T08:00'));
+  expect(settingsOf(back).installedAt).toBe(ms('2026-09-20T08:00'));
   expect((await copiesInDb(page)).map((c) => c.kind)).toEqual(['daily', 'before-reset', 'before-bring-back']);
 
   await tap(page, 'undo');
   await expect(page.getByTestId('flash')).toHaveText('Undone.');
   const undone = await readDb(page);
   for (const store of HISTORY) expect(undone[store], store).toHaveLength(0);
+  // Undo returns to the state after the reset whole, its start included, so
+  // Today has no days with nothing logged to report, nor a weight import due.
+  expect(settingsOf(undone).installedAt).toBe(settingsOf(afterReset).installedAt);
+  await page.locator('.tab[data-tab="today"]').click();
+  await expect(page.locator('[data-block="before"]')).toBeVisible();
+  await expect(page.locator('[data-notice]')).toHaveCount(0);
+});
+
+test('Bring back never lets go of the copy it brings back, so it is still there after Undo', async ({ page }) => {
+  await openAt(page, '2026-09-27T10:00', '#more');
+  await seed(page, WEEK);
+  await page.clock.runFor(2000);
+  await expect.poll(async () => (await copiesInDb(page)).length).toBe(1); // today's daily copy
+  // Five copies kept before restores. The oldest holds one day only, found nowhere else.
+  const counts = { windows: 7, meals: 4, weighIns: 6, temptations: 4 };
+  const data = { days: WEEK.days, meals: WEEK.meals, outside: WEEK.outside, temptations: WEEK.temptations, weights: WEEK.weights, settings: WEEK.settings };
+  await putCopies(page, [
+    { kind: 'before-restore', at: ms('2026-09-21T08:00'), counts: { windows: 1, meals: 0, weighIns: 0, temptations: 0 }, version: 'test', data: { ...data, days: [WEEK.days[3]], meals: [], outside: [], temptations: [], weights: [] } },
+    ...[22, 23, 24, 25].map((d) => ({ kind: 'before-restore', at: ms(`2026-09-${d}T08:00`), counts, version: 'test', data })),
+  ]);
+  await tap(page, 'copies');
+  const s = sheet(page, 'copies');
+  await expect(s.locator('li.copy')).toHaveCount(6);
+  const oldest = s.locator('li.copy').last();
+  await expect(oldest.locator('.copy-counts')).toHaveText('1 window, 0 meals, 0 weigh-ins and 0 temptations');
+  await oldest.locator('[data-action="bring-back"]').click();
+  await tap(page, 'confirm-bring-back');
+  await expect(page.getByTestId('flash')).toHaveText('Copy brought back.');
+  expect((await readDb(page)).days.map((d) => d.day)).toEqual(['2026-09-23']);
+  // The copy of now joins the five; the rule alone would have let the oldest go.
+  expect((await copiesInDb(page)).filter((c) => c.kind !== 'daily')).toHaveLength(6);
+
+  await tap(page, 'undo');
+  await expect(page.getByTestId('flash')).toHaveText('Undone.');
+  expect((await readDb(page)).days).toHaveLength(7);
+  expect((await copiesInDb(page)).filter((c) => c.stores.days === 1)).toHaveLength(1);
+  await tap(page, 'copies');
+  await expect(sheet(page, 'copies').locator('li.copy').last().locator('.copy-counts')).toHaveText('1 window, 0 meals, 0 weigh-ins and 0 temptations');
+});
+
+test('a connection iOS dropped is opened afresh, so the copy before a restore is still kept', async ({ page }) => {
+  await openAt(page, '2026-09-27T10:00', '#more');
+  await seed(page, WEEK);
+  await page.clock.runFor(2000);
+  await expect.poll(async () => (await copiesInDb(page)).length).toBe(1);
+  // The copies' connection is lost while Sabr is suspended: its next transaction fails once.
+  await page.evaluate(() => {
+    const transaction = IDBDatabase.prototype.transaction;
+    let lost = true;
+    IDBDatabase.prototype.transaction = function (...args) {
+      if (lost && this.name === 'sabr-copies') {
+        lost = false;
+        throw new DOMException('Connection to Indexed Database server lost. Refresh the page to try again', 'UnknownError');
+      }
+      return transaction.apply(this, args);
+    };
+  });
+  await restoreFile(page, ONE_DAY);
+  await tap(page, 'confirm-restore');
+  await expect(page.getByTestId('flash')).toHaveText('Backup restored.');
+  expect((await copiesInDb(page)).map((c) => c.kind)).toEqual(['daily', 'before-restore']);
+});
+
+test('a month of daily copies, the rule run after each: every week before the newest seven keeps its copy', async ({ page }) => {
+  await openAt(page, '2026-09-27T09:00');
+  await seed(page, WEEK);
+  await page.clock.runFor(2000);
+  await expect.poll(async () => (await copiesInDb(page)).length).toBe(1);
+  // Opened every day to Sunday 1 November, each day's copy taken as Sabr takes it.
+  for (let i = 1; i <= 35; i++) {
+    await page.clock.setSystemTime(ms('2026-09-27T09:00') + i * 24 * 3600000);
+    await page.evaluate(async () => (await import('/sabr/js/copies.js')).dailyCopy());
+  }
+  const days = (await copiesInDb(page)).filter((c) => c.kind === 'daily').map((c) => kuwaitDay(c.at));
+  // The seven newest, 26 October to 1 November, begin in the week of Sunday
+  // 25 October; each of the four weeks before it keeps its Saturday.
+  expect(days).toEqual(['2026-10-03', '2026-10-10', '2026-10-17', '2026-10-24',
+    '2026-10-26', '2026-10-27', '2026-10-28', '2026-10-29', '2026-10-30', '2026-10-31', '2026-11-01']);
 });
 
 test('after each new copy, the keep rule lets the others go', async ({ page }) => {
@@ -172,9 +278,10 @@ test('after each new copy, the keep rule lets the others go', async ({ page }) =
     await takeCopy('before-reset');
   });
   const left = await copiesInDb(page);
-  const days = (kind) => left.filter((c) => c.kind === kind).map((c) => new Date(c.at + 3 * 3600000).toISOString().slice(0, 10));
-  // The seven newest daily copies, 14 to 20 October, and the newest of each of the four weeks before.
-  expect(days('daily')).toEqual(['2026-09-22', '2026-09-29', '2026-10-06', '2026-10-13',
+  const days = (kind) => left.filter((c) => c.kind === kind).map((c) => kuwaitDay(c.at));
+  // The seven newest daily copies, 14 to 20 October, and the newest of each
+  // of the four weeks, Sunday to Saturday, before the week of the 14th.
+  expect(days('daily')).toEqual(['2026-09-19', '2026-09-26', '2026-10-03', '2026-10-10',
     '2026-10-14', '2026-10-15', '2026-10-16', '2026-10-17', '2026-10-18', '2026-10-19', '2026-10-20']);
   // The five newest of the other kinds, together: the new one and four before restores.
   expect(days('before-restore')).toEqual(['2026-10-14', '2026-10-15', '2026-10-16', '2026-10-17']);
