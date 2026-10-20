@@ -28,11 +28,16 @@ export const completed = (m) => m.fullnessNow != null && m.fullness20 != null;
  *              answer time (fullness20At) counts as recalled too.
  * Only the check sheet records the answer time as it is given; Add a meal
  * sets it to the finish plus 20 minutes, which is why its readings are told
- * apart by the check they never had.
+ * apart by the check they never had. Before 20 October 2026 the meal sheet
+ * also cleared the due time when it moved a finish whose check had passed
+ * (Fast still does): such a check is told apart from Add a meal's reading by
+ * its answer time, which the check takes to the millisecond, while every
+ * time Sabr and Fast store falls on the minute.
  */
 export function readingKind(m) {
   if (m.fullness20 == null) return null;
-  if (m.fullness20Recalled || m.fullness20DueAt == null || m.fullness20At == null || m.finishedAt == null) return 'recalled';
+  if (m.fullness20Recalled || m.fullness20At == null || m.finishedAt == null) return 'recalled';
+  if (m.fullness20DueAt == null && m.fullness20At % MIN === 0) return 'recalled';
   const after = m.fullness20At - m.finishedAt;
   if (after < ON_TIME[0] * MIN) return 'early';
   if (after > ON_TIME[1] * MIN) return 'late';

@@ -49,6 +49,20 @@ test('each 20-minute reading is sorted by how it was taken', () => {
   assert.equal(readingKind({ ...meal({ at20: null }), fullness20Skipped: true }), null);
 });
 
+test('a check whose finish was moved before 20 October 2026 still reads by when it was answered', () => {
+  // The meal sheet then cleared the due time once the moved finish's check had
+  // passed (Fast still does). The check took its answer time to the
+  // millisecond; Add a meal's falls on the minute, as every stored time does.
+  const finishedAt = T('2026-09-20T18:00');
+  const moved = (after) => ({ ...meal(), fullness20DueAt: null, fullness20At: finishedAt + after * MIN + 4321 });
+  assert.equal(readingKind(moved(32)), 'on-time');
+  assert.equal(readingKind(moved(10)), 'early');
+  assert.equal(readingKind(moved(92)), 'late');
+  // Add a meal's reading stays added, its finish moved or not.
+  assert.equal(readingKind(meal({ how: 'added' })), 'recalled');
+  assert.equal(readingKind({ ...meal({ how: 'added' }), finishedAt: finishedAt - 10 * MIN }), 'recalled');
+});
+
 test('the meal sheet: a 20-minute value entered or changed there is recalled; one left as it was keeps its kind', () => {
   const checked = meal({ at20: 7 });
   assert.deepEqual(editedReading(checked, 7), {});

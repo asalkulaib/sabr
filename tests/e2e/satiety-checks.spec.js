@@ -236,3 +236,67 @@ test('a check answered on time stays on time when the window\'s first bite is co
   await expect(page.locator('[data-block="satiety-meals"]')).toContainText('5 → 7 +2.0');
   await expect(page.locator('[data-block="satiety-meals"] .read-how')).toHaveCount(0);
 });
+
+test("a meal ended by the last bite keeps its check where it was when the first bite moves later", async ({ page }) => {
+  await openAt(page, '2026-09-27T18:00');
+  await seed(page, { settings: install });
+  // Started at 18:00; I'm done eating at 18:30 ends the meal and the window together.
+  await tap(page, 'start-meal');
+  await tap(page, 'start-eating');
+  await advance(page, 30);
+  await tap(page, 'done-eating');
+  await choose(page, 'stop', 'before_full');
+  await pick(page, 'fullness-now', 5);
+  await tap(page, 'close-window');
+  await expect(page.getByTestId('flash')).toHaveText('Window closed. Fullness check at 18:50.');
+  await advance(page, 22);
+  await expect(sheet(page, 'fullness')).toBeVisible();
+  await pick(page, 'fullness-20', 7);
+  await tap(page, 'save-fullness');
+  await expect(sheet(page, 'fullness')).toHaveCount(0);
+  const answered = (await readDb(page)).meals[0].fullness20At;
+  // Eating really began at 18:20. The meal starts then and still ends at the
+  // last bite, 18:30, so its check stays put: 22 minutes on, on time.
+  await tap(page, 'change-times');
+  await setTime(page, 'times-first', '18:20');
+  await setTime(page, 'times-last', '18:30');
+  await tap(page, 'save-times');
+  await expect(page.getByTestId('flash')).toHaveText('Window times saved.');
+  const [m] = (await readDb(page)).meals;
+  expect(m).toMatchObject({ startedAt: ms('2026-09-27T18:20'), finishedAt: ms('2026-09-27T18:30'), fullness20DueAt: ms('2026-09-27T18:50'), fullness20At: answered });
+  expect(Math.floor((m.fullness20At - m.finishedAt) / 60_000)).toBe(22);
+  await tab(page, 'satiety').click();
+  await choose(page, 'satiety-view', 'insights');
+  await expect(page.getByTestId('tile-drift')).toHaveText('+2.0 pts');
+  await expect(page.getByTestId('drift-basis')).toHaveCount(0);
+});
+
+test('a meal cut short by an earlier last bite keeps its check as long after its finish', async ({ page }) => {
+  await openAt(page, '2026-09-27T23:00');
+  // The second meal finished at 21:50, its check answered at 22:25 and 4 s: 35 minutes on.
+  const answered = ms('2026-09-27T22:25') + 4000;
+  const eaten = (id, start, end, fullnessNow, fullness20, fullness20At) => ({
+    id, day: '2026-09-27', name: 'Dinner', startedAt: ms(`2026-09-27T${start}`), finishedAt: ms(`2026-09-27T${end}`),
+    hungerBefore: 6, stop: 'full', fullnessNow, fullness20, fullness20DueAt: ms(`2026-09-27T${end}`) + 20 * 60_000, fullness20At, fullness20Skipped: false,
+  });
+  await seed(page, {
+    days: [{ day: '2026-09-27', firstBite: ms('2026-09-27T17:30'), lastBite: ms('2026-09-27T21:50') }],
+    meals: [eaten(1, '17:30', '18:05', 5, 7, ms('2026-09-27T18:27') + 4000), eaten(2, '21:00', '21:50', 6, 8, answered)],
+    settings: install,
+  });
+  // The last bite was really 21:40: the second meal ends there, and its check
+  // moves with its finish, still 35 minutes on rather than 45 (late).
+  await tap(page, 'change-times');
+  await setTime(page, 'times-first', '17:30');
+  await setTime(page, 'times-last', '21:40');
+  await tap(page, 'save-times');
+  await expect(page.getByTestId('flash')).toHaveText('Window times saved.');
+  const db = await readDb(page);
+  const second = db.meals.find((m) => m.id === 2);
+  expect(second).toMatchObject({ finishedAt: ms('2026-09-27T21:40'), fullness20DueAt: ms('2026-09-27T22:00'), fullness20At: answered - 10 * 60_000 });
+  // The first meal did not move, nor did its check.
+  expect(db.meals.find((m) => m.id === 1)).toMatchObject({ finishedAt: ms('2026-09-27T18:05'), fullness20At: ms('2026-09-27T18:27') + 4000 });
+  await tab(page, 'satiety').click();
+  await choose(page, 'satiety-view', 'meals');
+  await expect(page.locator('[data-block="satiety-meals"] .read-how')).toHaveCount(0);
+});
