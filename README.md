@@ -192,7 +192,7 @@ If an import fails:
 
 ## Alarms
 
-Sabr cannot ring while it is closed. In More, Alarms, switch it on and build a shortcut once: in Shortcuts, tap +, name it Fast Timer, add the action Start Timer, set its duration to Shortcut Input in minutes, and tap Done. Sabr then starts an iPhone timer when you finish a meal, for the 20-minute fullness check. Every meal works the same way, the first one of the day included: starting a meal starts no timer. Add a meal starts one only when its fullness check is still ahead. The Shortcuts app opens for a moment each time. The time left in your window shows on Today.
+Sabr cannot ring while it is closed. In More, Alarms, switch it on and build a shortcut once: in Shortcuts, tap +, name it Fast Timer, add the action Start Timer, set its duration to Shortcut Input in minutes, and tap Done. Sabr then starts an iPhone timer when you finish a meal, for the 20-minute fullness check. Every meal works the same way, the first one of the day included, and a meal still open when you tap I'm done eating is finished too, with the message "Window closed. Fullness check at 21:50.": starting a meal starts no timer. Add a meal starts one only when its fullness check is still ahead. The Shortcuts app opens for a moment each time. The time left in your window shows on Today.
 
 ## Week
 

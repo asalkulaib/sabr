@@ -71,6 +71,8 @@ Also on 13 October 2026 the owner chose, from two mock-ups, where Where you land
 
 On 16 October 2026 the owner had each 1 to 10 hunger and fullness rating say what its number means: one line under the scale, "6: Comfortable. No longer hungry.", that follows the pill as it is tapped or dragged, blank until a number is chosen, in every sheet that asks (Start a meal, Finished this meal, I'm done eating, the 20-minute check, Add a meal, editing a meal). The owner approved the 20 phrases word for word (`HUNGER_WORDS` and `FULLNESS_WORDS` in `docs/js/ui/meal.js`, `meanings` on `scale()` in `components.js`); they follow the hunger and fullness scale dietitians use (on fullness, 5 neutral and 7 comfortably full), describe how the body feels, and never use the words of "How did you finish?". Each number's `aria-label` carries its words, so the line is `aria-hidden`. Fast has no such line; keep Sabr's, and change no phrase without asking.
 
+On 20 October 2026 the owner had I'm done eating, when it finishes a meal still open, tell that meal's 20-minute check and start its timer exactly as Finished this meal does ("Window closed. Fullness check at 21:50.", then `ringIn`), closing a gap in the rule that a timer starts whenever a meal is finished. No check is due, and nothing is said, when the last bite is so far back that the check's moment has passed (`fullnessDueAt`).
+
 Still to ask the owner, not built: an "All meals" tag on Satiety leads while a filter is on; showing one date ("27 Sep") when History's range is a single day; testing Satiety's drift on the rounded value; the copy of a future day before tracking started ("Before tracking started." above "This day has not started yet.").
 
 ### Tokens (`docs/css/tokens.css`, the only file with raw values)

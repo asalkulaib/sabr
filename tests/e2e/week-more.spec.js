@@ -86,4 +86,38 @@ test('Alarms: when on, finishing a meal starts the 20-minute timer through the s
   await tap(page, 'save-finish');
   await expect.poll(async () => (await opened()).length).toBe(2);
   expect((await opened())[1]).toBe('shortcuts://run-shortcut?name=Fast%20Timer&input=text&text=20');
+  // A meal finished by I'm done eating is finished like any other: its check is
+  // told and its 20 minutes start.
+  await tap(page, 'start-meal');
+  await tap(page, 'start-eating');
+  await expect(page.locator('[data-block="eating"]')).toBeVisible();
+  await tap(page, 'done-eating');
+  await choose(page, 'stop', 'before_full');
+  await pick(page, 'fullness-now', 5);
+  await tap(page, 'close-window');
+  await expect(page.getByTestId('flash')).toHaveText('Window closed. Fullness check at 18:20.');
+  await expect.poll(async () => (await opened()).length).toBe(3);
+  expect((await opened())[2]).toBe('shortcuts://run-shortcut?name=Fast%20Timer&input=text&text=20');
+});
+
+test("I'm done eating with no meal open, or a last bite long past, starts no timer and says nothing of a check", async ({ page }) => {
+  await page.addInitScript(() => { window.__fastOpened = []; });
+  await openAt(page, '2026-09-27T18:00');
+  const opened = () => page.evaluate(() => window.__fastOpened);
+  await page.locator('.tab[data-tab="more"]').click();
+  await choose(page, 'alarms', 'true');
+  await page.locator('.tab[data-tab="today"]').click();
+  // A meal started 2 hours ago, ended by I'm done eating with its last bite then:
+  // its 20-minute moment is long past, so there is no check and no timer.
+  await tap(page, 'start-meal');
+  await tap(page, 'meal-start-120');
+  await tap(page, 'start-eating');
+  await expect(page.locator('[data-block="eating"]')).toBeVisible();
+  await tap(page, 'done-eating');
+  await setTime(page, 'last-bite', '16:15');
+  await tap(page, 'close-window');
+  await expect(page.locator('[data-block="closed"]')).toBeVisible();
+  // Only the message from opening the window is still up: none about a check.
+  await expect(page.getByTestId('flash')).toHaveText('Window open from 16:00.');
+  expect(await opened()).toEqual([]);
 });

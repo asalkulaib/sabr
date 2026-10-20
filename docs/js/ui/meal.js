@@ -674,9 +674,16 @@ export function showDoneEatingSheet(app, windowKey) {
     const closeBtn = button('Close the window', async () => {
       if (future()) return;
       const last = lastBite();
-      if (open) await store.finishMeal(open.id, { finishedAt: Math.max(last, open.startedAt), stop: draft.stop, fullnessNow: draft.fullnessNow });
+      const done = open ? await store.finishMeal(open.id, { finishedAt: Math.max(last, open.startedAt), stop: draft.stop, fullnessNow: draft.fullnessNow }) : null;
       await store.closeWindow(windowKey, last);
-      api.close();
+      await api.close();
+      // A meal finished here is finished like any other: its 20-minute check
+      // is told, and with Alarms on its timer starts, as Finished this meal does.
+      const due = done && done.fullness20DueAt;
+      if (due) {
+        app.flash(`Window closed. Fullness check at ${fmtTime(due)}.`);
+        ringIn((due - now()) / MIN);
+      }
     }, { block: true, name: 'close-window', disabled: future() });
     const refresh = () => {
       const ahead = future();
