@@ -79,7 +79,7 @@ test('Now: the meal in progress, then its 20-minute check; Today points to it', 
 test('legends name every colour: week strip, ring and weight', async ({ page }) => {
   await openAt(page, '2026-09-26T23:00', '#week');
   await seed(page, WEEK);
-  await expect(items(page, 'strip-legend')).toHaveText(['Success', 'Miss', 'Paused', 'Open or not logged', 'Still ahead', 'Left wanting', '16:00 on workdays', 'Ate outside the window']);
+  await expect(items(page, 'strip-legend')).toHaveText(['Success', 'Miss', 'Paused', 'Open or not logged', 'Still ahead', 'Left wanting or satisfied', '16:00 on workdays', 'Ate outside the window']);
   await tab(page, 'today').click();
   await expect(items(page, 'ring-legend')).toHaveText(['Fast', 'Window', 'Fullness']);
   await tab(page, 'history').click();

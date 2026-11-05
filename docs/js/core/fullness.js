@@ -1,10 +1,14 @@
 // Fullness: how each meal ended, rolled up into a day. Pure functions.
-// Ratings, stored as before: 'before_full' (left wanting, the goal),
-// 'full' (satisfied) and 'stuffed' (overfull).
+// Ratings, stored as before: 'before_full' (left wanting), 'full'
+// (satisfied) and 'stuffed' (overfull). Left wanting and satisfied are both
+// a success; overfull is not.
 
 export const LEFT_WANTING = 'before_full';
 
 export const FULLNESS_WORD = { before_full: 'left wanting', full: 'satisfied', stuffed: 'overfull' };
+
+/** A day's fullness that counts as a success: left wanting or satisfied (the owner's choice, 5 November 2026). */
+export const comfortable = (fullness) => fullness === 'before_full' || fullness === 'full';
 
 /**
  * A day's fullness: the worst rating among its meals and the day's own

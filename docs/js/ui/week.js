@@ -10,7 +10,7 @@ import { cutoffApplies } from '../core/rules.js';
 import { weekReview } from '../core/review.js';
 import { header, note } from './shared.js';
 import { pauseWord } from './pause.js';
-import { LEFT_WANTING, dayFullness, mealsByDay } from '../core/fullness.js';
+import { FULLNESS_WORD, comfortable, dayFullness, mealsByDay } from '../core/fullness.js';
 
 export const RESULT_WORD = { success: 'success', miss: 'miss', paused: 'paused', pending: 'in progress', unlogged: 'nothing logged' };
 
@@ -137,7 +137,8 @@ function schedule(ctx, app, r) {
   const seen = { cutoff: false, outside: false, open: false };
   const rows = r.days.map((d) => {
     const result = shownResult(d);
-    const lw = dayFullness(byDay.get(d.day) || [], ctx.days.get(d.day)) === LEFT_WANTING;
+    const fullness = dayFullness(byDay.get(d.day) || [], ctx.days.get(d.day));
+    const fed = comfortable(fullness);
     const { svg, marks } = dayTrack(ctx, d, { width: 290, bar: 12 });
     if (marks.cutoff) seen.cutoff = true;
     if (marks.outside) seen.outside = true;
@@ -145,7 +146,7 @@ function schedule(ctx, app, r) {
     const res = dayResult(d);
     const { d: dd } = keyParts(d.day);
     const times = dayTimes(d);
-    const words = [fmtDayShort(d.day), RESULT_WORD[result], lw ? 'left wanting' : null].filter(Boolean).join(', ');
+    const words = [fmtDayShort(d.day), RESULT_WORD[result], fed ? FULLNESS_WORD[fullness] : null].filter(Boolean).join(', ');
     return h('button', {
       type: 'button',
       class: 'dayrow',
@@ -155,7 +156,7 @@ function schedule(ctx, app, r) {
       'aria-current': d.day === ctx.todayKey ? 'date' : null,
       onclick: () => app.go(`day/${d.day}`),
     },
-    miniRing(result, lw),
+    miniRing(result, fed),
     h('span', { class: 'dr-line' },
       h('span', { class: 'd' }, `${weekdayShort(d.day)} ${dd}`),
       times ? h('span', { class: 't tabular' }, times) : null),
@@ -177,7 +178,7 @@ function schedule(ctx, app, r) {
       [pairKey('day-paused', 'band-paused'), 'Paused'],
       ['day-open', 'Open or not logged'],
       ['day-ahead', 'Still ahead'],
-      ['left-wanting', 'Left wanting'],
+      ['left-wanting', 'Left wanting or satisfied'],
       seen.open ? ['track-open', 'Window still open'] : null,
       seen.cutoff ? ['cutoff', '16:00 on workdays'] : null,
       seen.outside ? [key('outside'), 'Ate outside the window'] : null,

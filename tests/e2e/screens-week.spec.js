@@ -84,6 +84,10 @@ test('day: a success left wanting, and a day with nothing logged', async ({ page
   await seed(page, { ...WEEK, settings: install });
   await expect(page.locator('.day')).toContainText('Success.');
   await shot(page, 'W35-day-success-left-wanting', { full: true });
+  // Satisfied is a success too: the blue dot, and the legend names it.
+  await page.goto('./#day/2026-09-22');
+  await expect(page.getByTestId('day-legend')).toContainText('Satisfied');
+  await shot(page, 'W35b-day-success-satisfied', { full: true });
   await page.goto('./#day/2026-09-27');
   await expect(page.locator('[data-action="log-window"]')).toBeVisible();
   await shot(page, 'W36-day-nothing-logged', { full: true });

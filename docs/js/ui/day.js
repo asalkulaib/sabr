@@ -7,7 +7,7 @@ import { openSheet, sheetHead } from './sheet.js';
 import * as store from '../store.js';
 import { at, fmtDayLong, fmtDuration, fmtOnDay, fmtTime, isWorkweekday, minutesOfDay, nearestTime, now, weekStart } from '../core/time.js';
 import { GRACE_MS, isOpen, isPaused, isWorkday, plannedStartMin, timeOnOrAfter } from '../core/rules.js';
-import { LEFT_WANTING, dayFullness } from '../core/fullness.js';
+import { FULLNESS_WORD, comfortable, dayFullness } from '../core/fullness.js';
 import { showAddMealSheet, showMealEditSheet } from './meal.js';
 import { AMOUNT_OPTIONS, showOutsideSheet } from './outside.js';
 import { mealMeta } from './today.js';
@@ -50,7 +50,8 @@ const verdictShown = new Map();
 function dayHero(ctx, key, rec, e) {
   const d = { ...e, future: key > ctx.todayKey };
   const result = shownResult(d);
-  const leftWanting = dayFullness(mealsOfDay(ctx, key), rec) === LEFT_WANTING;
+  const fullness = dayFullness(mealsOfDay(ctx, key), rec);
+  const fed = comfortable(fullness) ? FULLNESS_WORD[fullness] : null;
   const verdict = resultLine(e);
   const times = result === 'paused' ? '' : dayTimes(d);
   const before = verdictShown.get(key);
@@ -59,14 +60,14 @@ function dayHero(ctx, key, rec, e) {
   // and both renders must see the verdict from before it to cross-fade.
   if (before !== shown) requestAnimationFrame(() => verdictShown.set(key, shown));
   const top = h('div', { class: `day-hero-top${before && before !== shown ? ' changed' : ''}` },
-    resultRing(result, 120, { leftWanting, draw: `day:${key}:${result}` }),
+    resultRing(result, 120, { comfortable: !!fed, draw: `day:${key}:${result}` }),
     h('div', { class: 'day-hero-words' },
       verdict,
       times ? h('p', { class: 'day-times tabular' }, times) : null,
       d.future && result !== 'paused' ? h('p', { class: 'day-ahead' }, 'This day has not started yet.') : null));
   const { svg, marks } = dayTrack(ctx, d, { width: 358, bar: 16, axis: true });
   const showTrack = result !== 'paused' && !d.future && (marks.kept || marks.open || marks.miss || marks.outside || marks.cutoff);
-  const label = [RESULT_WORD[result], leftWanting ? 'left wanting' : null, times || null].filter(Boolean).join(', ');
+  const label = [RESULT_WORD[result], fed, times || null].filter(Boolean).join(', ');
   return h('section', { class: 'hero day-hero', 'data-block': 'day-result' },
     top,
     showTrack ? h('div', { class: 'day-track-wrap', role: label ? 'img' : null, 'aria-label': label || null, 'aria-hidden': label ? null : 'true' }, svg) : null,
@@ -76,7 +77,7 @@ function dayHero(ctx, key, rec, e) {
       marks.miss ? [mark('bar-miss'), 'Miss'] : null,
       marks.cutoff ? [mark('cutoff'), '16:00 on workdays'] : null,
       marks.outside ? [mark('outside'), 'Ate outside the window'] : null,
-      leftWanting ? [mark('left-wanting'), 'Left wanting'] : null,
+      fed ? [mark('left-wanting'), fed[0].toUpperCase() + fed.slice(1)] : null,
     ], 'day-legend') : null);
 }
 

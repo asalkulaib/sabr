@@ -230,10 +230,14 @@ test('the week on Today: each day in the Week marks, today underlined; tap a day
   await expect(days.locator('.wd')).toHaveText(['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']);
   expect(await days.evaluateAll((els) => els.map((e) => e.dataset.result))).toEqual(['success', 'miss', 'success', 'miss', 'miss', 'success', 'success']);
   await expect(row.locator('[aria-current="date"]')).toHaveAttribute('data-day', '2026-09-26');
+  // Left wanting (Sun, Thu) and satisfied (Tue) carry the blue dot; overfull (Wed) does not.
   await expect(days.nth(0).getByTestId('left-wanting-dot')).toHaveCount(1);
+  await expect(days.nth(2).getByTestId('left-wanting-dot')).toHaveCount(1);
+  await expect(days.nth(3).getByTestId('left-wanting-dot')).toHaveCount(0);
+  await expect(days.nth(2)).toHaveAttribute('aria-label', 'Tue 22 Sep, success, satisfied');
   await expect(days.nth(4)).toHaveAttribute('aria-label', 'Thu 24 Sep, miss, left wanting');
   // The legend names only the marks in the row.
-  await expect(page.getByTestId('today-week-legend').locator('.legend-item')).toHaveText(['Success', 'Miss', 'Left wanting']);
+  await expect(page.getByTestId('today-week-legend').locator('.legend-item')).toHaveText(['Success', 'Miss', 'Left wanting or satisfied']);
   await days.nth(1).click();
   await expect(page).toHaveURL(/#day\/2026-09-21$/);
 });

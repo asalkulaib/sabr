@@ -1,8 +1,8 @@
 // The three rings: the day at a glance, in the manner of activity rings.
 // Outside, red: the fast, filling towards its goal and lapping past it.
 // Middle, green: the eating window, filling as it is used and closed full
-// when the day succeeds. Inside, blue: fullness, closed when every meal of
-// the day was left wanting. A miss is never colour alone: its ring is
+// when the day succeeds. Inside, blue: fullness, closed when the day was
+// left wanting or satisfied (no meal overfull). A miss is never colour alone: its ring is
 // orange stripes, and the words beside the rings say so.
 //
 // Every arc is a full circle path from 12 o'clock with pathLength 1, so a
@@ -278,9 +278,9 @@ export function ringsSvg(rings, { size = RING.hero.size, centre = null, cls = ''
     ...burst, ...parts, typeof centre === 'function' ? centre(c, size) : centre);
 }
 
-/** A day's mark in the week row: its window ring, with a blue dot when left wanting. */
-export function miniRing(result, leftWanting) {
-  const svg = resultRing(result, RING.mark.size, { leftWanting });
+/** A day's mark in the week row: its window ring, with a blue dot when left wanting or satisfied. */
+export function miniRing(result, comfortable) {
+  const svg = resultRing(result, RING.mark.size, { comfortable });
   svg.setAttribute('class', 'cell result-ring');
   // The hook data-result belongs to the day's row or cell, not to its mark.
   svg.removeAttribute('data-result');
@@ -374,11 +374,11 @@ const KEPT = ['success', 'noEating', 'fasted'];
  * A day's result as a ring, at any of the ring sizes (14, 28 or 120):
  * success, no eating and fasted a green ring with dark edges, a miss orange
  * stripes with dark edges, open or not logged a quiet outline, still ahead
- * a dashed outline, paused a grey ring with two bars. Left wanting adds a
- * blue dot in the middle. draw: a key; the first time a ring with that key
+ * a dashed outline, paused a grey ring with two bars. A day left wanting or
+ * satisfied adds a blue dot in the middle. draw: a key; the first time a ring with that key
  * is shown this session, it draws to its value.
  */
-export function resultRing(result, size, { leftWanting = false, draw = null } = {}) {
+export function resultRing(result, size, { comfortable = false, draw = null } = {}) {
   const c = size / 2;
   const w = size >= RING.md.size ? RING.md.stroke : size >= RING.mark.size ? RING.mark.stroke : RING.key.stroke;
   const r = c - w / 2 - 1;
@@ -411,7 +411,7 @@ export function resultRing(result, size, { leftWanting = false, draw = null } = 
     parts.push(ring(P.EDGE, 2, { 'stroke-dasharray': `${Math.max(2, 3 * k)} ${Math.max(1.5, 3 * k)}` }));
   }
   else parts.push(ring(P.QUIET, 2));
-  if (leftWanting) {
+  if (comfortable) {
     const dot = size >= RING.md.size ? 12 : (size * 4.5) / 28;
     parts.push(s('circle', { cx: c, cy: c, r: dot, fill: P.FULL, stroke: P.FULL_TEXT, 'stroke-width': 1, 'data-testid': 'left-wanting-dot' }));
   }

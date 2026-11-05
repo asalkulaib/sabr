@@ -10,7 +10,7 @@ import { button, figureParts, key, legend } from './components.js';
 import { HOUR, MIN, addDays, durationParts, fmtDayShort, fmtDuration, fmtMinutes, weekStart, weekdayShort } from '../core/time.js';
 import { fastHoursFor, isFlexible, plannedStartMin } from '../core/rules.js';
 import { STAGES, fastingState } from '../core/stages.js';
-import { LEFT_WANTING, dayFullness, mealsByDay } from '../core/fullness.js';
+import { FULLNESS_WORD, comfortable, dayFullness, mealsByDay } from '../core/fullness.js';
 import { glyph, stageGlyph, stageIcon } from './icons.js';
 import { RING, celebrate, miniRing, ringsSvg } from './rings.js';
 import { showStagesSheet } from './stages.js';
@@ -35,7 +35,7 @@ const FULL_WORD = { before_full: 'Left wanting', full: 'Satisfied', stuffed: 'Ov
 /**
  * The window and fullness rings for a day, with their words. The window
  * ring fills as the window is used and is closed full on a successful day;
- * a miss is orange stripes. Fullness closes on a day left wanting.
+ * a miss is orange stripes. Fullness closes on a day left wanting or satisfied.
  */
 export function dayRings(ctx, day) {
   const rec = ctx.days.get(day) || {};
@@ -61,7 +61,7 @@ export function dayRings(ctx, day) {
         : `${hours} h, planned ${fmtMinutes(plannedStartMin(day, rec, ctx.settings))}`;
   }
   const fullness = dayFullness(ctx.meals.filter((m) => m.day === day), ctx.days.get(day));
-  const full = { frac: fullness === LEFT_WANTING ? 1 : 0 };
+  const full = { frac: comfortable(fullness) ? 1 : 0 };
   return { win, winText, full, fullText: FULL_WORD[fullness] || 'Not rated yet', fullness, rec, e };
 }
 
@@ -130,7 +130,7 @@ function fastingRing(ctx, state, lastBiteTs, compact, goalHours, day, animate) {
         ringName('win', 'Window', !!d.win.miss), h('div', { class: `value${d.win.miss ? ' is-miss' : ''}` }, d.winText)),
       h('div', { class: 'ring-row', 'data-ring-row': 'full', 'data-testid': 'ring-fullness' },
         ringName('full', 'Fullness'), h('div', { class: 'value' }, d.fullText))));
-  // A goal reached, a window kept, a day left wanting: each celebrated once.
+  // A goal reached, a window kept, a day left wanting or satisfied: each celebrated once.
   const moments = [];
   if (reached) moments.push({ key: `fast:${lastBiteTs}:${goalHours}`, kind: 'fast' });
   if (d.e.result === 'success' && d.rec.lastBite) moments.push({ key: `win:${day}:${d.rec.lastBite}`, kind: 'win' });
@@ -229,7 +229,8 @@ export function weekRow(ctx, app) {
     const e = ctx.evaluate(day);
     const future = day > ctx.todayKey;
     const result = future && e.result !== 'paused' ? 'future' : e.result;
-    const lw = !future && dayFullness(byDay.get(day) || [], ctx.days.get(day)) === LEFT_WANTING;
+    const fullness = future ? null : dayFullness(byDay.get(day) || [], ctx.days.get(day));
+    const lw = comfortable(fullness);
     seen.add(['success', 'miss', 'paused', 'future'].includes(result) ? result : 'open');
     if (lw) seen.add('wanting');
     const word = result === 'future' ? 'still ahead' : RESULT_WORD[result] || 'nothing logged';
@@ -239,7 +240,7 @@ export function weekRow(ctx, app) {
       'data-day': day,
       'data-result': result,
       'aria-current': day === ctx.todayKey ? 'date' : null,
-      'aria-label': [fmtDayShort(day), word, lw ? 'left wanting' : null].filter(Boolean).join(', '),
+      'aria-label': [fmtDayShort(day), word, lw ? FULLNESS_WORD[fullness] : null].filter(Boolean).join(', '),
       onclick: () => app.go(`day/${day}`),
     }, h('span', { class: 'wd' }, weekdayShort(day)), miniRing(result, lw));
   });
@@ -251,6 +252,6 @@ export function weekRow(ctx, app) {
       seen.has('paused') ? ['day-paused', 'Paused'] : null,
       seen.has('open') ? ['day-open', 'Open or not logged'] : null,
       seen.has('future') ? ['day-ahead', 'Still ahead'] : null,
-      seen.has('wanting') ? ['left-wanting', 'Left wanting'] : null,
+      seen.has('wanting') ? ['left-wanting', 'Left wanting or satisfied'] : null,
     ], 'today-week-legend'));
 }

@@ -38,6 +38,22 @@ test('a window kept and every meal left wanting: the green and blue rings celebr
   await expect(page.getByTestId('ring-fullness')).toContainText('Left wanting');
 });
 
+test('a day satisfied counts as a success: the blue ring closes and celebrates; overfull does not', async ({ page }) => {
+  await openAt(page, '2026-09-27T21:30');
+  const day = (stop) => ({
+    days: [...LAST_NIGHT.days, { day: '2026-09-27', firstBite: ms('2026-09-27T17:30'), lastBite: ms('2026-09-27T21:00') }],
+    meals: [{ id: 1, day: '2026-09-27', name: 'Dinner', startedAt: ms('2026-09-27T17:30'), finishedAt: ms('2026-09-27T18:00'), stop, fullnessNow: 6, fullness20: 7 }],
+    settings: LAST_NIGHT.settings,
+  });
+  await seed(page, day('full'));
+  await expect(ring(page)).toHaveClass(/\bcelebrate-full\b/);
+  await expect(page.getByTestId('ring-fullness')).toContainText('Satisfied');
+  await page.clock.runFor(4000);
+  await seed(page, day('stuffed'));
+  await expect(page.getByTestId('ring-fullness')).toContainText('Overfull');
+  await expect(ring(page)).not.toHaveClass(/\bcelebrate-full\b/);
+});
+
 test('with Reduce Motion on, nothing moves; the words still say it', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await openAt(page, '2026-09-27T17:05');
