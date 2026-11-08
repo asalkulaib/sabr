@@ -945,11 +945,6 @@
   --cel-at: calc(var(--delay-celebrate-step) * var(--step-win, 0) - var(--since, var(--delay-none)));
 }
 
-/* ---------- Check-in ---------- */
-.today .checkin-field + .checkin-field {
-  margin-top: var(--space-4);
-}
-
 /* ---------- Reduce Motion ---------- */
 /* Pressing still fills; nothing scales. */
 @media (prefers-reduced-motion: reduce) {

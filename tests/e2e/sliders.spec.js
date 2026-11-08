@@ -47,7 +47,7 @@ test('a choice is one track: the pill sits under the chosen option and moves to 
 });
 
 test('nothing chosen yet: no pill until a choice is made', async ({ page }) => {
-  await openAt(page, '2026-09-27T13:10');
+  await openAt(page, '2026-09-27T13:10', '#day/2026-09-27');
   await seed(page, LAST_NIGHT);
   const track = trackOf(page, 'choice', 'trained');
   await expect(track.locator('.pill')).toBeHidden();

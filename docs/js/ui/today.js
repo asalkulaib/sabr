@@ -1,7 +1,7 @@
 // Today: the eating window.
 
 import { h, s, live } from './dom.js';
-import { button, choice, durationFigure, errorLine, goalPair, hatch, key, legend, missLine, timeField, TRAINING_OPTIONS, STOP_TEXT } from './components.js';
+import { button, durationFigure, errorLine, goalPair, hatch, key, legend, missLine, timeField, STOP_TEXT } from './components.js';
 import * as store from '../store.js';
 import {
   HOUR, MIN, addDays, dayStart, fmtCountdown, fmtDayLong, fmtDayShort, fmtDateLong, fmtFigure, weekdayName, fmtDuration, fmtMinutes, fmtTime, fmtWhen, isWorkweekday, minutesOfDay, now,
@@ -108,8 +108,6 @@ export function renderToday(ctx, app) {
     notices(ctx, app),
     mode === 'open' ? fastDone(ctx, rec) : null,
     fastFirst ? [pointer, fastCard(ctx, app, src, ringDay, animate), stages, main] : [main, pointer, stages],
-    // A paused day tracks nothing.
-    mode === 'paused' ? null : checkinSection(ctx, app),
   );
 }
 
@@ -582,26 +580,6 @@ function noEatingBlock(ctx) {
     context('No eating today'),
     h('p', { class: 'statement' }, 'Logged as a day without eating.'),
     actionGrid(outline('Undo', () => store.setNoEating(ctx.todayKey, false), 'undo-no-eating')));
-}
-
-// ---------- Check-ins ----------
-
-// Energy at 4 PM was asked here until 8 November 2026, when the owner had it
-// removed; ratings already given stay in the data, backups and CSV.
-function checkinSection(ctx, app) {
-  const key = ctx.todayKey;
-  const rec = ctx.days.get(key) || {};
-  return h('section', { class: 'section checkin-card', 'data-block': 'checkin' },
-    h('h2', { class: 'card-title' }, 'Check-in'),
-    h('div', { class: 'checkin-field' },
-      choice({ label: 'Trained today', options: [{ value: true, label: 'Yes' }, { value: false, label: 'No' }], value: rec.trained ?? null, cols: 2, name: 'trained',
-        onChange: (v) => store.updateDay(key, { trained: v, trainingType: v ? rec.trainingType || null : null }) })),
-    rec.trained
-      ? h('div', { class: 'checkin-field' },
-        choice({ label: 'Type', options: TRAINING_OPTIONS, value: rec.trainingType || null, cols: 3, name: 'training-type',
-          onChange: (v) => store.updateDay(key, { trainingType: v }) }))
-      : null,
-  );
 }
 
 // ---------- Satiety pointer ----------

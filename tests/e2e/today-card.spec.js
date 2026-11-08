@@ -256,7 +256,9 @@ test('no Jebel Uhud: the streak sits under the week row, and More has no climber
   await expect(page.locator('[data-block="climb"]')).toHaveCount(0);
   await expect(page.getByTestId('uhud')).toHaveCount(0);
   await expect(page.getByTestId('streak')).toHaveText('2 days');
-  await expect.poll(async () => (await panels(page)).slice(0, 5)).toEqual(['fasting', 'stages', 'closed', 'checkin']);
+  await expect.poll(async () => (await panels(page)).slice(0, 5)).toEqual(['fasting', 'stages', 'closed']);
+  // No check-in on Today (the owner, 8 November 2026): training is logged on a day in Week.
+  await expect(page.locator('[data-block="checkin"]')).toHaveCount(0);
   await expect(page.locator('.today > [data-testid="today-week"] + [data-block="streak"]')).toHaveCount(1);
   await page.locator('.tab[data-tab="more"]').click();
   await expect(page.locator('[data-block="climb-settings"]')).toHaveCount(0);

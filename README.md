@@ -96,7 +96,7 @@ Where to stop: over your last 60 meals with an on-time check, Sabr takes each fu
 
 A finding that compares two groups states a difference only when the counts support it: a two-sided Fisher exact test, with p below 0.05. For fullness 20 minutes on, the test compares how many meals on each side were above the middle value of them all; readings at that value count above it or below it, whichever splits all of them nearer half. Otherwise the finding says there is no clear difference yet, with its counts.
 
-At the top of every view, once a meal is rated, a line counts your rated meals and those with the 20-minute check; Add a meal, beside it, adds a meal you already ate (see Add a meal you already ate). Today keeps the meal buttons, the check-in and the streak. While a fullness check is running, Today shows a short line with a button to Satiety.
+At the top of every view, once a meal is rated, a line counts your rated meals and those with the 20-minute check; Add a meal, beside it, adds a meal you already ate (see Add a meal you already ate). Today keeps the meal buttons and the streak. While a fullness check is running, Today shows a short line with a button to Satiety.
 
 ## Legends
 
@@ -114,7 +114,7 @@ As you pick a number for hunger or fullness, a line under the scale says what th
 
 Today shows your streak on one line under the week row, above the rings: a green ring, "Streak 5 days", and your best at the right. It counts successful windows in a row, and today joins it once it succeeds. When the run reaches 7, 14, 30, 60 or 100 days, the ring spins and bursts and the figure pops, once for that run. The Week tab shows the streak too, and the Tempted sheet reminds you of it.
 
-The check-in on Today and on a day in Week asks whether you trained, and what kind. Energy at 4 PM is no longer asked; ratings you gave before stay in your data, your backups and the CSV.
+Today has no check-in. A day in Week asks whether you trained, and what kind. Energy at 4 PM is no longer asked; ratings you gave before stay in your data, your backups and the CSV.
 
 ## The rings
 
