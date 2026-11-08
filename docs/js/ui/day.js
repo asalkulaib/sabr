@@ -2,11 +2,11 @@
 // outside the window, check-ins and temptations.
 
 import { h } from './dom.js';
-import { button, choice, errorLine, key as mark, legend, scale, timeField, TRAINING_OPTIONS, TRIGGER_OPTIONS, OUTCOME_TEXT } from './components.js';
+import { button, choice, errorLine, key as mark, legend, timeField, TRAINING_OPTIONS, TRIGGER_OPTIONS, OUTCOME_TEXT } from './components.js';
 import { openSheet, sheetHead } from './sheet.js';
 import * as store from '../store.js';
 import { at, fmtDayLong, fmtDuration, fmtOnDay, fmtTime, isWorkweekday, minutesOfDay, nearestTime, now, weekStart } from '../core/time.js';
-import { GRACE_MS, isOpen, isPaused, isWorkday, plannedStartMin, timeOnOrAfter } from '../core/rules.js';
+import { GRACE_MS, isOpen, isPaused, plannedStartMin, timeOnOrAfter } from '../core/rules.js';
 import { FULLNESS_WORD, comfortable, dayFullness } from '../core/fullness.js';
 import { showAddMealSheet, showMealEditSheet } from './meal.js';
 import { AMOUNT_OPTIONS, showOutsideSheet } from './outside.js';
@@ -289,10 +289,6 @@ function outsideSection(ctx, app, key) {
 function checkinSection(ctx, key, rec) {
   return titled('day-checkin', 'Check-in',
     h('div', { class: 'day-fields' },
-      isWorkday(key, rec)
-        ? scale({ n: 5, value: rec.energy4pm ?? null, label: 'Energy at 4 PM', low: '1 drained', high: '5 sharp', name: 'energy',
-          onChange: (v) => store.updateDay(key, { energy4pm: v }) })
-        : null,
       choice({ label: 'Trained', options: [{ value: true, label: 'Yes' }, { value: false, label: 'No' }], value: rec.trained ?? null, cols: 2, name: 'trained',
         onChange: (v) => store.updateDay(key, { trained: v, trainingType: v ? rec.trainingType || null : null }) }),
       rec.trained

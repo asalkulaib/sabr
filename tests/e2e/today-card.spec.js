@@ -48,7 +48,7 @@ test('the goal turns gold the minute it is reached', async ({ page }) => {
 });
 
 // The order of Today's main panels, top to bottom.
-const panels = (page) => page.locator('.today > section').evaluateAll((els) => els.map((el) => el.dataset.block).filter(Boolean));
+const panels = (page) => page.locator('.today > section').evaluateAll((els) => els.map((el) => el.dataset.block).filter((b) => b && b !== 'streak')); // the streak line sits with the week row, not among the cards
 
 test('after the window, the new fast leads Today: the full dial and its two times, the stage, then the window just closed', async ({ page }) => {
   await openAt(page, '2026-09-27T22:30');
@@ -250,13 +250,14 @@ test('the week on Today, early in the week: days still ahead are dashed', async 
   await expect(page.getByTestId('today-week-legend').locator('.legend-item')).toHaveText(['Open or not logged', 'Still ahead']);
 });
 
-test('no Jebel Uhud: the streak sits under the stage panel, and More has no climber switches', async ({ page }) => {
+test('no Jebel Uhud: the streak sits under the week row, and More has no climber switches', async ({ page }) => {
   await openAt(page, '2026-09-27T22:30');
   await seed(page, { ...LAST_NIGHT, days: [...LAST_NIGHT.days, { day: '2026-09-27', firstBite: ms('2026-09-27T17:30'), lastBite: ms('2026-09-27T21:30') }] });
   await expect(page.locator('[data-block="climb"]')).toHaveCount(0);
   await expect(page.getByTestId('uhud')).toHaveCount(0);
   await expect(page.getByTestId('streak')).toHaveText('2 days');
-  await expect.poll(async () => (await panels(page)).slice(0, 5)).toEqual(['fasting', 'stages', 'closed', 'streak', 'checkin']);
+  await expect.poll(async () => (await panels(page)).slice(0, 5)).toEqual(['fasting', 'stages', 'closed', 'checkin']);
+  await expect(page.locator('.today > [data-testid="today-week"] + [data-block="streak"]')).toHaveCount(1);
   await page.locator('.tab[data-tab="more"]').click();
   await expect(page.locator('[data-block="climb-settings"]')).toHaveCount(0);
   await expect(page.locator('.more')).not.toContainText('Uhud');

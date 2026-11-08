@@ -12,9 +12,8 @@ test('weekly review maths, Sunday to Saturday', async ({ page }) => {
   await expect(stat(page, 'avg-window')).toHaveText('3 h 17 min');
   await expect(stat(page, 'streak')).toHaveText('2 days');
   await expect(stat(page, 'on-time')).toHaveText('4 of 5');
-  await expect(page.locator('.stat', { hasText: 'Nothing eaten before 4 PM' }).locator('.stat-value')).toHaveText('4.0 (4 days)');
-  await expect(page.locator('.stat', { hasText: 'Ate before 4 PM' }).locator('.stat-value')).toHaveText('2.0 (1 day)');
-  await expect(page.getByTestId('energy-all')).toHaveText('All time: 4.0 without eating before 4 PM (4 days), 2.0 with (1 day).');
+  // Energy at 4 PM is no longer asked or shown (the owner, 8 November 2026).
+  await expect(page.locator('.week')).not.toContainText('Energy');
   await expect(stat(page, 'weight-avg')).toHaveText('104.7 kg');
   await expect(stat(page, 'weight-change')).toHaveText('−0.8 kg');
   await expect(stat(page, 'training')).toHaveText('3');

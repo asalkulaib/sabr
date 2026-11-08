@@ -278,6 +278,22 @@ export function ringsSvg(rings, { size = RING.hero.size, centre = null, cls = ''
     ...burst, ...parts, typeof centre === 'function' ? centre(c, size) : centre);
 }
 
+/**
+ * The streak's mark: a kept window ring at mark size with its own rays, so a
+ * streak milestone celebrates as a kept window does (celebrate(), kind 'win').
+ */
+export function streakRing() {
+  const size = RING.mark.size;
+  const w = RING.mark.stroke;
+  const box = size + RAY_ROOM * 2;
+  const c = box / 2;
+  const r = size / 2 - w / 2;
+  const ring = (stroke, width) => s('circle', { cx: c, cy: c, r, fill: 'none', stroke, 'stroke-width': width });
+  return s('svg', { class: 'rings streak-ring', viewBox: `0 0 ${box} ${box}`, width: box, height: box, 'aria-hidden': 'true', focusable: 'false' },
+    rays(c, r + w / 2, KIND.win.color, 'win', 0, false), rays(c, r + w / 2, KIND.win.color, 'win', 0, true),
+    s('g', { class: 'ring-spin spin-win' }, ring(P.WIN_TEXT, w), ring(P.WIN, w - 2)));
+}
+
 /** A day's mark in the week row: its window ring, with a blue dot when left wanting or satisfied. */
 export function miniRing(result, comfortable) {
   const svg = resultRing(result, RING.mark.size, { comfortable });

@@ -1,13 +1,13 @@
 // Today: the eating window.
 
 import { h, s, live } from './dom.js';
-import { button, choice, durationFigure, errorLine, figureParts, goalPair, hatch, key, legend, missLine, scale, timeField, TRAINING_OPTIONS, STOP_TEXT } from './components.js';
+import { button, choice, durationFigure, errorLine, goalPair, hatch, key, legend, missLine, timeField, TRAINING_OPTIONS, STOP_TEXT } from './components.js';
 import * as store from '../store.js';
 import {
   HOUR, MIN, addDays, dayStart, fmtCountdown, fmtDayLong, fmtDayShort, fmtDateLong, fmtFigure, weekdayName, fmtDuration, fmtMinutes, fmtTime, fmtWhen, isWorkweekday, minutesOfDay, now,
 } from '../core/time.js';
 import {
-  CUTOFF_MIN, GRACE_MS, LATE_NIGHT_END_MIN, canReopen, cutoffApplies, fastHoursFor, goalLabelFor, isFlexible, isWorkday, lastEatingSource, lastEatingTs, lateNightDay, longFastAhead, plannedStartMin, timeOnOrAfter, windowPhase,
+  CUTOFF_MIN, GRACE_MS, LATE_NIGHT_END_MIN, canReopen, cutoffApplies, fastHoursFor, goalLabelFor, isFlexible, lastEatingSource, lastEatingTs, lateNightDay, longFastAhead, plannedStartMin, timeOnOrAfter, windowPhase,
 } from '../core/rules.js';
 import { dailySeries } from '../core/history.js';
 import * as P from './palette.js';
@@ -15,7 +15,7 @@ import { RING, celebrate, emptyRings, resultRing, ringsSvg } from './rings.js';
 import { forgotCloseDefault, showAddMealSheet, showDoneEatingSheet, showFinishMealSheet, showMealEditSheet, showStartMealSheet } from './meal.js';
 import { showOutsideSheet } from './outside.js';
 import { showBiteTimeSheet, showOpeningSheet, showOutsideTimeSheet, showWindowTimesSheet } from './window-times.js';
-import { dayRings, heroRingSize, ringHero, ringName, stagesSection, weekRow } from './today-parts.js';
+import { dayRings, heroRingSize, ringHero, ringName, stagesSection, streakLine, weekRow } from './today-parts.js';
 import { currentPause, endPause, pauseToday, showPauseSheet } from './pause.js';
 import { showBeginFastSheet } from './begin-fast.js';
 import { showGoalSheet } from './goal.js';
@@ -104,10 +104,10 @@ export function renderToday(ctx, app) {
     // The weekday as the title, the date and the kind of day above it.
     header(ctx, app, { title: weekdayName(ctx.todayKey), sub: `${fmtDateLong(ctx.todayKey)} · ${dayTypeText(ctx.todayKey, todayRec)}` }),
     weekRow(ctx, app),
+    streakLine(ctx),
     notices(ctx, app),
     mode === 'open' ? fastDone(ctx, rec) : null,
     fastFirst ? [pointer, fastCard(ctx, app, src, ringDay, animate), stages, main] : [main, pointer, stages],
-    streakSection(ctx),
     // A paused day tracks nothing.
     mode === 'paused' ? null : checkinSection(ctx, app),
   );
@@ -584,33 +584,15 @@ function noEatingBlock(ctx) {
     actionGrid(outline('Undo', () => store.setNoEating(ctx.todayKey, false), 'undo-no-eating')));
 }
 
-// ---------- Streak ----------
-
-/** The streak and the best: two stats on shared lines, a caption over a figure. */
-function streakSection(ctx) {
-  const stat = (caption, n, testid) => h('div', { class: 'streak-stat' },
-    h('div', { class: 'caption' }, caption),
-    h('div', { class: 'stat-figure tabular', 'data-testid': testid }, figureParts([[n, n === 1 ? ' day' : ' days']])));
-  return h('section', { class: 'section stat-row', 'data-block': 'streak' },
-    stat('Streak', ctx.streak.current, 'streak'),
-    stat('Best', ctx.streak.best, 'streak-best'));
-}
-
 // ---------- Check-ins ----------
 
+// Energy at 4 PM was asked here until 8 November 2026, when the owner had it
+// removed; ratings already given stay in the data, backups and CSV.
 function checkinSection(ctx, app) {
   const key = ctx.todayKey;
   const rec = ctx.days.get(key) || {};
-  const workday = isWorkday(key, rec);
-  const after4 = minutesOfDay(ctx.nowTs) >= CUTOFF_MIN;
   return h('section', { class: 'section checkin-card', 'data-block': 'checkin' },
     h('h2', { class: 'card-title' }, 'Check-in'),
-    workday
-      ? (after4
-        ? h('div', { class: 'checkin-field' }, scale({ n: 5, value: rec.energy4pm ?? null, label: 'Energy at 4 PM', low: '1 drained', high: '5 sharp', name: 'energy',
-          onChange: (v) => store.updateDay(key, { energy4pm: v }) }))
-        : h('p', { class: 'checkin-note' }, 'Energy at 4 PM: rate it here from 16:00.'))
-      : null,
     h('div', { class: 'checkin-field' },
       choice({ label: 'Trained today', options: [{ value: true, label: 'Yes' }, { value: false, label: 'No' }], value: rec.trained ?? null, cols: 2, name: 'trained',
         onChange: (v) => store.updateDay(key, { trained: v, trainingType: v ? rec.trainingType || null : null }) })),

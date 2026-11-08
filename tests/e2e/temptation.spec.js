@@ -11,7 +11,7 @@ test('riding out an urge: gains, a 10-minute timer with urge ratings, held', asy
   await expect(flow(page)).toContainText('Your window opens at 17:30.');
   await expect(flow(page)).toContainText('That is 4 h 20 min away.');
   const gains = page.getByTestId('gains');
-  await expect(gains).toContainText('Energy at 4 PM.');
+  await expect(gains).not.toContainText('Energy');
   await expect(gains).toContainText('A window that fits today: 17:30 to 21:30.');
 
   await tap(page, 'ride-it-out');

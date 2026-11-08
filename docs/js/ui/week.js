@@ -237,12 +237,6 @@ function rail(frac, cls = '') {
   return h('span', { class: `rail ${cls}`.trim(), 'aria-hidden': 'true' }, fill);
 }
 
-function energyLine(label, part) {
-  return h('div', { class: 'energy-line' },
-    stat(label, part.n ? `${one(part.avg)} (${days(part.n)})` : 'no data yet'),
-    part.n ? rail(part.avg / 5) : null);
-}
-
 function dayResult(d) {
   if (d.result === 'paused') return { text: 'Paused', tone: '' };
   if (d.future) return { text: '', tone: '' };
@@ -333,15 +327,7 @@ export function renderWeek(ctx, app, weekKey) {
           r.workday.windows
             ? h('div', { class: 'meter', 'aria-hidden': 'true' },
               Array.from({ length: r.workday.windows }, (_, i) => h('span', { class: i < r.workday.onTime ? 'on' : null })))
-            : null),
-        h('h3', { class: 'week-sub' }, 'Energy at 4 PM'),
-        energyLine('Nothing eaten before 4 PM', r.energy.week.without),
-        energyLine('Ate before 4 PM', r.energy.week.with),
-        r.energy.all.without.n || r.energy.all.with.n
-          ? h('p', { class: 'energy-all', 'data-testid': 'energy-all' },
-            `All time: ${r.energy.all.without.n ? one(r.energy.all.without.avg) : 'no data'} without eating before 4 PM (${days(r.energy.all.without.n)}), `
-            + `${r.energy.all.with.n ? one(r.energy.all.with.avg) : 'no data'} with (${days(r.energy.all.with.n)}).`)
-          : null),
+            : null)),
       h('div', { class: 'tiles' },
         h('section', { class: 'tile', 'data-block': 'weight' },
           h('h2', { class: 'card-title in-group' }, 'Weight'),

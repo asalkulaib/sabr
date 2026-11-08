@@ -160,7 +160,7 @@ test('streaks: consecutive successes, today pending does not break it', () => {
   ]);
   const now = T('2026-09-24T10:00');
   const ev = rules.makeEvaluator({ days, outside: [], nowTs: now, todayKey: '2026-09-24', startKey: '2026-09-20' });
-  assert.deepEqual(rules.streaks(ev, '2026-09-24', '2026-09-20', '2026-09-24'), { current: 2, best: 2 });
+  assert.deepEqual(rules.streaks(ev, '2026-09-24', '2026-09-20', '2026-09-24'), { current: 2, best: 2, since: '2026-09-22' });
 });
 
 test('streaks: an unlogged day breaks the run; best keeps the longest', () => {
@@ -173,7 +173,7 @@ test('streaks: an unlogged day breaks the run; best keeps the longest', () => {
   ]);
   const now = T('2026-09-24T22:00');
   const ev = rules.makeEvaluator({ days, outside: [], nowTs: now, todayKey: '2026-09-24', startKey: '2026-09-20' });
-  assert.deepEqual(rules.streaks(ev, '2026-09-24', '2026-09-20', '2026-09-24'), { current: 1, best: 3 });
+  assert.deepEqual(rules.streaks(ev, '2026-09-24', '2026-09-20', '2026-09-24'), { current: 1, best: 3, since: '2026-09-24' });
 });
 
 test('streaks: a miss today resets the current streak', () => {
@@ -183,7 +183,7 @@ test('streaks: a miss today resets the current streak', () => {
   ]);
   const now = T('2026-09-21T14:30');
   const ev = rules.makeEvaluator({ days, outside: [], nowTs: now, todayKey: '2026-09-21', startKey: '2026-09-20' });
-  assert.deepEqual(rules.streaks(ev, '2026-09-21', '2026-09-20', '2026-09-21'), { current: 0, best: 1 });
+  assert.deepEqual(rules.streaks(ev, '2026-09-21', '2026-09-20', '2026-09-21'), { current: 0, best: 1, since: null });
 });
 
 test('streaks: last night\'s window still open after midnight does not break the run', () => {
@@ -195,7 +195,7 @@ test('streaks: last night\'s window still open after midnight does not break the
   const now = T('2026-09-24T00:30');
   const ev = rules.makeEvaluator({ days, outside: [], nowTs: now, todayKey: '2026-09-24', startKey: '2026-09-21' });
   assert.equal(ev('2026-09-23').result, 'pending');
-  assert.deepEqual(rules.streaks(ev, '2026-09-24', '2026-09-21'), { current: 2, best: 2 });
+  assert.deepEqual(rules.streaks(ev, '2026-09-24', '2026-09-21'), { current: 2, best: 2, since: '2026-09-21' });
 });
 
 test('time: nearestTime keeps an edited time next to the original', () => {

@@ -7,8 +7,7 @@ import { RING, progressRing } from './rings.js';
 import { openSheet } from './sheet.js';
 import * as store from '../store.js';
 import { HOUR, MIN, at, fmtDuration, fmtMinutes, fmtTime, fmtTimer, fmtWhen, minutesOfDay, now } from '../core/time.js';
-import { CUTOFF_MIN, cutoffApplies, isFlexible, isWorkday, lateNightDay, longFastAhead, plannedStartMin } from '../core/rules.js';
-import { energySplit } from '../core/review.js';
+import { CUTOFF_MIN, cutoffApplies, isFlexible, lateNightDay, longFastAhead, plannedStartMin } from '../core/rules.js';
 import { showStartMealSheet } from './meal.js';
 import { nextWindowLine } from './shared.js';
 
@@ -121,12 +120,6 @@ function gains(ctx, sit) {
   const today = ctx.todayKey;
   const rec = ctx.days.get(today);
   const waiting = sit.kind === 'before' || sit.kind === 'late';
-  if (waiting && isWorkday(today, rec) && minutesOfDay(ctx.nowTs) < CUTOFF_MIN) {
-    const e = energySplit([...ctx.days.keys()], ctx.days, today);
-    out.push(e.without.n >= 2 && e.with.n >= 2
-      ? `Energy at 4 PM. On your own record: ${e.without.avg.toFixed(1)} on days with nothing before 4 PM, ${e.with.avg.toFixed(1)} on days with food.`
-      : 'Energy at 4 PM. Rate it today at 16:00 and your own record builds.');
-  }
   const streak = ctx.streak.current;
   const days = (n) => `${n} ${n === 1 ? 'day' : 'days'}`;
   const lastRes = sit.lastDay ? ctx.evaluate(sit.lastDay).result : null;

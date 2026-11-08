@@ -112,7 +112,9 @@ As you pick a number for hunger or fullness, a line under the scale says what th
 
 ## Streak
 
-Today shows your streak under the stage panel: the run of successful days in a row as a big figure, with your best beside it. The Week tab shows it too, and the Tempted sheet reminds you of it.
+Today shows your streak on one line under the week row, above the rings: a green ring, "Streak 5 days", and your best at the right. It counts successful windows in a row, and today joins it once it succeeds. When the run reaches 7, 14, 30, 60 or 100 days, the ring spins and bursts and the figure pops, once for that run. The Week tab shows the streak too, and the Tempted sheet reminds you of it.
+
+The check-in on Today and on a day in Week asks whether you trained, and what kind. Energy at 4 PM is no longer asked; ratings you gave before stay in your data, your backups and the CSV.
 
 ## The rings
 
@@ -221,7 +223,7 @@ Everything lives only on the phone. More, Back up now saves a JSON file: save it
 - `sabr-windows.csv`: every day from the start of tracking to today, gaps marked not logged. Weekday, workday or weekend, planned start or feasting hours, the time zone, the planned time, first and last bite, the window's length and goal, the result with its reasons, the fast before it (when it began, how long, its goal and whether it was reached) and how full the day ended. A day that begins inside a long fast's goal, with nothing eaten, reads fasted.
 - `sabr-meals.csv`: each meal, its type (Snack, Breakfast, Lunch, Dinner or Other) and name, start, finish and minutes, hunger before, how you stopped, fullness right after and at 20 minutes, the rise, and a skipped 20-minute check. Eating logged outside the window is listed too, with its trigger and amount.
 - `sabr-weight.csv`: every weigh-in in kg, one per row.
-- `sabr-checkins.csv`: energy at 4 PM and training.
+- `sabr-checkins.csv`: training, and energy at 4 PM for days rated before it was removed.
 - `sabr-temptations.csv`: when, where the day stood, the trigger, the outcome, the urge at 0, 3, 6 and 9 minutes, and how long it took.
 
 ## Copies on this iPhone

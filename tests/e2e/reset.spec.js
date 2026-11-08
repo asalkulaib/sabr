@@ -1,4 +1,4 @@
-import { test, expect, openAt, seed, tap, sheet, readDb, captureShares, sharedFiles, ms, MIN } from './helpers.js';
+import { test, expect, openAt, seed, tap, sheet, readDb, captureShares, sharedFiles, ms, MIN, settleMotion } from './helpers.js';
 import { WEEK } from './seed-data.js';
 
 const SEEDED = {
@@ -17,6 +17,7 @@ test('reset asks twice; backing out at either step keeps everything', async ({ p
   await seed(page, SEEDED);
   await tap(page, 'reset');
   await expect(sheet(page, 'reset')).toContainText('Delete all history?');
+  await settleMotion(page); // the sheet at rest, so the tap lands on the pill
   await tap(page, 'reset-backup');
   await expect.poll(async () => (await sharedFiles(page)).length).toBe(1);
   await tap(page, 'reset-keep');

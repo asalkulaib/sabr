@@ -12,7 +12,7 @@ import { fastHoursFor, isFlexible, plannedStartMin } from '../core/rules.js';
 import { STAGES, fastingState } from '../core/stages.js';
 import { FULLNESS_WORD, comfortable, dayFullness, mealsByDay } from '../core/fullness.js';
 import { glyph, stageGlyph, stageIcon } from './icons.js';
-import { RING, celebrate, miniRing, ringsSvg } from './rings.js';
+import { RING, celebrate, miniRing, ringsSvg, streakRing } from './rings.js';
 import { showStagesSheet } from './stages.js';
 
 /**
@@ -220,6 +220,28 @@ const RESULT_WORD = { success: 'success', miss: 'miss', paused: 'paused', pendin
  * as the schedule, today's name on an ink pill, and a legend naming only the
  * marks in the row. Tap a day to open it.
  */
+/** The streak lengths celebrated, each once per run. */
+export const STREAK_MILESTONES = [7, 14, 30, 60, 100];
+
+/**
+ * The streak, under the week row: days in a row with a successful window
+ * (paused days hold it; today counts once it succeeds), and the best. When
+ * the run reaches 7, 14, 30, 60 or 100 days, its mark spins and bursts and
+ * the figure pops, once for that run (keyed by the run's first day).
+ */
+export function streakLine(ctx) {
+  const { current, best, since } = ctx.streak;
+  const days = (n) => [[n, n === 1 ? ' day' : ' days']];
+  const line = h('section', { class: 'streak-line', 'data-block': 'streak' },
+    h('span', { class: 'streak-mark' }, streakRing()),
+    h('span', { class: 'streak-words' },
+      h('span', { class: 'streak-label' }, 'Streak'),
+      h('span', { class: 'streak-figure tabular', 'data-testid': 'streak' }, figureParts(days(current)))),
+    h('span', { class: 'streak-best' }, 'Best ', h('span', { class: 'tabular', 'data-testid': 'streak-best' }, figureParts(days(best)))));
+  const reached = STREAK_MILESTONES.filter((m) => current >= m).pop();
+  return reached && since ? celebrate(line, [{ key: `streak:${reached}:${since}`, kind: 'win' }]) : line;
+}
+
 export function weekRow(ctx, app) {
   const start = weekStart(ctx.todayKey);
   const byDay = mealsByDay(ctx.meals);

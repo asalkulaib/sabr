@@ -218,7 +218,7 @@ test('a long fast: the fasting day, its plan, the third day', async ({ page }) =
   await shot(page, 'T89b-today-third-day-stage');
 });
 
-test('the streak, the check-in and the week row', async ({ page }) => {
+test('the streak line, the check-in and the week row', async ({ page }) => {
   const days = [];
   for (let i = 0; i < 40; i++) {
     const key = new Date(Date.UTC(2026, 7, 17 + i)).toISOString().slice(0, 10);
@@ -228,8 +228,8 @@ test('the streak, the check-in and the week row', async ({ page }) => {
   await openAt(page, '2026-09-25T22:00');
   await seed(page, { days, settings: install });
   await shot(page, 'T66-today-celebrated');
-  await page.locator('[data-block="streak"]').scrollIntoViewIfNeeded();
-  await shot(page, 'T65-today-streak-checkin');
+  await page.locator('[data-block="checkin"]').scrollIntoViewIfNeeded();
+  await shot(page, 'T65-today-checkin');
   await openAt(page, '2026-09-26T23:00');
   await seed(page, { ...WEEK, settings: install });
   await shot(page, 'T82-today-week-row');

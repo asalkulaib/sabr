@@ -46,7 +46,7 @@ test('weekly review maths for a Sunday to Saturday week', () => {
   assert.equal(r.successCount, 4);
   assert.equal(r.closedCount, 7);
   assert.equal(Math.round(r.avgWindowMs / MIN), Math.round((210 + 180 + 250 + 260 + 120 + 180 + 180) / 7));
-  assert.deepEqual(r.streak, { current: 2, best: 2 });
+  assert.deepEqual(r.streak, { current: 2, best: 2, since: '2026-09-25' });
 
   assert.deepEqual(r.workday, { windows: 5, onTime: 4 });
 

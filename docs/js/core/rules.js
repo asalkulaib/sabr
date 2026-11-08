@@ -265,18 +265,22 @@ export function insideLongFast(key, { days, settings }, eating, fastStarts = new
 }
 
 /**
- * Current streak as of endKey and the best streak up to endKey.
+ * Current streak as of endKey and the best streak up to endKey, and since:
+ * the first day of the current run (null with none).
  * Pending days (today, or last night's window still inside its goal)
  * and paused days are neutral: they neither count nor break a run.
  */
 export function streaks(evaluate, endKey, startKey) {
   let current = 0;
+  let since = null;
   let k = endKey;
   while (k >= startKey && evaluate(k).result === 'pending') k = addDays(k, -1);
   for (; k >= startKey; k = addDays(k, -1)) {
     const r = evaluate(k).result;
-    if (r === 'success') current++;
-    else if (r !== 'paused') break;
+    if (r === 'success') {
+      current++;
+      since = k;
+    } else if (r !== 'paused') break;
   }
   let best = 0;
   let run = 0;
@@ -289,7 +293,7 @@ export function streaks(evaluate, endKey, startKey) {
       run = 0;
     }
   }
-  return { current, best: Math.max(best, current) };
+  return { current, best: Math.max(best, current), since };
 }
 
 /**

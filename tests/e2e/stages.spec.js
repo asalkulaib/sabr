@@ -58,7 +58,7 @@ test('hidden while the window is open, then on top again from the last bite', as
   await expect(page.locator('[data-block="fasting"]').getByTestId('fasting-ring')).toBeVisible();
   await expect(page.locator('[data-block="stages"]').getByTestId('fasting-ring')).toHaveCount(0);
   // The meal's fullness check, just started, sits above them.
-  await expect.poll(() => page.locator('.today > section').evaluateAll((els) => els.map((el) => el.dataset.block).filter(Boolean).slice(0, 4)))
+  await expect.poll(() => page.locator('.today > section').evaluateAll((els) => els.map((el) => el.dataset.block).filter((b) => b && b !== 'streak').slice(0, 4)))
     .toEqual(['satiety-pointer', 'fasting', 'stages', 'closed']);
   await expect(page.getByTestId('stage-name')).toHaveText('Digesting');
   await expect(page.getByTestId('fasting-for')).toHaveText('0m');

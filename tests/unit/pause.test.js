@@ -34,7 +34,7 @@ test('paused days neither count towards a streak nor break it', () => {
   );
   const nowTs = T('2026-09-24T23:00');
   const evaluate = rules.makeEvaluator({ days: d, outside: [], nowTs, todayKey: '2026-09-24', startKey: '2026-09-20' });
-  assert.deepEqual(rules.streaks(evaluate, '2026-09-24', '2026-09-20'), { current: 3, best: 3 });
+  assert.deepEqual(rules.streaks(evaluate, '2026-09-24', '2026-09-20'), { current: 3, best: 3, since: '2026-09-20' });
   // Paused today: the streak waits.
   d.set('2026-09-25', { day: '2026-09-25', paused: true });
   const evaluate2 = rules.makeEvaluator({ days: d, outside: [], nowTs: T('2026-09-25T12:00'), todayKey: '2026-09-25', startKey: '2026-09-20' });
@@ -42,7 +42,7 @@ test('paused days neither count towards a streak nor break it', () => {
   // An unlogged day still breaks it.
   const gap = days(win('2026-09-20', '17:30', '21:00'), { day: '2026-09-21', paused: true }, win('2026-09-23', '17:30', '21:00'));
   const evaluate3 = rules.makeEvaluator({ days: gap, outside: [], nowTs: T('2026-09-23T23:00'), todayKey: '2026-09-23', startKey: '2026-09-20' });
-  assert.deepEqual(rules.streaks(evaluate3, '2026-09-23', '2026-09-20'), { current: 1, best: 1 });
+  assert.deepEqual(rules.streaks(evaluate3, '2026-09-23', '2026-09-20'), { current: 1, best: 1, since: '2026-09-23' });
 });
 
 test('Today shows a pause, unless a window is still open', () => {

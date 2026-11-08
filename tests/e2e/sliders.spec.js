@@ -1,4 +1,4 @@
-import { test, expect, openAt, seed, tap, choose, sheet, readDb, settings, ms } from './helpers.js';
+import { test, expect, openAt, seed, tap, choose, sheet, readDb, settings, ms, settleMotion } from './helpers.js';
 import { WEEK } from './seed-data.js';
 
 // Every choice and rating is one sliding track: an ink pill sits under the
@@ -68,12 +68,15 @@ test('over more than one line the pill moves across lines, to a wide option too'
 });
 
 test('drag the pill along a rating: the number it lands on is saved', async ({ page }) => {
-  await openAt(page, '2026-09-27T17:00'); // a workday, after 16:00: energy at 4 PM is asked
+  await openAt(page, '2026-09-27T17:30');
   await seed(page, LAST_NIGHT);
-  const track = trackOf(page, 'scale', 'energy');
+  await tap(page, 'start-meal');
+  await settleMotion(page);
+  const track = trackOf(page, 'scale', 'hunger');
   await drag(page, track.locator('[data-value="1"]'), track.locator('[data-value="4"]'));
-  await expect.poll(async () => (await readDb(page)).days.find((d) => d.day === '2026-09-27')?.energy4pm).toBe(4);
-  await pillOn(trackOf(page, 'scale', 'energy'), trackOf(page, 'scale', 'energy').locator('[data-value="4"]'));
+  await pillOn(trackOf(page, 'scale', 'hunger'), trackOf(page, 'scale', 'hunger').locator('[data-value="4"]'));
+  await tap(page, 'start-eating');
+  await expect.poll(async () => (await readDb(page)).meals[0]?.hungerBefore).toBe(4);
 });
 
 test('the tabs are one sliding track: tap or drag to switch, and the pill follows any way in', async ({ page }) => {

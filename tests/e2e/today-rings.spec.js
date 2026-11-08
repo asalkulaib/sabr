@@ -489,15 +489,17 @@ test('just opened, the window ring shows a round start cap at 12 o\'clock', asyn
   await expect(cap).toHaveCount(0);
 });
 
-test('the streak and the best share a caption line and a figure line', async ({ page }) => {
+test('the streak is one line under the week row, above the rings, seen without scrolling', async ({ page }) => {
   await openAt(page, '2026-09-27T13:10');
   await seed(page, LAST_NIGHT);
   const row = page.locator('[data-block="streak"]');
-  await row.scrollIntoViewIfNeeded();
-  await expect(row.locator('.caption')).toHaveText(['Streak', 'Best']);
-  const [a, b] = [await box(row.locator('.caption').nth(0)), await box(row.locator('.caption').nth(1))];
-  expect(Math.abs(a.y - b.y)).toBeLessThanOrEqual(0.5);
-  const [fa, fb] = [await box(row.getByTestId('streak')), await box(row.getByTestId('streak-best'))];
-  expect(Math.abs(fa.y - fb.y)).toBeLessThanOrEqual(0.5);
-  expect(await css(row.getByTestId('streak-best'), 'fontSize')).toBe(await css(row.getByTestId('streak'), 'fontSize'));
+  await expect(row).toContainText('Streak');
+  await expect(row.getByTestId('streak')).toHaveText('1 day');
+  await expect(row.getByTestId('streak-best')).toHaveText('1 day');
+  const line = await box(row);
+  expect(line.y).toBeGreaterThan((await box(page.getByTestId('today-week'))).y);
+  expect(line.y + line.height).toBeLessThan(844);
+  // One line: the mark, the streak and the best side by side.
+  const [a, b] = [await box(row.getByTestId('streak')), await box(row.getByTestId('streak-best'))];
+  expect(Math.abs((a.y + a.height / 2) - (b.y + b.height / 2))).toBeLessThanOrEqual(6);
 });

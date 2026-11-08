@@ -890,30 +890,64 @@
   color: var(--text-display);
 }
 
-/* ---------- Streak: a stat on the page ---------- */
-/* Streak and Best: two columns on one caption line and one figure line. */
-.today .stat-row[data-block='streak'] {
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  align-items: start;
-  margin-top: var(--space-6);
-  padding: var(--space-4) 0;
-  background: none;
-  border-top: 1px solid var(--hairline);
-  border-radius: 0;
-}
-
-/* ---------- Check-in ---------- */
-.today .checkin-field + .checkin-field,
-.today .checkin-note + .checkin-field {
+/* ---------- Streak: one line under the week row ---------- */
+/* A kept window ring, "Streak 5 days", and the best at the right. */
+.today .streak-line {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  column-gap: var(--space-3);
+  align-items: center;
   margin-top: var(--space-4);
 }
 
-.today .checkin-note {
-  margin: 0;
-  font-weight: 600;
+.today .streak-mark {
+  display: block;
+  width: var(--ring-mark);
+  height: var(--ring-mark);
+}
+
+.today .streak-words {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+
+.today .streak-label {
+  font-weight: 800;
   font-size: var(--t-callout-size);
   line-height: var(--t-callout-lh);
-  color: var(--text-quiet);
+  color: var(--text-label);
+}
+
+.today .streak-figure {
+  font-weight: 900;
+  font-size: var(--t-title-3-size);
+  line-height: var(--t-title-3-lh);
+  letter-spacing: var(--t-title-3-track);
+  color: var(--text-display);
+}
+
+.today .streak-best {
+  font-weight: 700;
+  font-size: var(--t-callout-size);
+  line-height: var(--t-callout-lh);
+  color: var(--text-label);
+}
+
+/* A milestone: the figure pops as the mark's rays burst. */
+.today .streak-line.celebrate-win .streak-figure {
+  display: inline-block;
+  transform-origin: left center;
+  animation: ring-pop var(--dur-chart) var(--ease-in-out) calc(var(--cel-at) + var(--delay-burst)) both;
+}
+
+.today .streak-line.celebrate .streak-figure {
+  --cel-at: calc(var(--delay-celebrate-step) * var(--step-win, 0) - var(--since, var(--delay-none)));
+}
+
+/* ---------- Check-in ---------- */
+.today .checkin-field + .checkin-field {
+  margin-top: var(--space-4);
 }
 
 /* ---------- Reduce Motion ---------- */
