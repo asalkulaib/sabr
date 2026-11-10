@@ -12,6 +12,24 @@ const MIN = 60_000;
 /** A 20-minute check answered this many minutes after the meal finished is on time. */
 export const ON_TIME = [15, 40];
 
+// The time shown on Satiety's Insights and Meals, ending today.
+export const SATIETY_RANGES = ['7d', '30d', 'ytd', 'all'];
+
+/** The first day a time frame covers (a day key), today included; null for all of it. */
+export function satietyRangeStart(range, todayKey) {
+  if (range === 'ytd') return `${todayKey.slice(0, 4)}-01-01`;
+  const days = { '7d': 7, '30d': 30 }[range];
+  if (!days) return null;
+  const [y, m, d] = todayKey.split('-').map(Number);
+  return new Date(Date.UTC(y, m - 1, d - (days - 1))).toISOString().slice(0, 10);
+}
+
+/** The meals of a time frame: those whose day falls in it. */
+export function mealsInRange(meals, range, todayKey) {
+  const from = satietyRangeStart(range, todayKey);
+  return from ? meals.filter((m) => m.day >= from) : meals;
+}
+
 const mean = (v) => (v.length ? v.reduce((a, b) => a + b, 0) / v.length : null);
 
 /** A meal with both fullness readings: right after, and 20 minutes on. */

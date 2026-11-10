@@ -199,3 +199,19 @@ test('backups keep how each reading was taken, from Sabr and from Fast; the CSV 
   assert.equal(rows.length, 6);
   assert.ok(rows.every((r) => r.split(',').length === 15));
 });
+
+test('the time shown: 7 and 30 days end today, this year starts on 1 January, all has no start', async () => {
+  const { SATIETY_RANGES, satietyRangeStart, mealsInRange } = await import('../../docs/js/core/satiety.js');
+  assert.deepEqual(SATIETY_RANGES, ['7d', '30d', 'ytd', 'all']);
+  assert.equal(satietyRangeStart('7d', '2026-11-10'), '2026-11-04');
+  assert.equal(satietyRangeStart('30d', '2026-11-10'), '2026-10-12');
+  assert.equal(satietyRangeStart('7d', '2026-01-03'), '2025-12-28'); // across a new year
+  assert.equal(satietyRangeStart('ytd', '2026-11-10'), '2026-01-01');
+  assert.equal(satietyRangeStart('all', '2026-11-10'), null);
+  const meals = ['2025-12-31', '2026-01-01', '2026-10-11', '2026-10-12', '2026-11-03', '2026-11-04', '2026-11-10'].map((day) => ({ day }));
+  const days = (range) => mealsInRange(meals, range, '2026-11-10').map((m) => m.day);
+  assert.deepEqual(days('7d'), ['2026-11-04', '2026-11-10']);
+  assert.deepEqual(days('30d'), ['2026-10-12', '2026-11-03', '2026-11-04', '2026-11-10']);
+  assert.equal(days('ytd').length, 6);
+  assert.equal(days('all').length, 7);
+});

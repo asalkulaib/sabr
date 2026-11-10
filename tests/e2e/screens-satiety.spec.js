@@ -163,12 +163,13 @@ test('meals: a filter with nothing in it, and no meals at all', async ({ page })
   await openAt(page, '2026-09-26T23:00', '#satiety');
   await seed(page, { ...WEEK, meals, settings: install });
   await choose(page, 'satiety-view', 'meals');
+  await choose(page, 'satiety-range', '30d');
   await page.getByTestId('meals-legend').locator('button[data-series="stuffed"]').click();
   await expect(page.locator('[data-block="satiety-meals"]')).toContainText('No overfull meals in the last 30 days.');
   await shot(page, 'SA71f-satiety-meals-filter-empty');
   await seed(page, { ...WEEK, meals: [], settings: install });
   await choose(page, 'satiety-view', 'meals');
-  await expect(page.locator('[data-block="satiety-meals"]')).toContainText('No meals in the last 30 days.');
+  await expect(page.locator('[data-block="satiety-meals"]')).toContainText('No meals yet.');
   await shot(page, 'SA71g-satiety-meals-empty');
   await choose(page, 'satiety-view', 'now');
   await shot(page, 'SA72i-satiety-now-no-meals');
@@ -276,5 +277,30 @@ test.describe('at 320 wide', () => {
     await choose(page, 'satiety-view', 'meals');
     await page.locator('[data-meal="22"]').scrollIntoViewIfNeeded();
     await shot(page, 'SA80f-satiety-320-meals-marks');
+  });
+});
+
+test('the time shown: the last 7 days, and a time with no rated meals', async ({ page }) => {
+  await openAt(page, '2026-09-26T23:00', '#satiety');
+  await seed(page, { ...WEEK, meals: READINGS, settings: install });
+  await choose(page, 'satiety-range', '7d');
+  await expect(page.getByTestId('satiety-count')).toContainText('Last 7 days:');
+  await shot(page, 'SA72-satiety-range-7-days');
+  await choose(page, 'satiety-view', 'meals');
+  await shot(page, 'SA72b-satiety-range-meals');
+  await openAt(page, '2026-10-20T12:00', '#satiety');
+  await seed(page, { meals: READINGS, settings: install });
+  await choose(page, 'satiety-range', '7d');
+  await expect(page.locator('[data-block="satiety-insights"]')).toContainText('No rated meals in the last 7 days.');
+  await shot(page, 'SA72c-satiety-range-empty');
+});
+
+test.describe('the time shown, 320 wide', () => {
+  test.use({ viewport: { width: 320, height: 568 } });
+  test('four frames on one row', async ({ page }) => {
+    await openAt(page, '2026-09-26T23:00', '#satiety');
+    await seed(page, { ...WEEK, meals: READINGS, settings: install });
+    await choose(page, 'satiety-range', 'ytd');
+    await shot(page, 'SA80g-satiety-320-range');
   });
 });

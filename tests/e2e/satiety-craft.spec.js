@@ -166,7 +166,7 @@ test('the empty states read as whole sentences', async ({ page }) => {
   await seed(page, { ...WEEK, meals: [], settings: install });
   await expect(page.locator('[data-block="satiety-insights"]')).toContainText('Your insights start with your first rated meal. Finish a meal');
   await choose(page, 'satiety-view', 'meals');
-  await expect(page.locator('[data-block="satiety-meals"]')).toContainText('No meals in the last 30 days. Start a meal from Today');
+  await expect(page.locator('[data-block="satiety-meals"]')).toContainText('No meals yet. Start a meal from Today');
 });
 
 test('a due check reads 0 min on its closed dial', async ({ page }) => {

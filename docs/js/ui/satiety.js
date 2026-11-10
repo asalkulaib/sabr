@@ -10,8 +10,8 @@ import * as C from './palette.js';
 import { h, s, live, dimOthers } from './dom.js';
 import { button, choice, figureParts, focusLine, key, legend, nowrapTerms, STOP_TEXT } from './components.js';
 import * as store from '../store.js';
-import { addDays, fmtDayShort, fmtDuration, fmtTime } from '../core/time.js';
-import { ON_TIME, STOPS, ZONE, completed, readingKind, satietyStats, stopPoint, stopPointWords } from '../core/satiety.js';
+import { fmtDayShort, fmtDuration, fmtTime } from '../core/time.js';
+import { ON_TIME, SATIETY_RANGES, STOPS, ZONE, completed, mealsInRange, readingKind, satietyStats, stopPoint, stopPointWords } from '../core/satiety.js';
 import { satietyInsights } from '../core/insights.js';
 import { fullnessCard } from './fullness.js';
 import { showAddMealSheet, showFinishMealSheet, showFullnessSheet, showMealEditSheet } from './meal.js';
@@ -41,6 +41,12 @@ const howTaken = (m) => HOW[readingKind(m)] || null;
 const halo = (x, y, r) => s('circle', { class: 'mark-halo', cx: x, cy: y, r, fill: C.CARD });
 
 export { stopIcon };
+
+// The time shown on Insights and Meals (the owner, 10 November 2026): its
+// label on the track, and its words in a sentence.
+const RANGES = [{ value: '7d', label: '7 days' }, { value: '30d', label: '30 days' }, { value: 'ytd', label: 'This year' }, { value: 'all', label: 'All' }];
+const RANGE_WORDS = { '7d': 'in the last 7 days', '30d': 'in the last 30 days', ytd: 'this year', all: 'yet' };
+const RANGE_LEAD = { '7d': 'Last 7 days: ', '30d': 'Last 30 days: ', ytd: 'This year: ', all: '' };
 
 // One way of finishing can be shown on its own, across every chart and the
 // meal list at once: F holds the choice for the render under way.
@@ -422,7 +428,13 @@ function completeNote(st) {
 }
 
 
-function insightsView(ctx, app, st) {
+function insightsView(ctx, app, st, meals, range) {
+  if (!st.rated && range !== 'all' && ctx.meals.some((m) => m.stop)) {
+    // Meals are rated, but none in the time shown.
+    return h('div', { class: 'satiety-empty insights-empty', 'data-block': 'satiety-insights' },
+      h('p', { class: 'empty-message' }, `No rated meals ${RANGE_WORDS[range]}.`), ' ',
+      h('p', { class: 'empty-how' }, 'Choose a longer time above to see more.'));
+  }
   if (!st.rated) {
     // Nothing rated yet: no key, since there is nothing for it to key.
     return h('div', { class: 'satiety-empty insights-empty', 'data-block': 'satiety-insights' },
@@ -436,7 +448,7 @@ function insightsView(ctx, app, st) {
   const hunger = average(st.byStop.filter((r) => r.hungers), (r) => r.hunger, (r) => r.hungers);
   const climbing = st.drift != null && st.drift >= 1.5;
   // Where to stop, read off the person's own on-time checks: the note's second sentence, climbing or not.
-  const point = stopPointWords(stopPoint(ctx.meals));
+  const point = stopPointWords(stopPoint(meals));
   // Checks answered, but none on time: what the drift and the charts wait for says so.
   const offTime = !st.done && st.leftOut.total > 0;
   const onTimeCheck = `a fullness check ${ON_TIME[0]} to ${ON_TIME[1]} minutes after a meal`;
@@ -476,14 +488,14 @@ function insightsView(ctx, app, st) {
       hunger != null ? lead([[hunger.toFixed(1), ' of 10']], 'lead-hunger') : null,
       caption('Average hunger before a meal, 1 to 10. Below, by how the meal ended.'),
       h('div', { class: 'chart-block' }, hungerChart(st))),
-    findings(ctx),
-    app.ui.showSatietyTable ? h('div', { class: 'section table-card' }, mealTable(ctx)) : null,
+    findings(meals),
+    app.ui.showSatietyTable ? h('div', { class: 'section table-card' }, mealTable(meals)) : null,
     h('div', { class: 'table-toggle' },
       button(app.ui.showSatietyTable ? 'Hide the table' : 'Show as a table', () => { app.ui.showSatietyTable = !app.ui.showSatietyTable; app.refresh(); }, { kind: 'secondary', name: 'satiety-table' })));
 }
 
-function findings(ctx) {
-  const found = satietyInsights(ctx.meals);
+function findings(meals) {
+  const found = satietyInsights(meals);
   return h('section', { class: 'findings' },
     h('h2', { class: 'group-title' }, 'From your meals'),
     found.length
@@ -491,8 +503,8 @@ function findings(ctx) {
       : h('p', { class: 'findings-empty', 'data-testid': 'insights' }, 'Rate how ten meals finished and your own patterns show here.'));
 }
 
-function mealTable(ctx) {
-  const rows = ctx.meals.filter((m) => completed(m) && (!F.focus || m.stop === F.focus)).sort((a, b) => b.startedAt - a.startedAt);
+function mealTable(meals) {
+  const rows = meals.filter((m) => completed(m) && (!F.focus || m.stop === F.focus)).sort((a, b) => b.startedAt - a.startedAt);
   return h('table', { class: 'table', 'data-testid': 'satiety-table' },
     h('thead', {}, h('tr', {}, ['Meal', 'Hunger', 'Right after', '20 min', 'Drift'].map((t) => h('th', { scope: 'col' }, t)))),
     h('tbody', {}, rows.map((m) => {
@@ -639,18 +651,17 @@ function mealRow(app, m) {
   return li;
 }
 
-function mealsView(ctx, app) {
-  const from = addDays(ctx.todayKey, -29);
-  const recent = ctx.meals.filter((m) => m.day >= from && (!F.focus || m.stop === F.focus)).sort((a, b) => b.startedAt - a.startedAt);
+function mealsView(ctx, app, meals, range) {
+  const recent = meals.filter((m) => !F.focus || m.stop === F.focus).sort((a, b) => b.startedAt - a.startedAt);
   if (!recent.length && F.focus) {
     return h('div', { 'data-block': 'satiety-meals' },
       h('div', { class: 'meals-key' }, stopLegend([], 'meals-legend')),
-      h('p', { class: 'meals-empty' }, `No ${STOP_STYLE[F.focus].word.toLowerCase()} meals in the last 30 days.`));
+      h('p', { class: 'meals-empty' }, `No ${STOP_STYLE[F.focus].word.toLowerCase()} meals ${RANGE_WORDS[range]}.`));
   }
   if (!recent.length) {
     // Nothing listed: no key, since there is nothing for it to key.
     return h('div', { class: 'satiety-empty', 'data-block': 'satiety-meals' },
-      h('p', { class: 'empty-message' }, 'No meals in the last 30 days.'), ' ',
+      h('p', { class: 'empty-message' }, `No meals ${RANGE_WORDS[range]}.`), ' ',
       h('p', { class: 'empty-how' }, 'Start a meal from Today, or add one you already ate, and it collects here, newest first.'));
   }
   const days = [...new Set(recent.map((m) => m.day))];
@@ -704,7 +715,10 @@ export function renderSatiety(ctx, app) {
   const view = VIEWS.some((v) => v.value === ctx.settings.satietyView) ? ctx.settings.satietyView : 'insights';
   const focus = STOPS.includes(app.ui.satietyFocus) ? app.ui.satietyFocus : null;
   F = { focus, pick: (stop) => { app.ui.satietyFocus = stop; app.refresh(); }, clear: () => { app.ui.satietyFocus = null; } };
-  const st = satietyStats(ctx.meals);
+  // The time shown: Insights, Meals and the count above them rest on its meals.
+  const range = SATIETY_RANGES.includes(ctx.settings.satietyRange) ? ctx.settings.satietyRange : 'all';
+  const meals = mealsInRange(ctx.meals, range, ctx.todayKey);
+  const st = satietyStats(meals);
   // A check running or due puts a dot after Now.
   const waiting = dueFullness(ctx).length + runningFullness(ctx).length > 0;
   const options = VIEWS.map((v) => (v.value === 'now' && waiting ? { ...v, label: h('span', { class: 'now-label' }, v.label, h('span', { class: 'dot', 'aria-hidden': 'true' })) } : v));
@@ -720,10 +734,12 @@ export function renderSatiety(ctx, app) {
     // The summary on every view, and Add a meal: a meal already eaten, added whole with no timer.
     h('div', { class: 'satiety-summary' },
       h('p', { class: 'summary-line', 'data-testid': 'satiety-count' },
-        nowrapTerms(st.rated ? `${st.rated} rated ${st.rated === 1 ? 'meal' : 'meals'}; ${st.both} with the 20-minute check.` : 'How your meals end, and what 20 minutes changes.')),
+        nowrapTerms(st.rated ? `${RANGE_LEAD[range]}${st.rated} rated ${st.rated === 1 ? 'meal' : 'meals'}; ${st.both} with the 20-minute check.` : range !== 'all' && ctx.meals.some((m) => m.stop) ? `${RANGE_LEAD[range]}no rated meals.` : 'How your meals end, and what 20 minutes changes.')),
       button('Add a meal', addMeal, { kind: 'outline', name: 'add-meal' })),
     h('div', { class: 'page-switch' }, choice({ options, value: view, cols: 3, name: 'satiety-view', ariaLabel: 'Satiety views', onChange: (v) => store.setSettings({ satietyView: v }) })),
+    view === 'now' ? null : h('div', { class: 'satiety-range' }, choice({ options: RANGES, value: range, cols: 4, name: 'satiety-range', slim: true, ariaLabel: 'Time shown',
+      onChange: (v) => store.setSettings({ satietyRange: v }) })),
     h('div', { class: 'satiety-content' },
-      view === 'insights' ? insightsView(ctx, app, st) : view === 'now' ? nowView(ctx, app) : mealsView(ctx, app)),
+      view === 'insights' ? insightsView(ctx, app, st, meals, range) : view === 'now' ? nowView(ctx, app) : mealsView(ctx, app, meals, range)),
     bar);
 }

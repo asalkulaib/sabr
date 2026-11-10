@@ -479,7 +479,8 @@ test('just opened, the window ring shows a round start cap at 12 o\'clock', asyn
   const svg = page.locator('[data-block="open"] .ring-wrap > svg.rings');
   const cap = svg.locator('.ring-win .ring-start');
   await expect(cap).toHaveCount(1);
-  expect(await cap.evaluate((el) => getComputedStyle(el).fill)).toBe('rgb(47, 203, 87)');
+  // A redraw can swap the ring between finding the cap and reading it (WebKit): read again until it holds.
+  await expect.poll(() => cap.evaluate((el) => getComputedStyle(el).fill).catch(() => '')).toBe('rgb(47, 203, 87)');
   const track = svg.locator('.ring-win circle').first();
   const [cx, cy, r] = await track.evaluate((el) => ['cx', 'cy', 'r'].map((a) => Number(el.getAttribute(a))));
   expect(Number(await cap.getAttribute('cx'))).toBeCloseTo(cx, 1);

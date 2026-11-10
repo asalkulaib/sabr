@@ -39,6 +39,24 @@
   margin-top: var(--space-4);
 }
 
+/* The time shown, under the views: four frames across, the row's full width. */
+.satiety .satiety-range {
+  margin-top: var(--space-3);
+}
+
+.satiety .satiety-range .choice.slim {
+  display: grid;
+  width: 100%;
+  grid-auto-flow: row;
+  grid-template-columns: repeat(4, auto);
+  justify-content: stretch;
+}
+
+.satiety .satiety-range .choice.slim button {
+  min-width: var(--hit);
+  padding: 0 var(--space-2);
+}
+
 /* Now keeps its place in the middle of its option; the dot hangs after it. */
 .satiety .page-switch .now-label {
   position: relative;
