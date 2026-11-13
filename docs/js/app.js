@@ -267,6 +267,8 @@ let copyDay = null; // the day the daily copy was last looked for
 function tick() {
   if (document.hidden || !store.state.ready) return;
   if (now() - zoneCheckedAt >= 5 * MIN) followZone();
+  // A pause with no end follows the day (a new day, or a backup just restored).
+  if (store.state.settings.pauseOpen) store.extendOpenPause(dayKey(now())).catch(() => {});
   const ctx = context();
   // Left open past midnight: the new day gets its copy too.
   if (copyDay && ctx.todayKey !== copyDay) {
@@ -521,6 +523,8 @@ async function boot() {
   }
   if (!store.state.settings.installedAt) await store.setSettings({ installedAt: now() });
   await followZone();
+  // A pause with no end reaches today before the first screen is drawn.
+  await store.extendOpenPause(dayKey(now())).catch(() => {});
   requestPersistence().then((p) => {
     if (p !== store.state.settings.persisted) store.setSettings({ persisted: p });
   });
@@ -546,6 +550,7 @@ async function boot() {
     try {
       await store.load();
       await followZone();
+      await store.extendOpenPause(dayKey(now()));
     } catch {
       /* keep what is in memory */
     }

@@ -565,6 +565,11 @@
   align-items: center;
 }
 
+/* The pause in words, then the day's fullness, which goes on. */
+.today .paused-words .ring-row {
+  margin-top: var(--space-3);
+}
+
 .today .empty-title,
 .today .paused-until {
   margin-top: var(--space-1);

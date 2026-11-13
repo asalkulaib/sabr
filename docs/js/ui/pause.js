@@ -1,6 +1,7 @@
-// Pauses: days for travel, illness or Ramadan when fasting is not tracked.
+// Pauses: days for travel, illness or Ramadan when fasting is not tracked,
+// or a pause with no end, until you resume (the owner, 13 November 2026).
 // No window is logged, they are never a miss, and the streak holds.
-// Fullness still counts: a paused day can be rated.
+// Meals and their 20-minute checks go on as on any day, and the day can be rated.
 
 import { h } from './dom.js';
 import { button, choice, dateField, errorLine } from './components.js';
@@ -41,6 +42,12 @@ export function pausesAhead(ctx) {
   return pauseRuns(ctx.days).filter((r) => r.to >= ctx.todayKey);
 }
 
+/** Whether a pause is the one with no end (settings.pauseOpen): the run that holds its last marked day. */
+export function isOpenPause(ctx, run) {
+  const open = ctx.settings.pauseOpen;
+  return !!(open && run && run.from <= open.through && run.to >= open.through);
+}
+
 /** One tap on Today: pause today, with Undo. */
 export async function pauseToday(app) {
   const today = app.ctx().todayKey;
@@ -51,10 +58,12 @@ export async function pauseToday(app) {
 
 /** Ends a pause from today on (or removes it all when it is still ahead), with Undo. */
 export async function endPause(app, run) {
-  const today = app.ctx().todayKey;
+  const ctx = app.ctx();
+  const today = ctx.todayKey;
+  const open = isOpenPause(ctx, run);
   const from = run.from > today ? run.from : today;
-  const { undo } = await store.unpauseDays(store.daysBetween(from, run.to));
-  app.flash(run.from > today ? 'Pause removed.' : 'Pause ended. Today is tracked again.', { undo });
+  const { undo } = await store.unpauseDays(store.daysBetween(from, run.to), { endOpen: open });
+  app.flash(run.from > today ? 'Pause removed.' : open ? 'Fasting resumed. Today is tracked again.' : 'Pause ended. Today is tracked again.', { undo });
 }
 
 /**
@@ -74,14 +83,18 @@ function fillSummary(node, text) {
 }
 
 /**
- * Adds a pause, or changes one (run). From and until roll on date wheels;
- * a reason is optional.
+ * Adds a pause, or changes one (run). Until a date: from and until roll on
+ * date wheels. Indefinitely: from only, and it runs until you resume. A
+ * reason is optional.
  */
 export function showPauseSheet(app, { run = null, from = null } = {}) {
   const today = app.ctx().todayKey;
+  const wasOpen = isOpenPause(app.ctx(), run);
   const draft = {
+    open: wasOpen,
     from: run ? run.from : from || today,
-    to: run ? run.to : from || today,
+    // An open pause is marked a week ahead: as a dated one it would start out ending today.
+    to: wasOpen ? (run.from > today ? run.from : today) : run ? run.to : from || today,
     reason: run && pauseWord(run.reason) ? run.reason : null,
   };
   const replacing = run ? store.daysBetween(run.from, run.to) : [];
@@ -96,6 +109,7 @@ export function showPauseSheet(app, { run = null, from = null } = {}) {
     if (draft.to < draft.from) draft.to = draft.from;
     if (draft.to > maxTo) draft.to = maxTo;
     const summaryText = () => {
+      if (draft.open) return `From ${fmtDayShort(draft.from)}, with no end date. Resume fasting when you choose.`;
       const keys = store.daysBetween(draft.from, draft.to);
       const logged = keys.filter((k) => !replacing.includes(k) && (store.state.days.get(k) || {}).firstBite).length;
       return [
@@ -110,12 +124,15 @@ export function showPauseSheet(app, { run = null, from = null } = {}) {
     return {
       head: sheetHead(api, title),
       body: h('div', { class: 'pause-form' },
-        h('p', { class: 'pause-lead' }, 'Paused days are not tracked for fasting: no windows, no misses, and your streak holds. Fullness still counts.'),
+        h('p', { class: 'pause-lead' }, 'Paused days are not tracked for fasting: no windows, no misses, and your streak holds. Meals and fullness checks still count.'),
+        h('div', { class: 'pause-length' },
+          choice({ label: 'How long', options: [{ value: false, label: 'Until a date' }, { value: true, label: 'Indefinitely' }], value: draft.open, cols: 2, name: 'pause-length',
+            onChange: (v) => { draft.open = v; hint = ''; api.rerender(); } })),
         h('div', { class: 'pause-wheels' },
-          h('div', { class: 'field-pair' },
+          h('div', { class: draft.open ? 'field-pair single' : 'field-pair' },
             dateField({ label: 'From', value: draft.from, minKey: minFrom, maxKey: maxFrom, todayKey: today, name: 'pause-from',
               onChange: (k) => { draft.from = k; api.rerender(); } }),
-            dateField({ label: 'Until', value: draft.to, minKey: draft.from, maxKey: maxTo, todayKey: today, name: 'pause-to',
+            draft.open ? null : dateField({ label: 'Until', value: draft.to, minKey: draft.from, maxKey: maxTo, todayKey: today, name: 'pause-to',
               onChange: (k) => { draft.to = k; fillSummary(summary, summaryText()); } })),
           summary),
         h('div', { class: 'pause-reason' },
@@ -123,14 +140,17 @@ export function showPauseSheet(app, { run = null, from = null } = {}) {
           choice({ label: 'Why (optional)', options: REASON_OPTIONS, value: draft.reason, cols: matchMedia('(max-width: 359px)').matches ? 2 : 4, name: 'pause-reason', onChange: (v) => { draft.reason = v; } }))),
       actions: [
         errorLine(hint, { testid: 'pause-hint' }),
-        button(run ? 'Save' : 'Pause these days', async () => {
-          const res = await store.pauseDays(draft.from, draft.to, draft.reason, { replacing });
+        button(run ? 'Save' : draft.open ? 'Pause indefinitely' : 'Pause these days', async () => {
+          const res = draft.open
+            ? await store.pauseOpenly(draft.from, draft.reason, today, { replacing })
+            // An open pause given an end date is open no longer.
+            : await store.pauseDays(draft.from, draft.to, draft.reason, { replacing, open: wasOpen ? null : undefined });
           if (res.error) { hint = res.error; api.rerender(); return; }
           await api.close();
-          app.flash(`Paused: ${rangeText(draft.from, draft.to)}.`, { undo: res.undo });
+          app.flash(draft.open ? `Paused from ${fmtDayShort(draft.from)}, until you resume.` : `Paused: ${rangeText(draft.from, draft.to)}.`, { undo: res.undo });
         }, { block: true, name: 'save-pause' }),
         run
-          ? button(run.from > today ? 'Remove this pause' : 'End the pause', async () => {
+          ? button(run.from > today ? 'Remove this pause' : wasOpen ? 'Resume fasting' : 'End the pause', async () => {
             await api.close();
             await endPause(app, run);
           }, { kind: 'outline', block: true, name: 'end-pause-sheet' })
@@ -146,7 +166,7 @@ export function pausesSection(ctx, app) {
   return h('div', { class: 'more-group', 'data-block': 'pauses' },
     h('h2', { class: 'group-title' }, 'Pauses'),
     h('section', { class: 'section pauses-card' },
-      h('p', { class: 'more-body' }, 'For travel, illness or Ramadan. Fasting is not tracked on paused days and your streak holds; fullness still counts.'),
+      h('p', { class: 'more-body' }, 'For travel, illness or Ramadan, or with no end date. Fasting is not tracked on paused days and your streak holds; meals and fullness checks still count.'),
       runs.length
         ? h('ul', { class: 'list pause-list' }, runs.map((r) => {
           const now = r.from <= ctx.todayKey;
@@ -155,7 +175,7 @@ export function pausesSection(ctx, app) {
               h('span', {},
                 h('span', { class: 'item-title' }, pauseWord(r.reason) || 'Paused'),
                 h('br'),
-                h('span', { class: 'item-meta' }, rangeText(r.from, r.to))),
+                h('span', { class: 'item-meta' }, isOpenPause(ctx, r) ? `From ${fmtDayShort(r.from)}, until you resume` : rangeText(r.from, r.to))),
               h('span', { class: 'item-side' }, h('span', { class: now ? 'status-tag now' : 'status-tag ahead' }, now ? 'Now' : 'Ahead'))));
         }))
         : null,

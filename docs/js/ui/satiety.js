@@ -15,7 +15,7 @@ import { ON_TIME, SATIETY_RANGES, STOPS, ZONE, completed, mealsInRange, readingK
 import { satietyInsights } from '../core/insights.js';
 import { fullnessCard } from './fullness.js';
 import { showAddMealSheet, showFinishMealSheet, showFullnessSheet, showMealEditSheet } from './meal.js';
-import { dueFullness, header, mealInProgress, runningFullness } from './shared.js';
+import { dueFullness, header, mealInProgress, pausedMeal, runningFullness } from './shared.js';
 import { STOP_MARKS, stopIcon, stopMark } from './icons.js';
 import { RING, progressRing } from './rings.js';
 
@@ -590,7 +590,7 @@ function checkRow(app, m) {
 function nowView(ctx, app) {
   const { mode, rec } = ctx.mode;
   const day = rec && (mode === 'open' || mode === 'forgot' || mode === 'closed') ? rec.day : ctx.todayKey;
-  const eating = mealInProgress(ctx, day);
+  const eating = mode === 'paused' ? pausedMeal(ctx) : mealInProgress(ctx, day);
   const checks = [...dueFullness(ctx), ...runningFullness(ctx)];
   return h('div', { 'data-block': 'satiety-now' },
     checks.length

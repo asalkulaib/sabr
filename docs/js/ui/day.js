@@ -102,7 +102,8 @@ export function renderDay(ctx, app, key) {
     paused ? pausedSection(app, key, rec) : null,
     tracked ? windowSection(ctx, app, key, rec) : null,
     tracked ? outsideSection(ctx, app, key) : null,
-    tracked ? mealsSection(ctx, app, key) : null,
+    // Meals go on through a pause: they count for Satiety.
+    tracked || (paused && past) ? mealsSection(ctx, app, key) : null,
     // Fullness counts on every day, paused ones included.
     past && (paused || rec.firstBite || mealsOfDay(ctx, key).length) ? fullnessSection(ctx, key) : null,
     tracked ? checkinSection(ctx, key, rec) : null,
@@ -132,7 +133,7 @@ function fullnessSection(ctx, key) {
 function pausedSection(app, key, rec) {
   const word = pauseWord(rec.paused);
   return titled('day-paused', 'Paused',
-    h('p', { class: 'day-card-text' }, `${word ? `${word}. ` : ''}This day is not tracked. Unpause it to log it.`),
+    h('p', { class: 'day-card-text' }, `${word ? `${word}. ` : ''}Fasting is not tracked on this day; meals and fullness still count. Unpause it to log a window.`),
     button('Unpause this day', async () => {
       const { undo } = await store.unpauseDays([key]);
       app.flash('Day unpaused.', { undo });
@@ -155,7 +156,7 @@ function dayOffSection(key, rec) {
 
 function pauseSection(app, key) {
   return dayRow('day-pause', 'Pause',
-    'Travel, illness or Ramadan: fasting is not tracked on a paused day, and your streak holds. Fullness still counts.',
+    'Travel, illness or Ramadan: fasting is not tracked on a paused day, and your streak holds. Meals and fullness checks still count.',
     button('Pause this day', async () => {
       const res = await store.pauseDays(key, key, true);
       if (res.error) app.flash(res.error);

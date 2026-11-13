@@ -462,12 +462,13 @@ test('nothing on record: Start a meal across the group, Begin fast and Add a mea
   expect(Math.abs(begin.width - add.width)).toBeLessThanOrEqual(1);
 });
 
-test('paused: the headline alone names the pause, and its actions are one grid', async ({ page }) => {
+test("paused: the headline names the pause over the day's fullness, Start a meal leads, and the rest are one grid", async ({ page }) => {
   await openAt(page, '2026-09-30T12:00');
   await seed(page, { ...LAST_NIGHT, days: ['2026-09-29', '2026-09-30', '2026-10-01'].map((day) => ({ day, paused: 'travel' })) });
   const hero = page.locator('[data-block="paused"]');
   await expect(hero.getByTestId('paused-until')).toHaveText('Paused until Thu 1 Oct');
-  await expect(hero.locator('.paused-words')).toHaveText('Paused until Thu 1 Oct');
+  await expect(hero.locator('.paused-words')).toHaveText('Paused until Thu 1 OctFullnessNot rated yet');
+  await expect(hero.locator('.hero-primary [data-action="start-meal"]')).toBeVisible();
   await expectActionGrid(hero, ['end-pause', 'change-pause', 'add-meal']);
 });
 

@@ -358,8 +358,13 @@
   color: var(--text-body);
 }
 
-[data-sheet='pause'] .pause-wheels {
+/* Until a date, or indefinitely: above the wheels it changes. */
+[data-sheet='pause'] .pause-length {
   margin-top: var(--space-5);
+}
+
+[data-sheet='pause'] .pause-wheels {
+  margin-top: var(--space-4);
   padding: var(--inset-pad);
   background: var(--bg-raised);
   border-radius: var(--r-panel);
@@ -367,6 +372,11 @@
 
 /* Each date wheel fills its half of the card. */
 [data-sheet='pause'] .wheel.date {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+/* Indefinitely: the one wheel takes the card's width. */
+[data-sheet='pause'] .field-pair.single {
   grid-template-columns: minmax(0, 1fr);
 }
 

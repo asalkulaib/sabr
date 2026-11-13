@@ -35,7 +35,7 @@ On first open, a short welcome sets your goal and planned start times and shows 
 - Eating after "I'm done eating" counts as outside the window and makes the day a miss. While you are still inside the window goal, you can reopen the window instead.
 - Between midnight and 04:00, late eating can be counted against the night before.
 - The streak counts consecutive successful days, shown on Today and in Week. A day with nothing logged breaks it, so Sabr asks you to fill in any gap.
-- A paused day is not tracked for fasting: it is never a miss, and it neither counts towards the streak nor breaks it. Fullness still counts.
+- A paused day is not tracked for fasting: it is never a miss, and it neither counts towards the streak nor breaks it. Meals and fullness checks still count.
 
 ## Today
 
@@ -66,7 +66,7 @@ Forgot to start a meal? Add it afterwards, whole, with no timer. Add a meal sits
   - Inside the window, the meal is added; one that ends after the last bite moves the last bite to its end. While the window is open, Last meal of the day? Yes closes it after the latest meal.
   - After the window closed, still within your goal's hours, the window runs on to the end of the meal.
   - Later than that, it counts as eating outside the window, and the day is a miss.
-  - On a paused day, it counts for Satiety only.
+  - On a paused day, it counts for Satiety only, as a meal started there does.
 - A rule the meal would break (opening before 16:00 on a workday, a window longer than the goal, eating outside it) is spelled out in orange before you save.
 - A meal that overlaps one already logged is refused. So is any meal while an earlier day's window is still open: close it on Today first.
 - Leave fullness at 20 minutes blank and a meal that has only just ended still gets its 20-minute check. For an older one, tap the meal in Satiety, Meals later to add it. A fullness at 20 minutes given here, or entered or changed later in the meal's sheet, counts as added: it was not taken in the check, so Satiety's 20-minute figures leave it out (see Satiety tab).
@@ -161,7 +161,7 @@ Tempted? at the top of a screen opens a full-screen flow, one step at a time. Ev
 
 ## Pauses
 
-For travel, illness, holidays, leave or Ramadan. On Today, Pause today pauses the day in one tap. In More, Pauses, Add a pause sets a from and an until date (up to 60 days, and it can start ahead, for example for Ramadan) with an optional reason. While a day is paused, Today shows Paused until the last day, with no window to log; only the day's fullness is asked. Paused days are left out of the Week and History counts. End a pause early from Today or from More; unpause a single day from Week by tapping it. A window still open must be closed before its day can be paused.
+For travel, illness, holidays, leave or Ramadan. On Today, Pause today pauses the day in one tap. In More, Pauses, Add a pause asks how long: Until a date sets a from and an until date (up to 60 days, and it can start ahead, for example for Ramadan); Indefinitely sets a from date only, and the pause runs until you tap Resume fasting on Today or in More. Either takes an optional reason. While a day is paused, Today shows Paused until the last day, or Paused until you resume, with no window to log and nothing about the fast. Meals go on as on any day: Start a meal, Finished this meal with its ratings, then the 20-minute check and its timer, and Add a meal for one already eaten. They open no window and count for Satiety; the day's fullness shows beside the pause, and its blue ring closes on a day left wanting or satisfied. Your streak holds through a pause of any length, and carries on when you resume. Paused days are left out of the Week and History counts. End a pause early from Today or from More; unpause a single day from Week by tapping it. A window still open must be closed before its day can be paused.
 
 ## Weight Shortcut
 

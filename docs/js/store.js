@@ -20,7 +20,14 @@ export const DEFAULTS = {
   goalChanges: [], // [{ from: 'YYYY-MM-DD', hours }]: the eating-window goal from that day on
   alarms: false, // timers through the Fast Timer shortcut
   welcomedAt: null, // when the first-run welcome was done or skipped
+  // A pause with no end: { from, reason, through }. Its days are marked
+  // paused like any pause's, as far as through; extendOpenPause keeps that a
+  // week ahead of today, so every rule reads it as it reads a dated pause.
+  pauseOpen: null,
 };
+
+/** How far ahead of today an open pause is marked: the week row and Week show it paused. */
+export const OPEN_PAUSE_AHEAD = 6;
 
 export const FULLNESS_DELAY = 20 * MIN;
 
@@ -311,10 +318,11 @@ const holdsData = (r) => !!(r.firstBite || r.lastBite || r.noEating || r.dayOff 
  * Pauses every day from fromKey to toKey, for a reason ('travel', 'illness',
  * 'ramadan', 'other', or true for none). replacing: the days of a pause
  * being changed; those outside the new dates are unpaused in the same
- * transaction. Refuses dates with a window still open.
+ * transaction. Refuses dates with a window still open. open: what the open
+ * pause becomes with this change (null ends it; left out, it stays as it is).
  * Resolves with { undo } or { error }.
  */
-export async function pauseDays(fromKey, toKey, reason, { replacing = [] } = {}) {
+export async function pauseDays(fromKey, toKey, reason, { replacing = [], open } = {}) {
   const keys = daysBetween(fromKey, toKey);
   if (keys.some((k) => isOpen(state.days.get(k)))) return { error: 'A window is still open on one of those days. Close it first.' };
   const dropped = replacing.filter((k) => k < fromKey || k > toKey);
@@ -324,18 +332,67 @@ export async function pauseDays(fromKey, toKey, reason, { replacing = [] } = {})
   ops.push(...unpauseOps(dropped, at));
   await db.batch(ops);
   apply(ops);
-  return { undo };
+  return { undo: await withOpenPause(undo, open) };
 }
 
-/** Ends the pause on these days; a day left holding nothing is removed. Resolves with { undo }. */
-export async function unpauseDays(keys) {
+/**
+ * Pauses from fromKey on, with no end: the days are marked as far as a week
+ * past today (or past a start still ahead), and the open pause is noted so
+ * extendOpenPause carries it on. Resolves with { undo } or { error }.
+ */
+export function pauseOpenly(fromKey, reason, todayKey, { replacing = [] } = {}) {
+  const through = addDays(fromKey > todayKey ? fromKey : todayKey, OPEN_PAUSE_AHEAD);
+  return pauseDays(fromKey, through, reason, { replacing, open: { from: fromKey, reason: reason || true, through } });
+}
+
+/**
+ * Carries an open pause on: marks the days after the last one marked, as far
+ * as a week past today. Days before that are left as they are, so a day
+ * taken out of the pause by hand stays out. Nothing to undo.
+ */
+let extending = false;
+export async function extendOpenPause(todayKey) {
+  const open = state.settings.pauseOpen;
+  if (!open || extending) return;
+  const through = addDays(todayKey, OPEN_PAUSE_AHEAD);
+  if (!(open.through < through)) return;
+  extending = true;
+  try {
+    const at = now();
+    const ops = daysBetween(addDays(open.through, 1), through)
+      .map((k) => ({ store: 'days', put: { ...(state.days.get(k) || { day: k }), day: k, paused: open.reason || true, updatedAt: at } }));
+    await db.batch(ops);
+    state.settings.pauseOpen = { ...open, through };
+    await db.putMany('settings', [{ key: 'pauseOpen', value: state.settings.pauseOpen }]);
+    apply(ops);
+  } finally {
+    extending = false;
+  }
+}
+
+/** Sets the open pause when a change says so, and folds putting it back into the undo. */
+async function withOpenPause(undo, open) {
+  if (open === undefined) return undo;
+  const before = state.settings.pauseOpen || null;
+  await setSettings({ pauseOpen: open });
+  return async () => {
+    await undo();
+    await setSettings({ pauseOpen: before });
+  };
+}
+
+/**
+ * Ends the pause on these days; a day left holding nothing is removed.
+ * endOpen: the open pause ends with them. Resolves with { undo }.
+ */
+export async function unpauseDays(keys, { endOpen = false } = {}) {
   const undo = undoPoint({ days: keys });
   const ops = unpauseOps(keys, now());
   if (ops.length) {
     await db.batch(ops);
     apply(ops);
   }
-  return { undo };
+  return { undo: await withOpenPause(undo, endOpen ? null : undefined) };
 }
 
 function unpauseOps(keys, at) {
@@ -423,13 +480,15 @@ export function setDayFullness(key, value) {
  *   'first'   opens a window at the meal's start (the first bite),
  *   'open'    joins the window already open on that day,
  *   'reopen'  reopens that day's window, closed but still inside its goal,
- *   'outside' counts it as eating outside that day's closed window.
+ *   'outside' counts it as eating outside that day's closed window,
+ *   'paused'  a meal on a paused day: no window, it counts for Satiety only.
  * One transaction. Resolves with { meal, undo } or { error }.
  */
 export async function startMealAs(kind, { day, name, startedAt, hungerBefore }) {
   const t = stamp(startedAt);
-  const key = kind === 'first' ? dayKey(t) : day;
+  const key = kind === 'first' || kind === 'paused' ? dayKey(t) : day;
   const cur = state.days.get(key);
+  if (kind === 'paused' && !(cur && cur.paused)) return { error: `${fmtDayLong(key)} is not paused. Use Add a meal for it.` };
   if (kind === 'first' && cur && cur.firstBite) return { error: `${fmtDayLong(key)} already has a window. Pick a later time.` };
   const snap = snapshot({ days: [key] });
   const meal = {
@@ -613,7 +672,8 @@ export async function saveWeights(entries) {
  * temptations, weigh-ins) and keeps the settings. Tracking starts again now.
  */
 export async function resetHistory() {
-  const kept = { ...state.settings, installedAt: now(), lastBackupAt: null, lastImportAt: null };
+  // The days go, and a pause with no end goes with them.
+  const kept = { ...state.settings, installedAt: now(), lastBackupAt: null, lastImportAt: null, pauseOpen: null };
   await db.replaceAll({
     days: [], meals: [], outside: [], temptations: [], weights: [],
     settings: Object.entries(kept).map(([key, value]) => ({ key, value })),

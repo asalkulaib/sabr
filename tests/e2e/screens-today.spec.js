@@ -194,6 +194,27 @@ test('notices, paused, the undo bar', async ({ page }) => {
     settings: install,
   });
   await shot(page, 'T50-today-paused');
+  // A pause with no end, a meal being eaten in it, then the day rated.
+  await openAt(page, '2026-09-27T13:10');
+  await seed(page, { days: WEEK.days, meals: WEEK.meals, settings: [...install, { key: 'pauseOpen', value: { from: '2026-09-27', reason: true, through: '2026-09-26' } }] });
+  await expect(page.getByTestId('paused-until')).toHaveText('Paused until you resume');
+  await shot(page, 'T51-today-paused-open');
+  await tap(page, 'start-meal');
+  await shot(page, 'T51b-start-meal-paused');
+  await tap(page, 'start-eating');
+  await expect(page.locator('[data-block="eating"]')).toBeVisible();
+  await page.getByTestId('flash').waitFor();
+  await shot(page, 'T51c-today-paused-eating');
+  await advance(page, 20);
+  await tap(page, 'finish-meal');
+  await choose(page, 'stop', 'full');
+  await pick(page, 'fullness-now', 6);
+  await tap(page, 'save-finish');
+  await advance(page, 21);
+  await pick(page, 'fullness-20', 7);
+  await tap(page, 'save-fullness');
+  await expect(page.getByTestId('ring-fullness')).toContainText('Satisfied');
+  await shot(page, 'T51d-today-paused-satisfied');
   await openAt(page, '2026-09-27T13:10');
   await seed(page, { ...WEEK, settings: install });
   await tap(page, 'edit-last-bite');

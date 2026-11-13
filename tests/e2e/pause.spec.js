@@ -18,9 +18,9 @@ test('Pause today: one tap, nothing to log, and Undo brings the day back', async
   await expect(page.getByTestId('flash')).toHaveText('Today is paused.');
   const paused = page.locator('[data-block="paused"]');
   await expect(paused.getByTestId('paused-until')).toHaveText('Paused today');
-  await expect(paused).toContainText('Fasting is not tracked and your streak holds; fullness still counts. Tracking resumes on Monday 28 September.');
-  // Nothing to log: no First bite, no ring, no check-in, no Tempted?.
-  await expect(page.locator('[data-action="start-meal"]')).toHaveCount(0);
+  await expect(paused).toContainText('Fasting is not tracked and your streak holds; meals and fullness checks still count. Tracking resumes on Monday 28 September.');
+  // No fast to follow: no fasting ring, no check-in, no Tempted?. Meals go on.
+  await expect(page.locator('[data-action="start-meal"]')).toBeVisible();
   await expect(page.getByTestId('fasting-ring')).toHaveCount(0);
   await expect(page.locator('[data-block="checkin"]')).toHaveCount(0);
   await expect(page.locator('[data-action="tempted"]')).toHaveCount(0);

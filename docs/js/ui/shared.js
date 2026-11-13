@@ -3,7 +3,7 @@
 import { h, live } from './dom.js';
 import { button } from './components.js';
 import { DAY, HOME_ZONE, addDays, dayKey, fmtDayLong, fmtDuration, fmtMinutes, fmtWhen, sameClock, zoneAt, zoneName } from '../core/time.js';
-import { isFlexible, isOpen, isWorkday, longFastAhead, plannedStartMin } from '../core/rules.js';
+import { isFlexible, isOpen, isPaused, isWorkday, longFastAhead, plannedStartMin } from '../core/rules.js';
 
 /** A note: a label over its value (a meta pair). */
 export function note(title, value) {
@@ -113,6 +113,15 @@ export function mealsOfDay(ctx, key) {
 
 export function mealInProgress(ctx, key) {
   return mealsOfDay(ctx, key).find((m) => !m.finishedAt) || null;
+}
+
+/**
+ * The meal being eaten on a paused day: today's, or one begun before
+ * midnight. No window holds it, so it is found by its own day.
+ */
+export function pausedMeal(ctx) {
+  const yesterday = addDays(ctx.todayKey, -1);
+  return ctx.meals.find((m) => !m.finishedAt && (m.day === ctx.todayKey || m.day === yesterday) && isPaused(ctx.days.get(m.day))) || null;
 }
 
 /** Meals whose 20-minute fullness check is due now. */

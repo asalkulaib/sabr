@@ -68,6 +68,9 @@ test('more: pauses running and ahead, the pause sheet in its states', async ({ p
   await setDate(page, 'pause-to', '2027-03-09');
   await choose(page, 'pause-reason', 'ramadan');
   await shot(page, 'M54-pause-sheet');
+  await choose(page, 'pause-length', 'true');
+  await shot(page, 'M54c-pause-sheet-indefinitely');
+  await choose(page, 'pause-length', 'false');
   await tap(page, 'close-sheet');
   await expect(sheet(page, 'pause')).toHaveCount(0);
   await page.locator('[data-pause="2026-09-29"]').click();

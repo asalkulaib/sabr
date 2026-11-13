@@ -16,7 +16,7 @@ import { CUTOFF_MIN, LATE_NIGHT_END_MIN, canReopen, cutoffApplies, evaluateDay, 
 import { placeAddedMeal } from '../core/added-meal.js';
 import { editedReading } from '../core/satiety.js';
 import { MEAL_TYPES, guessMealType, typeOfName } from '../core/meal-types.js';
-import { mealInProgress } from './shared.js';
+import { mealInProgress, pausedMeal } from './shared.js';
 import { ringIn } from './alarm.js';
 
 // ---------- The parts every form sheet is built from ----------
@@ -231,10 +231,12 @@ export function timesMissLines(ctx, day, rec, kinds) {
 /**
  * Where a meal started now goes (see store.startMealAs): 'open' joins the
  * open window; after a window has closed, 'reopen' inside its goal and
- * 'outside' past it; 'first' opens a window when there is none.
+ * 'outside' past it; 'first' opens a window when there is none. On a paused
+ * day, 'paused': no window, the meal counts for Satiety only.
  */
 export function mealSituation(ctx) {
   const { mode, rec } = ctx.mode;
+  if (mode === 'paused') return { kind: 'paused', rec };
   if (mode === 'open' || mode === 'forgot') return { kind: 'open', rec };
   if (mode === 'closed') return { kind: canReopen(rec, ctx.nowTs, ctx.windowMsFor(rec.day)) ? 'reopen' : 'outside', rec };
   return { kind: 'first', rec: null };
@@ -250,7 +252,7 @@ const QUICK = [[0, 'Now'], [30, '30 min ago'], [60, '1 h ago'], [120, '2 h ago']
 export function showStartMealSheet(app) {
   const ctx0 = app.ctx();
   const sit0 = mealSituation(ctx0);
-  const running = sit0.rec ? mealInProgress(ctx0, sit0.rec.day) : null;
+  const running = sit0.kind === 'paused' ? pausedMeal(ctx0) : sit0.rec ? mealInProgress(ctx0, sit0.rec.day) : null;
   if (running) {
     showFinishMealSheet(app, running.id, { next: () => showStartMealSheet(app), lead: 'One meal at a time. First, how did this one finish?' });
     return;
@@ -292,8 +294,9 @@ export function showStartMealSheet(app) {
     updateWarn();
     const context = {
       first: 'Your first meal opens the window.',
-      reopen: rec && `This reopens your window from ${fmtTime(rec.firstBite)}.`,
-      outside: rec && `Your window closed at ${fmtTime(rec.lastBite)} and its hours are over, so this meal counts as eating outside it and the day becomes a miss.`,
+      paused: 'Fasting is paused, so this meal opens no window. It counts for Satiety.',
+      reopen: sit.kind === 'reopen' && `This reopens your window from ${fmtTime(rec.firstBite)}.`,
+      outside: sit.kind === 'outside' && `Your window closed at ${fmtTime(rec.lastBite)} and its hours are over, so this meal counts as eating outside it and the day becomes a miss.`,
     }[sit.kind];
 
     const save = async () => {
@@ -307,7 +310,7 @@ export function showStartMealSheet(app) {
       if (cur.kind === 'outside' && ts < cur.rec.lastBite) {
         return refuse(`Your window closed at ${fmtTime(cur.rec.lastBite)}. Pick a later time, or change the window's times.`);
       }
-      const res = await store.startMealAs(cur.kind, { day: cur.rec ? cur.rec.day : null, name: draft.name, startedAt: ts, hungerBefore: draft.hungerBefore });
+      const res = await store.startMealAs(cur.kind, { day: cur.rec && cur.kind !== 'paused' ? cur.rec.day : null, name: draft.name, startedAt: ts, hungerBefore: draft.hungerBefore });
       if (res.error) return refuse(res.error);
       await api.close();
       const at = fmtTime(res.meal.startedAt);

@@ -11,15 +11,15 @@ import {
 } from '../core/rules.js';
 import { dailySeries } from '../core/history.js';
 import * as P from './palette.js';
-import { RING, celebrate, emptyRings, resultRing, ringsSvg } from './rings.js';
+import { RING, celebrate, emptyRings, ringsSvg } from './rings.js';
 import { forgotCloseDefault, showAddMealSheet, showDoneEatingSheet, showFinishMealSheet, showMealEditSheet, showStartMealSheet } from './meal.js';
 import { showOutsideSheet } from './outside.js';
 import { showBiteTimeSheet, showOpeningSheet, showOutsideTimeSheet, showWindowTimesSheet } from './window-times.js';
 import { dayRings, heroRingSize, ringHero, ringName, stagesSection, streakLine, weekRow } from './today-parts.js';
-import { currentPause, endPause, pauseToday, showPauseSheet } from './pause.js';
+import { currentPause, endPause, isOpenPause, pauseToday, showPauseSheet } from './pause.js';
 import { showBeginFastSheet } from './begin-fast.js';
 import { showGoalSheet } from './goal.js';
-import { dayTypeText, header, mealInProgress, nextWindowLine, notices, runningFullness, tapNote, timePill } from './shared.js';
+import { dayTypeText, header, mealInProgress, nextWindowLine, notices, pausedMeal, runningFullness, tapNote, timePill } from './shared.js';
 
 const hoursWord = (ms) => { const n = Math.round(ms / HOUR); return `${n} ${n === 1 ? 'hour' : 'hours'}`; };
 
@@ -86,7 +86,7 @@ export function renderToday(ctx, app) {
   else if (mode === 'forgot') main = forgotBlock(ctx, app, rec);
   else if (mode === 'closed') main = closedBlock(ctx, app, rec, { lead: !fastFirst });
   else if (mode === 'noEating') main = noEatingBlock(ctx, app);
-  else if (mode === 'paused') main = pausedBlock(ctx, app);
+  else if (mode === 'paused') main = pausedBlock(ctx, app, animate);
   else main = beforeBlock(ctx, app, animate);
 
   // Meals, fullness checks and how the day ended live on the Satiety tab;
@@ -302,20 +302,45 @@ const keepTogether = (text) => text.replace(/ (\S+)$/, '\u00a0$1');
 
 const FOR_REASON = { travel: 'For travel. ', illness: 'For illness. ', ramadan: 'For Ramadan. ' };
 
-function pausedBlock(ctx, app) {
+/**
+ * A paused day: fasting is not tracked, so the fast's and the window's rings
+ * stay empty, with the pause's two bars in the middle; fullness goes on, and
+ * its ring closes on a day left wanting or satisfied. Meals are started,
+ * finished and checked 20 minutes on as on any day. A pause with no end
+ * (isOpenPause) reads "until you resume" and ends with Resume fasting.
+ */
+function pausedBlock(ctx, app, animate) {
   const run = currentPause(ctx) || { from: ctx.todayKey, to: ctx.todayKey, reason: true };
+  const open = isOpenPause(ctx, run);
   const until = run.to;
+  const eating = pausedMeal(ctx);
+  const d = dayRings(ctx, ctx.todayKey);
+  const rings = ringsSvg({ fast: { frac: 0 }, win: { frac: 0 }, full: d.full }, {
+    size: RING.md.size,
+    key: 'paused',
+    animate,
+    centre: (c) => s('path', { class: 'paused-bars', d: `M${c - 6} ${c - 9} V${c + 9} M${c + 6} ${c - 9} V${c + 9}`, stroke: P.QUIET, 'stroke-width': 4, 'stroke-linecap': 'round', fill: 'none' }),
+  });
+  const hero = h('div', { class: 'paused-hero' },
+    h('div', { class: 'paused-rings' }, rings),
+    h('div', { class: 'paused-words ring-readout' },
+      h('h2', { class: 'paused-until', 'data-testid': 'paused-until' },
+        open ? 'Paused until you resume' : until === ctx.todayKey ? 'Paused today' : `Paused until ${keepTogether(fmtDayShort(until))}`),
+      h('div', { class: 'ring-row', 'data-ring-row': 'full', 'data-testid': 'ring-fullness' }, ringName('full', 'Fullness'), h('div', { class: 'value' }, d.fullText))));
+  const why = FOR_REASON[run.reason] || '';
   return h('section', { class: 'section strong hero', 'data-block': 'paused' },
     // The context line, as on every hero: the 'Paused' label over the rest.
     context('Paused'),
-    h('div', { class: 'paused-hero' },
-      resultRing('paused', RING.md.size),
-      h('div', { class: 'paused-words' },
-        h('h2', { class: 'paused-until', 'data-testid': 'paused-until' }, until === ctx.todayKey ? 'Paused today' : `Paused until ${keepTogether(fmtDayShort(until))}`))),
-    h('p', { class: 'paused-text' }, `${FOR_REASON[run.reason] || ''}Fasting is not tracked and your streak holds; fullness still counts. Tracking resumes on ${fmtDayLong(addDays(until, 1))}.`),
-    // Meals still count for Satiety on a paused day.
+    d.full.frac >= 1 ? celebrate(hero, [{ key: `full:${ctx.todayKey}`, kind: 'full' }]) : hero,
+    h('p', { class: 'paused-text' }, open
+      ? `${why}Fasting is not tracked and your streak holds. Meals and fullness checks still count.`
+      : `${why}Fasting is not tracked and your streak holds; meals and fullness checks still count. Tracking resumes on ${fmtDayLong(addDays(until, 1))}.`),
+    // One main action: finishing the meal while eating, else starting one.
+    eating
+      ? eatingNow(app, eating, { another: true })
+      : h('div', { class: 'hero-primary' }, button('Start a meal', () => showStartMealSheet(app), { kind: 'win', big: true, block: true, name: 'start-meal' })),
     actionGrid(
-      outline('End the pause', () => endPause(app, run), 'end-pause'),
+      outline(open ? 'Resume fasting' : 'End the pause', () => endPause(app, run), 'end-pause'),
       outline('Change', () => showPauseSheet(app, { run }), 'change-pause'),
       addMealButton(app)),
   );
