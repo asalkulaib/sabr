@@ -18,7 +18,7 @@ import { HOUR, MIN, addDays, at, dayKey, dayStart, minutesOfDay, isWorkweekday, 
 
 export const DEFAULT_WINDOW_HOURS = 4;
 export const WINDOW_MS = DEFAULT_WINDOW_HOURS * HOUR; // the default goal, 20:4
-export const GRACE_MS = 15 * MIN;
+export const GRACE_MS = 15 * MIN; // the grace days were judged by until settings.graceChanges says otherwise
 export const LIMIT_MS = WINDOW_MS + GRACE_MS;
 export const WARN_MS = 30 * MIN;
 export const CUTOFF_MIN = 16 * 60; // workday rule: the window may open at 16:00 or later
@@ -93,6 +93,31 @@ export function goalLabelFor(key, settings) {
   return goalLabel(windowMsFor(key, settings), longFastHours(key, settings));
 }
 
+/**
+ * The grace on a window's length in force on a day, in ms: 15 minutes, or
+ * what settings.graceChanges ([{ from: 'YYYY-MM-DD', minutes }], oldest
+ * first) says from its day on. Like the goal, a change applies from its day,
+ * so past days keep the grace they were judged by.
+ */
+export function graceMsFor(key, settings) {
+  let ms = GRACE_MS;
+  for (const c of (settings && settings.graceChanges) || []) if (c.from <= key) ms = c.minutes * MIN;
+  return ms;
+}
+
+/**
+ * Whether the 16:00 workday rule is still in force on a day: until
+ * settings.cutoffEnd, the first day without it. Days before keep the rule.
+ */
+export function cutoffInForce(key, settings) {
+  return !(settings && settings.cutoffEnd && key >= settings.cutoffEnd);
+}
+
+/** The rules of a day that changed over time, as evaluateDay takes them. */
+export function rulesFor(key, settings) {
+  return { graceMs: graceMsFor(key, settings), cutoff: cutoffInForce(key, settings) };
+}
+
 export const PAUSE_REASONS = ['travel', 'illness', 'ramadan', 'other'];
 
 /**
@@ -132,9 +157,9 @@ export function isOpen(rec) {
   return !!(rec && rec.firstBite && !rec.lastBite);
 }
 
-/** Whether the 16:00 rule applies: a workday on fixed timing. */
+/** Whether the 16:00 rule applies: a workday on fixed timing, while the rule was in force. */
 export function cutoffApplies(key, rec, settings) {
-  return isWorkday(key, rec) && !isFlexible(key, settings);
+  return isWorkday(key, rec) && !isFlexible(key, settings) && cutoffInForce(key, settings);
 }
 
 /** Planned window start for a day, in minutes since midnight. */
@@ -149,14 +174,20 @@ export function plannedStartMin(key, rec, settings) {
  *       | 'paused' (not tracked, whatever is logged)
  * state 'fasted': a past day with nothing eaten that begins inside a long
  * fast's goal (fasted is true): a success on its own, like a day without eating.
- * reasons for a miss: 'early' (workday window opened before 16:00; never on flexible timing),
- *                     'over' (longer than the goal plus 15 min), 'outside' (ate outside the window)
+ * reasons for a miss: 'early' (workday window opened before 16:00; never on flexible timing,
+ *                     nor once the rule ended), 'over' (longer than the goal plus the grace),
+ *                     'outside' (ate outside the window)
+ * rules: the day's grace and whether the 16:00 rule held on it (rulesFor);
+ * left out, 15 minutes and the rule, as days were first judged.
  */
-export function evaluateDay(key, rec, outsideCount, nowTs, todayKey, startKey, windowMs = WINDOW_MS, flexible = false, fasted = false) {
+export function evaluateDay(key, rec, outsideCount, nowTs, todayKey, startKey, windowMs = WINDOW_MS, flexible = false, fasted = false, { graceMs = GRACE_MS, cutoff = true } = {}) {
   const workday = isWorkday(key, rec);
   const base = {
     day: key,
     windowMs,
+    graceMs,
+    // The 16:00 rule held on this day: a workday on fixed timing, while the rule was in force.
+    cutoff: workday && !flexible && cutoff,
     flexible,
     workday,
     dayOff: !!(rec && rec.dayOff),
@@ -173,8 +204,8 @@ export function evaluateDay(key, rec, outsideCount, nowTs, todayKey, startKey, w
     const open = !rec.lastBite;
     const end = open ? Math.max(nowTs, rec.firstBite) : rec.lastBite;
     const lengthMs = Math.max(0, end - rec.firstBite);
-    const openedEarly = workday && !flexible && minutesOfDay(rec.firstBite) < CUTOFF_MIN;
-    const over = lengthMs > windowMs + GRACE_MS;
+    const openedEarly = base.cutoff && minutesOfDay(rec.firstBite) < CUTOFF_MIN;
+    const over = lengthMs > windowMs + graceMs;
     const reasons = [];
     if (openedEarly) reasons.push('early');
     if (over) reasons.push('over');
@@ -224,7 +255,7 @@ export function makeEvaluator({ days, outside, meals = [], nowTs, todayKey, star
   return (key) => {
     if (!cache.has(key)) {
       const fasted = insideLongFast(key, { days, settings }, eating, fastStarts);
-      cache.set(key, evaluateDay(key, days.get(key), outsideByDay.get(key) || 0, nowTs, todayKey, startKey, windowMsFor(key, settings), isFlexible(key, settings), fasted));
+      cache.set(key, evaluateDay(key, days.get(key), outsideByDay.get(key) || 0, nowTs, todayKey, startKey, windowMsFor(key, settings), isFlexible(key, settings), fasted, rulesFor(key, settings)));
     }
     return cache.get(key);
   };
@@ -352,9 +383,9 @@ export function lateNightDay({ days, todayKey, nowTs }) {
 }
 
 /** Phase of an open window: 'window' | 'warn' | 'grace' | 'over'. */
-export function windowPhase(rec, nowTs, windowMs = WINDOW_MS) {
+export function windowPhase(rec, nowTs, windowMs = WINDOW_MS, graceMs = GRACE_MS) {
   const elapsed = nowTs - rec.firstBite;
-  if (elapsed > windowMs + GRACE_MS) return 'over';
+  if (elapsed > windowMs + graceMs) return 'over';
   if (elapsed >= windowMs) return 'grace';
   if (windowMs - elapsed <= WARN_MS) return 'warn';
   return 'window';

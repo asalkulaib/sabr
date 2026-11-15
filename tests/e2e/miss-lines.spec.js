@@ -1,4 +1,4 @@
-import { test, expect, openAt, seed, tap, sheet, setTime, readDb, settings, ms } from './helpers.js';
+import { test, expect, openAt, seed, tap, sheet, setTime, readDb, settings, ms, OLD_RULES } from './helpers.js';
 
 // Before a window's times are saved, I'm done eating and Window times say in
 // words when those times would make the day a miss, as Add a meal does, with
@@ -11,19 +11,19 @@ const OVER = 'That is longer than your 4-hour goal, so the day becomes a miss.';
 const EARLY = 'Opening before 16:00 on a workday makes the day a miss.';
 
 test("I'm done eating: a last bite past the goal and its grace is a miss in words; inside it, none", async ({ page }) => {
-  await openAt(page, '2026-09-27T21:56');
+  await openAt(page, '2026-09-27T22:10');
   await seed(page, { days: [{ day: '2026-09-27', firstBite: ms('2026-09-27T17:30'), lastBite: null }], settings: install });
   await tap(page, 'done-eating');
   const s = sheet(page, 'done-eating');
   const miss = s.getByTestId('done-miss');
-  await expect(s.getByTestId('done-summary')).toHaveText('Window 17:30 to 21:56, 4 h 26 min.');
+  await expect(s.getByTestId('done-summary')).toHaveText('Window 17:30 to 22:10, 4 h 40 min.');
   await expect(miss).toHaveText(OVER);
   await expect(miss).toBeVisible();
-  // Inside the 15 minutes of grace: no miss.
-  await setTime(page, 'last-bite', '21:45');
+  // Inside the 30 minutes of grace: no miss.
+  await setTime(page, 'last-bite', '22:00');
   await expect(miss).toHaveText('');
   await expect(miss).toBeHidden();
-  await setTime(page, 'last-bite', '21:46');
+  await setTime(page, 'last-bite', '22:01');
   await expect(miss).toHaveText(OVER);
   // A time still ahead: no window to judge, the summary says why as an error, and the window cannot close.
   await setTime(page, 'last-bite', '22:30');
@@ -33,27 +33,51 @@ test("I'm done eating: a last bite past the goal and its grace is a miss in word
   await expect(s.locator('.effect-slot.is-error')).toHaveCount(1);
   await expect(page.locator('[data-action="close-window"]')).toBeDisabled();
   // The line warns; it never stops the close.
-  await setTime(page, 'last-bite', '21:50');
+  await setTime(page, 'last-bite', '22:05');
   await expect(miss).toHaveText(OVER);
   await tap(page, 'close-window');
   await expect(page.locator('[data-block="closed"]')).toHaveAttribute('data-result', 'miss');
-  expect((await readDb(page)).days[0].lastBite).toBe(ms('2026-09-27T21:50'));
+  expect((await readDb(page)).days[0].lastBite).toBe(ms('2026-09-27T22:05'));
 });
 
-test("I'm done eating: a window opened before 16:00 says nothing about it here, only the length", async ({ page }) => {
+test("I'm done eating: an early opening on a workday is no miss; only the length is", async ({ page }) => {
   await openAt(page, '2026-09-27T16:30');
   await seed(page, { days: [{ day: '2026-09-27', firstBite: ms('2026-09-27T14:00'), lastBite: null }], settings: install });
   await tap(page, 'done-eating');
   await expect(sheet(page, 'done-eating').getByTestId('done-miss')).toHaveText('');
-  await openAt(page, '2026-09-27T18:30');
+  await openAt(page, '2026-09-27T18:45');
   await seed(page, { days: [{ day: '2026-09-27', firstBite: ms('2026-09-27T14:00'), lastBite: null }], settings: install });
   await tap(page, 'done-eating');
   await expect(sheet(page, 'done-eating').getByTestId('done-miss')).toHaveText(OVER);
 });
 
-test('Window times: opening before 16:00 and a window past its goal, each in words, until the times are fixed', async ({ page }) => {
+test('Window times: a window past its goal and grace in words, until the times are fixed; an early opening is no miss', async ({ page }) => {
   await openAt(page, '2026-09-27T22:00');
-  await seed(page, { days: [{ day: '2026-09-27', firstBite: ms('2026-09-27T12:30'), lastBite: ms('2026-09-27T16:50') }], settings: install });
+  await seed(page, { days: [{ day: '2026-09-27', firstBite: ms('2026-09-27T12:30'), lastBite: ms('2026-09-27T17:10') }], settings: install });
+  await tap(page, 'change-times');
+  const s = sheet(page, 'window-times');
+  const miss = s.getByTestId('times-miss');
+  await expect(miss).toHaveText(OVER);
+  await expect(s.locator('.miss-reason')).toHaveCount(1);
+  // 12:30 on a workday: no miss for the hour.
+  await setTime(page, 'times-last', '16:30');
+  await expect(miss).toHaveText('');
+  await setTime(page, 'times-first', '17:00');
+  await setTime(page, 'times-last', '21:30');
+  await expect(s.getByTestId('times-summary')).toHaveText('17:00 to 21:30, 4 h 30 min.');
+  await expect(miss).toHaveText('');
+  await expect(miss).toBeHidden();
+  await setTime(page, 'times-last', '21:35');
+  await expect(miss).toHaveText(OVER);
+  await setTime(page, 'times-last', '21:00');
+  await tap(page, 'save-times');
+  await expect(page.getByTestId('flash')).toHaveText('Window times saved.');
+  await expect(page.locator('[data-block="closed"]')).toHaveAttribute('data-result', 'success');
+});
+
+test('Window times, on a day still judged by the 16:00 rule and 15 minutes of grace: each miss in words', async ({ page }) => {
+  await openAt(page, '2026-09-27T22:00');
+  await seed(page, { days: [{ day: '2026-09-27', firstBite: ms('2026-09-27T12:30'), lastBite: ms('2026-09-27T16:50') }], settings: [...install, ...OLD_RULES] });
   await tap(page, 'change-times');
   const s = sheet(page, 'window-times');
   const miss = s.getByTestId('times-miss');
@@ -80,7 +104,9 @@ test('Window times: on a weekend, an early opening is no miss; the length still 
   await tap(page, 'change-times');
   const miss = sheet(page, 'window-times').getByTestId('times-miss');
   await expect(miss).toHaveText('');
-  await setTime(page, 'times-last', '17:00');
+  await setTime(page, 'times-last', '17:00'); // 4 h 30 min: inside the grace
+  await expect(miss).toHaveText('');
+  await setTime(page, 'times-last', '17:05');
   await expect(miss).toHaveText(OVER);
 });
 

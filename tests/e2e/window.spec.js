@@ -35,7 +35,6 @@ async function closeWindowAt(page, hhmm) {
 test('a normal window: first bite, a meal, the 20-minute check, done eating', async ({ page }) => {
   await openAt(page, '2026-09-27T17:30');
   await expect(page.locator('[data-block="before"]')).toBeVisible();
-  await expect(page.getByTestId('firm-reminder')).toHaveCount(0); // after 16:00
   await openWindow(page);
   await startFirstMeal(page);
 
@@ -75,50 +74,51 @@ test('a normal window: first bite, a meal, the 20-minute check, done eating', as
   expect(meal.finishedAt).toBe(ms('2026-09-27T18:00'));
 });
 
-test('4 h 10 min is a success inside the grace period', async ({ page }) => {
+test('4 h 25 min is a success inside the 30 minutes of grace', async ({ page }) => {
   await openAt(page, '2026-09-27T17:00');
   await openWindow(page);
   await startFirstMeal(page);
   await advance(page, 215); // 20:35, 25 minutes left
   await expect(page.getByTestId('warn-30')).toHaveText('25 min left. The window closes at 21:00.');
   await advance(page, 30); // 21:05, inside grace
-  await expect(page.getByTestId('grace')).toContainText('10 min of grace left');
-  await advance(page, 5); // 21:10
+  await expect(page.getByTestId('grace')).toContainText('25 min of grace left');
+  await advance(page, 20); // 21:25
+  await expect(page.getByTestId('grace')).toContainText('5 min of grace left');
   await closeWindowAt(page);
-  await expect(page.getByTestId('window-length')).toHaveText('4h 10m');
+  await expect(page.getByTestId('window-length')).toHaveText('4h 25m');
   await expect(page.locator('[data-block="closed"]')).toHaveAttribute('data-result', 'success');
 });
 
-test('4 h 20 min is a miss, shown as over by 20 min', async ({ page }) => {
+test('4 h 40 min is a miss, shown as over by 40 min', async ({ page }) => {
   await openAt(page, '2026-09-27T17:00');
   await openWindow(page);
   await startFirstMeal(page);
-  await advance(page, 260); // 21:20
-  await expect(page.getByTestId('over')).toHaveText('Over by 20 min');
+  await advance(page, 280); // 21:40
+  await expect(page.getByTestId('over')).toHaveText('Over by 40 min');
   await closeWindowAt(page);
-  await expect(page.getByTestId('window-length')).toHaveText('4h 20m');
+  await expect(page.getByTestId('window-length')).toHaveText('4h 40m');
   await expect(page.getByTestId('window-length')).toHaveClass(/clay/);
   await expect(page.locator('[data-block="closed"]')).toHaveAttribute('data-result', 'miss');
-  await expect(page.getByTestId('result')).toHaveText('Over by 20 min.');
+  await expect(page.getByTestId('result')).toHaveText('Over by 40 min.');
   await expect(page.getByTestId('streak')).toHaveText('0 days'); // a miss is no success
 });
 
-test('a workday window opening at 15:30 is a miss even when short', async ({ page }) => {
+test('a workday window opening at 15:30 is no miss: the 16:00 rule is gone', async ({ page }) => {
   await openAt(page, '2026-09-27T15:30');
-  await expect(page.getByTestId('firm-reminder')).toHaveText('Opening before 16:00 makes today a miss.');
+  await expect(page.locator('.today')).not.toContainText('16:00');
   await tap(page, 'start-meal');
-  await expect(sheet(page, 'start-meal').getByTestId('meal-warning')).toHaveText('Before 16:00 on a workday: today will count as a miss.');
+  await expect(sheet(page, 'start-meal')).not.toContainText('16:00');
   await startFirstMeal(page);
-  await expect(page.getByText('Opened before 16:00, so today counts as a miss.')).toBeVisible();
-  await advance(page, 150); // 18:00, only 2 h 30 min
+  await expect(page.locator('[data-block="open"]')).not.toContainText('16:00');
+  await expect(page.getByTestId('window-ring')).not.toHaveClass(/ring-miss/);
+  await advance(page, 150); // 18:00, 2 h 30 min
   await closeWindowAt(page);
-  await expect(page.locator('[data-block="closed"]')).toHaveAttribute('data-result', 'miss');
-  await expect(page.getByTestId('result')).toHaveText('Opened at 15:30, before 16:00.');
+  await expect(page.locator('[data-block="closed"]')).toHaveAttribute('data-result', 'success');
+  await expect(page.getByTestId('streak')).toHaveText('1 day');
 });
 
 test('weekend windows can move earlier or later', async ({ page }) => {
   await openAt(page, '2026-09-25T12:00'); // Friday
-  await expect(page.getByTestId('firm-reminder')).toHaveCount(0);
   await expect(page.locator('[data-block="before"]')).toContainText('Window planned for 14:00.');
   await openWindow(page);
   await startFirstMeal(page, 'Lunch');
@@ -255,15 +255,13 @@ test('a window left open for 6 hours asks for the last bite', async ({ page }) =
   expect(db.meals[0].finishedAt).toBe(ms('2026-09-27T21:00'));
 });
 
-test('a day off follows weekend rules', async ({ page }) => {
+test('a day off plans the window as at a weekend', async ({ page }) => {
   await openAt(page, '2026-09-28T13:00'); // Monday
-  await expect(page.getByTestId('firm-reminder')).toBeVisible();
+  await expect(page.locator('.today')).toContainText('Window planned for 17:30.');
   await tap(page, 'day-off');
-  await expect(page.getByTestId('firm-reminder')).toHaveCount(0);
   await expect(page.locator('.head')).toContainText('Day off');
   await expect(page.locator('[data-block="before"]')).toContainText('Window planned for 14:00.');
   await tap(page, 'start-meal');
-  await expect(sheet(page, 'start-meal').getByTestId('meal-warning')).toBeHidden(); // no warning on a day off
   await startFirstMeal(page, 'Lunch');
   await advance(page, 180);
   await closeWindowAt(page);

@@ -112,9 +112,7 @@ test('feasting hours: the window opens any time; a workday window at 09:00 succe
   expect((await readDb(page)).settings.find((s) => s.key === 'flexChanges').value).toEqual([{ from: '2026-09-27', on: true }]);
   await tab(page, 'today').click();
   await expect(page.getByTestId('flexible-line')).toHaveText('Your 4-hour window opens when you choose.');
-  await expect(page.getByTestId('firm-reminder')).toHaveCount(0);
   await tap(page, 'start-meal');
-  await expect(sheet(page, 'start-meal').getByTestId('meal-warning')).toBeHidden();
 });
 
 test('feasting hours: success is the length alone; past days keep the planned-start rule', async ({ page }) => {

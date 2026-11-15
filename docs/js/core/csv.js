@@ -3,7 +3,7 @@
 // column a single fact, so a spreadsheet can sort, filter and chart it.
 
 import { HOUR, MIN, addDays, at, dayKey, fmtDuration, fmtMinutes, fmtTime, minutesOfDay, weekdayName, zoneAt, zoneName } from './time.js';
-import { CUTOFF_MIN, GRACE_MS, fastHoursFor, isFlexible, isWorkday, makeEvaluator, plannedStartMin } from './rules.js';
+import { CUTOFF_MIN, fastHoursFor, isFlexible, isWorkday, makeEvaluator, plannedStartMin } from './rules.js';
 import { FULLNESS_WORD, dayFullness, mealsByDay } from './fullness.js';
 import { dailySeries } from './history.js';
 import { typeOfName } from './meal-types.js';
@@ -12,7 +12,7 @@ const BOM = String.fromCharCode(0xfeff);
 
 const reasonText = (r, e) => ({
   early: 'opened before 16:00',
-  over: `over ${fmtDuration(e.windowMs + GRACE_MS)}`,
+  over: `over ${fmtDuration(e.windowMs + e.graceMs)}`,
   outside: 'ate outside the window',
 }[r]);
 const OUTCOME_TEXT = { held: 'held', opened_early: 'opened window early', ate_little: 'ate a little outside the window', ate_outside: 'ate outside the window' };

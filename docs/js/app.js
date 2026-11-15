@@ -6,7 +6,7 @@ import { requestPersistence } from './db.js';
 import { h, fadeIn, fadeOut, updateLive } from './ui/dom.js';
 import { button, sliding } from './ui/components.js';
 import { MIN, HOME_ZONE, now, dayKey, isDayKey, fmtDayLong, fmtDayMonth, sameClock, switchZone, zoneName } from './core/time.js';
-import { makeEvaluator, noWindowAlerts, streaks, todayMode, trackingStart, windowMsFor } from './core/rules.js';
+import { graceMsFor, makeEvaluator, noWindowAlerts, rulesFor, streaks, todayMode, trackingStart, windowMsFor } from './core/rules.js';
 import { buildIcs, icsTimes } from './core/ics.js';
 import { buildCsvFiles } from './core/csv.js';
 import { buildBackup, backupFileName, backupSpan, daysAfter, describeBackup, parseBackup } from './core/backup.js';
@@ -69,6 +69,8 @@ function context() {
     mode,
     // The eating-window goal in force on a day, in ms.
     windowMsFor: (key) => windowMsFor(key, d.settings),
+    graceMsFor: (key) => graceMsFor(key, d.settings),
+    rulesFor: (key) => rulesFor(key, d.settings),
     openRec: mode.mode === 'open' || mode.mode === 'forgot' ? mode.rec : null,
     streak: streaks(evaluate, todayKey, startKey),
   };
@@ -269,6 +271,8 @@ function tick() {
   if (now() - zoneCheckedAt >= 5 * MIN) followZone();
   // A pause with no end follows the day (a new day, or a backup just restored).
   if (store.state.settings.pauseOpen) store.extendOpenPause(dayKey(now())).catch(() => {});
+  // A backup from before the rules changed takes them up from today.
+  if (!store.state.settings.cutoffEnd) store.adoptRules(dayKey(now())).catch(() => {});
   const ctx = context();
   // Left open past midnight: the new day gets its copy too.
   if (copyDay && ctx.todayKey !== copyDay) {
@@ -523,7 +527,8 @@ async function boot() {
   }
   if (!store.state.settings.installedAt) await store.setSettings({ installedAt: now() });
   await followZone();
-  // A pause with no end reaches today before the first screen is drawn.
+  // The rules as they stand now, and a pause with no end, reach today before the first screen is drawn.
+  await store.adoptRules(dayKey(now())).catch(() => {});
   await store.extendOpenPause(dayKey(now())).catch(() => {});
   requestPersistence().then((p) => {
     if (p !== store.state.settings.persisted) store.setSettings({ persisted: p });
@@ -550,6 +555,7 @@ async function boot() {
     try {
       await store.load();
       await followZone();
+      await store.adoptRules(dayKey(now()));
       await store.extendOpenPause(dayKey(now()));
     } catch {
       /* keep what is in memory */

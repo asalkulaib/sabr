@@ -26,8 +26,8 @@ test('one card: the dial, when the fast began and when it reaches its goal, then
   await expect(times.locator('[data-action="edit-last-bite"]')).toHaveText('21:00 yesterday');
   await expect(times.locator('[data-action="edit-goal"]')).toHaveText('17:00');
   await expect(times.locator('[data-action="edit-goal"]')).not.toHaveClass(/reached/);
-  // The 16:00 warning sits just above the button, in the same card.
-  await expect(card.getByTestId('firm-reminder')).toBeVisible();
+  // No warning about the hour: the way in follows the rings.
+  await expect(card).not.toContainText('16:00');
   await expect(card.locator('[data-action="start-meal"]')).toBeVisible();
   // The rest of the plan follows on its own panel.
   await expect(page.locator('[data-block="plan"]')).toContainText('Window planned for 17:30.');

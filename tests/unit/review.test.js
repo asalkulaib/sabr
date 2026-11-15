@@ -48,7 +48,7 @@ test('weekly review maths for a Sunday to Saturday week', () => {
   assert.equal(Math.round(r.avgWindowMs / MIN), Math.round((210 + 180 + 250 + 260 + 120 + 180 + 180) / 7));
   assert.deepEqual(r.streak, { current: 2, best: 2, since: '2026-09-25' });
 
-  assert.deepEqual(r.workday, { windows: 5, onTime: 4 });
+  assert.deepEqual(r.workday, { windows: 5, onTime: 4, ruled: true });
 
   assert.deepEqual(r.energy.week.without, { avg: 4, n: 4 });
   assert.deepEqual(r.energy.week.with, { avg: 2, n: 1 });
@@ -82,7 +82,7 @@ test('a mid-week review leaves future days out and keeps today pending', () => {
   assert.deepEqual(r.days.map((d) => d.result), ['success', 'miss', 'success', 'miss', 'pending', 'none', 'none']);
   assert.deepEqual(r.days.map((d) => d.future), [false, false, false, false, false, true, true]);
   assert.equal(r.successCount, 2);
-  assert.deepEqual(r.workday, { windows: 4, onTime: 3 });
+  assert.deepEqual(r.workday, { windows: 4, onTime: 3, ruled: true });
 });
 
 test('energy all-time counts a day-off as not a workday', () => {
@@ -91,5 +91,5 @@ test('energy all-time counts a day-off as not a workday', () => {
   const r = weekReview(data, { weekStartKey: '2026-09-20', todayKey: '2026-09-26', nowTs: T('2026-09-26T23:00'), startKey: '2026-09-20' });
   assert.deepEqual(r.energy.week.with, { avg: null, n: 0 });
   assert.equal(r.days[1].result, 'success'); // day off: the 16:00 rule does not apply
-  assert.deepEqual(r.workday, { windows: 4, onTime: 4 });
+  assert.deepEqual(r.workday, { windows: 4, onTime: 4, ruled: true });
 });

@@ -251,3 +251,62 @@ test('planned start follows workday, weekend and day off', () => {
   assert.equal(rules.plannedStartMin(FRI, undefined, s), 840);
   assert.equal(rules.plannedStartMin(SUN, { dayOff: true }, s), 840);
 });
+
+// ---------- Rules that changed over time (15 November 2026) ----------
+
+const NEW_RULES = { graceChanges: [{ from: '2026-11-15', minutes: 30 }], cutoffEnd: '2026-11-15' };
+
+test('the grace is 15 minutes until settings say otherwise, then 30 from that day on', () => {
+  assert.equal(rules.graceMsFor('2026-11-14', {}), 15 * MIN);
+  assert.equal(rules.graceMsFor('2026-11-14', NEW_RULES), 15 * MIN);
+  assert.equal(rules.graceMsFor('2026-11-15', NEW_RULES), 30 * MIN);
+  assert.equal(rules.graceMsFor('2027-03-01', NEW_RULES), 30 * MIN);
+  assert.deepEqual(rules.rulesFor('2026-11-14', NEW_RULES), { graceMs: 15 * MIN, cutoff: true });
+  assert.deepEqual(rules.rulesFor('2026-11-15', NEW_RULES), { graceMs: 30 * MIN, cutoff: false });
+});
+
+test('with 30 minutes of grace, 4 h 30 min is a success and 4 h 31 min a miss; a day before keeps its 15', () => {
+  const day = (key, first, last) => {
+    const now = T(`${time.addDays(key, 2)}T12:00`);
+    const rec = { day: key, firstBite: T(`${key}T${first}`), lastBite: T(`${key}T${last}`) };
+    return rules.evaluateDay(key, rec, 0, now, time.dayKey(now), '2026-01-01', undefined, false, false, rules.rulesFor(key, NEW_RULES));
+  };
+  // Sunday 15 November 2026, a workday.
+  assert.equal(day('2026-11-15', '17:00', '21:30').result, 'success');
+  const over = day('2026-11-15', '17:00', '21:31');
+  assert.equal(over.result, 'miss');
+  assert.deepEqual(over.reasons, ['over']);
+  assert.equal(over.graceMs, 30 * MIN);
+  // The day before was judged by 15 minutes, and still is.
+  const before = day('2026-11-14', '17:00', '21:20');
+  assert.equal(before.result, 'miss');
+  assert.equal(before.graceMs, 15 * MIN);
+});
+
+test('the 16:00 workday rule ends on its day: opening at 13:00 is no miss from then on, and still one before', () => {
+  const day = (key) => {
+    const now = T(`${time.addDays(key, 2)}T12:00`);
+    const rec = { day: key, firstBite: T(`${key}T13:00`), lastBite: T(`${key}T16:00`) };
+    return rules.evaluateDay(key, rec, 0, now, time.dayKey(now), '2026-01-01', undefined, false, false, rules.rulesFor(key, NEW_RULES));
+  };
+  const after = day('2026-11-15');
+  assert.equal(after.result, 'success');
+  assert.equal(after.openedEarly, false);
+  assert.equal(after.cutoff, false);
+  // Thursday 12 November, a workday before the change.
+  const before = day('2026-11-12');
+  assert.equal(before.result, 'miss');
+  assert.deepEqual(before.reasons, ['early']);
+  assert.equal(before.cutoff, true);
+  assert.equal(rules.cutoffApplies('2026-11-12', {}, NEW_RULES), true);
+  assert.equal(rules.cutoffApplies('2026-11-15', {}, NEW_RULES), false);
+  assert.equal(rules.cutoffApplies('2026-11-15', {}, {}), true); // no settings: the rule as it was
+});
+
+test('an open window is in its grace for 30 minutes, then over', () => {
+  const rec = { day: '2026-11-15', firstBite: T('2026-11-15T17:00'), lastBite: null };
+  assert.equal(rules.windowPhase(rec, T('2026-11-15T21:20'), 4 * 60 * MIN, 30 * MIN), 'grace');
+  assert.equal(rules.windowPhase(rec, T('2026-11-15T21:30'), 4 * 60 * MIN, 30 * MIN), 'grace');
+  assert.equal(rules.windowPhase(rec, T('2026-11-15T21:31'), 4 * 60 * MIN, 30 * MIN), 'over');
+  assert.equal(rules.windowPhase(rec, T('2026-11-15T21:20'), 4 * 60 * MIN), 'over'); // the 15 of before
+});

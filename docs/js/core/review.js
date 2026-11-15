@@ -68,8 +68,8 @@ export function weekReview(data, { weekStartKey, todayKey, nowTs, startKey }) {
   const streak = endKey >= startKey ? streaks(evaluate, endKey, startKey) : { current: 0, best: 0 };
 
   // Workday rule
-  // Flexible days have no 16:00 rule, so they stay out of this count.
-  const workdayWindows = evals.filter((e) => e.workday && !e.flexible && !e.future && e.firstBite);
+  // Days with no 16:00 rule (flexible ones, and every day since the rule ended) stay out of this count.
+  const workdayWindows = evals.filter((e) => e.cutoff && !e.future && e.firstBite);
   const onTime = workdayWindows.filter((e) => !e.openedEarly).length;
 
   // Energy at 4 PM: this week and all time
@@ -104,7 +104,8 @@ export function weekReview(data, { weekStartKey, todayKey, nowTs, startKey }) {
     avgWindowMs,
     closedCount: closed.length,
     streak,
-    workday: { windows: workdayWindows.length, onTime },
+    // ruled: a day of this week, up to today, was under the 16:00 rule.
+    workday: { windows: workdayWindows.length, onTime, ruled: evals.some((e) => e.cutoff && !e.future) },
     weight: weekSummary(data.weights, weekStartKey),
     energy: { week: energyWeek, all: energyAll },
     training: { sessions: trainedDays.length, types: trainingTypes },

@@ -53,7 +53,7 @@ test('the urge timer survives closing the app', async ({ page }) => {
   await expect(flow(page)).toContainText('Rate the urge again, minute 3');
 });
 
-test('opening the window early on a workday says it will be a miss', async ({ page }) => {
+test('opening the window early on a workday is offered with no miss: the 16:00 rule is gone', async ({ page }) => {
   await openAt(page, '2026-09-27T13:10');
   await tap(page, 'tempted');
   await choose(page, 'trigger', 'social');
@@ -63,7 +63,7 @@ test('opening the window early on a workday says it will be a miss', async ({ pa
   await tap(page, 'cant-avoid');
   await expect(flow(page)).toContainText('Open the window now');
   await expect(flow(page)).toContainText('Everything you eat fits by 17:10.');
-  await expect(flow(page)).toContainText('today will count as a miss');
+  await expect(flow(page)).not.toContainText('miss');
   await expect(flow(page)).not.toContainText('Eat very little'); // the window has not opened today
   await tap(page, 'open-now');
   await expect(sheet(page, 'start-meal')).toBeVisible();

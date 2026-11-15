@@ -184,6 +184,13 @@ export const sheet = (page, name) => page.locator(`[data-sheet="${name}"]`);
 export const settings = (obj) => Object.entries(obj).map(([key, value]) => ({ key, value }));
 
 /**
+ * Settings of a phone whose days are still judged as they first were: 15
+ * minutes of grace and the 16:00 workday rule (store.adoptRules leaves rules
+ * already set alone). For tests of days from before the rules changed.
+ */
+export const OLD_RULES = settings({ graceChanges: [{ from: '2099-01-01', minutes: 30 }], cutoffEnd: '2099-01-01' });
+
+/**
  * Replaces navigator.share so tests can read the files the app hands to iOS.
  * Shared files land in window.__shared as { name, type, text, head } where
  * head is the first three bytes (text() drops a UTF-8 byte order mark).

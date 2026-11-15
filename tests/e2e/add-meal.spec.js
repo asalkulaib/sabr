@@ -131,9 +131,10 @@ test('before the first bite the window opens earlier, and a meal over one alread
 
   await setTime(page, 'added-start', '15:00');
   await expect(effect(page)).toHaveText('Your window becomes 15:00 to 19:00, 4 h.');
-  await expect(s.getByTestId('add-meal-miss')).toHaveText('Opening before 16:00 on a workday makes the day a miss.');
+  // Opening before 16:00 on a workday is no miss any more.
+  await expect(s.getByTestId('add-meal-miss')).toHaveText('');
   await tap(page, 'save-added-meal');
-  await expect(page.locator('[data-block="closed"]')).toHaveAttribute('data-result', 'miss');
+  await expect(page.locator('[data-block="closed"]')).toHaveAttribute('data-result', 'success');
   const db = await readDb(page);
   expect(db.days[0]).toMatchObject({ firstBite: ms('2026-09-27T15:00'), lastBite: ms('2026-09-27T19:00') });
   // The meal that opened the window before stays where it was.

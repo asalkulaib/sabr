@@ -17,7 +17,7 @@ async function shot(page, name, opts) {
 const install = settings({ installedAt: ms('2026-09-20T08:00'), lastBackupAt: ms('2026-09-26T08:00'), lastImportAt: ms('2026-09-26T09:00') });
 const today = (extra) => ({ ...WEEK, days: [...WEEK.days, { day: '2026-09-27', ...extra }], settings: install });
 
-test('start a meal: first meal, the 16:00 warning, Other, after the window', async ({ page }) => {
+test('start a meal: first meal, Other, after the window', async ({ page }) => {
   await openAt(page, '2026-09-27T17:30');
   await seed(page, { ...WEEK, settings: install });
   await tap(page, 'start-meal');
@@ -32,13 +32,6 @@ test('start a meal: first meal, the 16:00 warning, Other, after the window', asy
   await page.locator('[data-sheet="start-meal"] [data-block="meal-type"]').scrollIntoViewIfNeeded();
   await shot(page, 'F02b-start-meal-other');
   await tap(page, 'close-sheet');
-
-  // Before 16:00 on a workday: the warning under the time.
-  await openAt(page, '2026-09-27T13:10');
-  await seed(page, { ...WEEK, settings: install });
-  await tap(page, 'start-meal');
-  await expect(sheet(page, 'start-meal').getByTestId('meal-warning')).toBeVisible();
-  await shot(page, 'F02c-start-meal-warning');
 
   // After the window and its hours: the meal counts as eating outside it.
   await openAt(page, '2026-09-27T23:10');
@@ -80,7 +73,7 @@ test('finish a meal, the fullness check, one meal at a time', async ({ page }) =
 });
 
 test("I'm done eating: over the goal, inside it, a meal still open, a time still ahead", async ({ page }) => {
-  await openAt(page, '2026-09-27T21:56');
+  await openAt(page, '2026-09-27T22:10');
   await seed(page, today({ firstBite: ms('2026-09-27T17:30'), lastBite: null }));
   await tap(page, 'done-eating');
   await expect(sheet(page, 'done-eating').getByTestId('done-miss')).not.toHaveText('');
@@ -104,7 +97,7 @@ test("I'm done eating: over the goal, inside it, a meal still open, a time still
   await tap(page, 'close-sheet');
 
   // The tallest footer: a meal still open and the window over its goal.
-  await openAt(page, '2026-09-27T21:56');
+  await openAt(page, '2026-09-27T22:10');
   await seed(page, {
     ...today({ firstBite: ms('2026-09-27T17:30'), lastBite: null }),
     meals: [...WEEK.meals, { id: 9, day: '2026-09-27', name: 'Dinner', startedAt: ms('2026-09-27T21:00'), finishedAt: null }],
@@ -147,10 +140,10 @@ test('the window opened, removing it, the window times with and without a miss',
   await shot(page, 'F18c-opening-ahead');
   await tap(page, 'close-sheet');
 
-  // Opened before 16:00 and longer than the goal: both misses, in words.
+  // Longer than the goal and its grace: the miss, in words.
   // At 21:00, so 17:00 to 20:30 is a window already eaten, not one ahead.
   await openAt(page, '2026-09-27T21:00');
-  await seed(page, today({ firstBite: ms('2026-09-27T12:30'), lastBite: ms('2026-09-27T16:50') }));
+  await seed(page, today({ firstBite: ms('2026-09-27T12:30'), lastBite: ms('2026-09-27T17:10') }));
   await tap(page, 'change-times');
   const times = sheet(page, 'window-times');
   await expect(times.getByTestId('times-miss')).not.toHaveText('');

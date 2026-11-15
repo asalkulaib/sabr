@@ -320,14 +320,15 @@ export function renderWeek(ctx, app, weekKey) {
           stat('Average window', r.avgWindowMs != null ? windowFigure(r.avgWindowMs) : 'no windows yet', 'avg-window', { size: 'figure' })),
         h('section', { class: 'tile' },
           stat(isCurrent ? 'Streak' : 'Streak at week end', days(r.streak.current), 'streak', { size: 'figure' }))),
-      h('section', { class: 'card week-card', 'data-block': 'workdays' },
+      // The 16:00 rule's count, for weeks that had a day under it.
+      r.workday.ruled ? h('section', { class: 'card week-card', 'data-block': 'workdays' },
         h('h2', { class: 'card-title' }, 'Workdays'),
         h('div', { class: 'on-time' },
           stat('Opened at 16:00 or later', r.workday.windows ? `${r.workday.onTime} of ${r.workday.windows}` : 'no workday windows', 'on-time'),
           r.workday.windows
             ? h('div', { class: 'meter', 'aria-hidden': 'true' },
               Array.from({ length: r.workday.windows }, (_, i) => h('span', { class: i < r.workday.onTime ? 'on' : null })))
-            : null)),
+            : null)) : null,
       h('div', { class: 'tiles' },
         h('section', { class: 'tile', 'data-block': 'weight' },
           h('h2', { class: 'card-title in-group' }, 'Weight'),

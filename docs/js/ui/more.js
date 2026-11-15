@@ -113,8 +113,9 @@ export function isStandalone() {
 }
 
 /**
- * What makes a day a success: a planned start (workdays from 16:00), or
- * feasting hours, where the window opens at any hour and only its length counts.
+ * When the window opens: at a planned start, or on feasting hours, at any
+ * hour. Either way a day succeeds on the window's length alone: the 16:00
+ * workday rule that came with a planned start ended on settings.cutoffEnd.
  */
 function timingSection(ctx, app) {
   const flexible = isFlexible(ctx.todayKey, ctx.settings);
@@ -123,14 +124,14 @@ function timingSection(ctx, app) {
     const on = v === 'flexible';
     if (on === isFlexible(app.ctx().todayKey, app.ctx().settings)) return;
     const { undo } = await store.setFlexible(on, ctx.todayKey);
-    app.flash(on ? 'Feasting hours from today: open your window any time.' : 'Planned start from today: workdays open at 16:00 or later.', { undo });
+    app.flash(on ? 'Feasting hours from today: open your window any time.' : 'Planned start from today: your window has a planned time again.', { undo });
   };
   return h('section', { class: 'section', 'data-block': 'timing' },
-    cardTitle('What makes a day a success'),
-    choice({ options: [{ value: 'fixed', label: 'Planned start' }, { value: 'flexible', label: 'Feasting hours' }], value: flexible ? 'flexible' : 'fixed', cols: 2, name: 'timing', ariaLabel: 'What makes a day a success', onChange: set }),
+    cardTitle('When your window opens'),
+    choice({ options: [{ value: 'fixed', label: 'Planned start' }, { value: 'flexible', label: 'Feasting hours' }], value: flexible ? 'flexible' : 'fixed', cols: 2, name: 'timing', ariaLabel: 'When your window opens', onChange: set }),
     h('p', { class: 'more-text', 'data-testid': 'timing-text' }, flexible
       ? `Open your ${hours}-hour window at any hour, any day. A day succeeds when all eating fits inside it.`
-      : `Your ${hours}-hour window, and on workdays not before 16:00. A day succeeds when both hold and all eating fits inside it.`),
+      : `Your ${hours}-hour window, planned for ${ctx.settings.workdayStart} on workdays and ${ctx.settings.weekendStart} at weekends. A day succeeds when all eating fits inside it, whenever it opens.`),
     h('p', { class: 'caption' }, 'A change applies from today on. Past days keep the rule they had.'));
 }
 

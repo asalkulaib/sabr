@@ -6,7 +6,7 @@ import { button, choice, errorLine, key as mark, legend, timeField, TRAINING_OPT
 import { openSheet, sheetHead } from './sheet.js';
 import * as store from '../store.js';
 import { at, fmtDayLong, fmtDuration, fmtOnDay, fmtTime, isWorkweekday, minutesOfDay, nearestTime, now, weekStart } from '../core/time.js';
-import { GRACE_MS, isOpen, isPaused, plannedStartMin, timeOnOrAfter } from '../core/rules.js';
+import { cutoffApplies, isOpen, isPaused, plannedStartMin, timeOnOrAfter } from '../core/rules.js';
 import { FULLNESS_WORD, comfortable, dayFullness } from '../core/fullness.js';
 import { showAddMealSheet, showMealEditSheet } from './meal.js';
 import { AMOUNT_OPTIONS, showOutsideSheet } from './outside.js';
@@ -17,7 +17,7 @@ import { resultRing } from './rings.js';
 import { RESULT_WORD, dayTimes, dayTrack, shownResult } from './week.js';
 import { dayTypeText, header, mealsOfDay, outsideOfDay, temptationsOfDay, zoneNoteFor } from './shared.js';
 
-const reasonText = (r, e) => ({ early: 'opened before 16:00', over: `over ${fmtDuration(e.windowMs + GRACE_MS)}`, outside: 'ate outside the window' }[r]);
+const reasonText = (r, e) => ({ early: 'opened before 16:00', over: `over ${fmtDuration(e.windowMs + e.graceMs)}`, outside: 'ate outside the window' }[r]);
 
 /** The day's verdict in words, coloured by what it says: green for a success, stripes and orange words for a miss. */
 function resultLine(e) {
@@ -108,7 +108,7 @@ export function renderDay(ctx, app, key) {
     past && (paused || rec.firstBite || mealsOfDay(ctx, key).length) ? fullnessSection(ctx, key) : null,
     tracked ? checkinSection(ctx, key, rec) : null,
     tracked ? temptationSection(ctx, app, key) : null,
-    dayOffRow ? dayOffSection(key, rec) : null,
+    dayOffRow ? dayOffSection(ctx, key, rec) : null,
     pauseRow ? pauseSection(app, key) : null,
   );
 }
@@ -148,9 +148,13 @@ function dayRow(block, title, text, action) {
     action);
 }
 
-function dayOffSection(key, rec) {
+/** A day off plans the window as at a weekend; while the 16:00 rule held, it lifted that too. */
+function dayOffSection(ctx, key, rec) {
+  const ruled = cutoffApplies(key, { ...rec, dayOff: false }, ctx.settings);
   return dayRow('day-off', 'Day off',
-    rec.dayOff ? 'Weekend rules apply to this day.' : 'A workday: the 16:00 rule applies.',
+    rec.dayOff
+      ? (ruled ? 'Weekend rules apply to this day.' : `A day off: your window is planned for ${ctx.settings.weekendStart}, as at a weekend.`)
+      : (ruled ? 'A workday: the 16:00 rule applies.' : `A workday: your window is planned for ${ctx.settings.workdayStart}.`),
     button(rec.dayOff ? 'Make it a workday again' : 'Mark as a day off', () => store.updateDay(key, { dayOff: !rec.dayOff }), { kind: 'secondary', name: 'toggle-day-off' }));
 }
 

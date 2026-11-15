@@ -37,16 +37,14 @@ test('forgot to tap: move the opening time earlier', async ({ page }) => {
 test('opened by mistake without eating: remove the window, meal and all', async ({ page }) => {
   await openAt(page, '2026-09-27T13:00');
   await tap(page, 'start-meal');
-  await expect(sheet(page, 'start-meal').getByTestId('meal-warning')).toBeVisible(); // workday before 16:00
   await tap(page, 'start-eating');
-  await expect(page.getByText('Opened before 16:00, so today counts as a miss.')).toBeVisible();
+  await expect(page.locator('[data-block="open"]')).toBeVisible();
   await tap(page, 'change-opening');
   await tap(page, 'remove-window');
   await expect(sheet(page, 'opening')).toContainText('Remove the window opened at 13:00? Its meal goes too.');
   await tap(page, 'confirm-remove-window');
   await expect(page.getByTestId('flash')).toHaveText('Window removed. Start a meal when you eat.');
   await expect(page.locator('[data-block="before"]')).toBeVisible();
-  await expect(page.getByTestId('firm-reminder')).toBeVisible();
   const db = await readDb(page);
   expect(db.days.find((d) => d.day === '2026-09-27').firstBite).toBeNull();
   expect(db.meals).toHaveLength(0);
@@ -82,8 +80,8 @@ test('a meal logged before the new opening time blocks the change', async ({ pag
 test('after closing: change both times, and the result follows', async ({ page }) => {
   await openAt(page, '2026-09-27T22:30');
   await seed(page, {
-    days: [{ day: '2026-09-27', firstBite: ms('2026-09-27T17:30'), lastBite: ms('2026-09-27T21:50') }],
-    meals: [{ id: 1, day: '2026-09-27', name: 'Dinner', startedAt: ms('2026-09-27T17:30'), finishedAt: ms('2026-09-27T18:05'), stop: 'full', fullnessNow: 7, fullness20: 7 }],
+    days: [{ day: '2026-09-27', firstBite: ms('2026-09-27T17:10'), lastBite: ms('2026-09-27T21:50') }], // 4 h 40 min: past the grace
+    meals: [{ id: 1, day: '2026-09-27', name: 'Dinner', startedAt: ms('2026-09-27T17:10'), finishedAt: ms('2026-09-27T17:45'), stop: 'full', fullnessNow: 7, fullness20: 7 }],
     settings: settings({ installedAt: ms('2026-09-27T08:00') }),
   });
   await expect(page.locator('[data-block="closed"]')).toHaveAttribute('data-result', 'miss');

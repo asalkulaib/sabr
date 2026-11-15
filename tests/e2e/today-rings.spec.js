@@ -1,6 +1,6 @@
 // Today in rings: the hero on the page, the readout as the rings' legend, the
 // stage chip as a white pill, the ring draw, and the first screen.
-import { test, expect, openAt, seed, advance, tap, pick, choose, sheet, setTime, settings, ms, smallTargets } from './helpers.js';
+import { test, expect, openAt, seed, advance, tap, pick, choose, sheet, setTime, settings, ms, smallTargets, OLD_RULES } from './helpers.js';
 
 const LAST_NIGHT = {
   days: [{ day: '2026-09-26', firstBite: ms('2026-09-26T17:00'), lastBite: ms('2026-09-26T21:00') }],
@@ -50,9 +50,10 @@ test('before the window: one hero on the page, the rings at 184 with their reado
   await expect(readout.locator('[data-ring-row="fast"] .value')).toHaveText('16h 10m');
   expect(await css(hero.getByTestId('fasting-for'), 'fontSize')).toBe('40px');
   expect(await css(hero.getByTestId('fasting-for'), 'color')).toBe('rgb(200, 16, 63)');
-  // The order of the hero: context, rings, chip, then the warning, the way in, the pills, the tiles.
+  // The order of the hero: context, rings, chip, then the way in, the pills, the tiles. No warning about the hour.
+  await expect(hero.locator('.miss-line')).toHaveCount(0);
   const top = async (sel) => (await box(hero.locator(sel).first())).y;
-  const order = [await top('.hero-context'), await top('.ring-wrap'), await top('.stage-chip'), await top('.miss-line'), await top('[data-action="start-meal"]'), await top('[data-action="add-meal"]'), await top('[data-testid="fast-times"]')];
+  const order = [await top('.hero-context'), await top('.ring-wrap'), await top('.stage-chip'), await top('[data-action="start-meal"]'), await top('[data-action="add-meal"]'), await top('[data-testid="fast-times"]')];
   expect([...order].sort((a, b) => a - b)).toEqual(order);
   // No other legend line under the rings.
   await expect(page.getByTestId('ring-legend')).toHaveCount(1);
@@ -106,7 +107,7 @@ test('window open: the readout leads with the time left; grace and over state th
   await expect(eating).toHaveClass(/tint-win/);
   await expect(eating.locator('[data-action="finish-meal"]')).toBeVisible();
   await advance(page, 245); // 21:05, inside the grace
-  await expect(page.getByTestId('grace')).toHaveText('Your 4 hours are up. 10 min of grace left.');
+  await expect(page.getByTestId('grace')).toHaveText('Your 4 hours are up. 25 min of grace left.');
   await expect(open.getByTestId('countdown')).toHaveText('0:00');
   // The countdown, at 0:00, steps down to a quiet caption in the window's
   // row, under its figure and above the closing time.
@@ -122,8 +123,8 @@ test('window open: the readout leads with the time left; grace and over state th
   const picture = async () => (await box(open.locator('.ring-wrap > svg.rings'))).height;
   const quietLines = 2 * 22;
   expect((await box(readout)).height).toBeLessThanOrEqual(await picture() + quietLines);
-  await advance(page, 15); // 21:20
-  await expect(page.getByTestId('over')).toHaveText('Over by 20 min');
+  await advance(page, 35); // 21:40
+  await expect(page.getByTestId('over')).toHaveText('Over by 40 min');
   await expect(open.locator('.hero-context')).toHaveCSS('color', 'rgb(74, 74, 85)');
   // Over: the window ring is stripes, so the Window key is the striped ring,
   // named in the colour of a miss, and it is the only key over the figure.
@@ -137,7 +138,7 @@ test('window open: the readout leads with the time left; grace and over state th
   expect((await box(readout)).height).toBeLessThanOrEqual(await picture() + quietLines);
   await expect(winRow.locator('.countdown-line')).toHaveText('0:00 left of 4 hours');
   await expect(winRow.locator('.ring-goal')).toHaveText('Closes at 21:00');
-  await expect(page.getByTestId('band-legend').locator('.legend-item')).toHaveText(['Time used', 'Time left', '15 min grace', 'Over']);
+  await expect(page.getByTestId('band-legend').locator('.legend-item')).toHaveText(['Time used', 'Time left', '30 min grace', 'Over']);
 });
 
 test('a meal eaten after the window is never on green: grey, with the stripes of a miss', async ({ page }) => {
@@ -264,10 +265,23 @@ test('the week row: 56 tall days, today on an ink pill, keys in the shape of eac
   await expect(page.getByTestId('today-week-legend').locator('.legend-item svg')).toHaveCount(2);
 });
 
-test('opened before 16:00: the window ring keeps measuring the window, in the stripes of a miss; the bar says it in words', async ({ page }) => {
+test('opened before 16:00 on a workday: no miss, the window ring is plain green and nothing is said', async ({ page }) => {
   await openAt(page, '2026-09-27T17:45');
   await seed(page, {
     ...LAST_NIGHT,
+    days: [...LAST_NIGHT.days, { day: '2026-09-27', firstBite: ms('2026-09-27T15:30'), lastBite: null }],
+  });
+  const open = page.locator('[data-block="open"]');
+  await expect(open.getByTestId('window-ring')).not.toHaveClass(/ring-miss/);
+  await expect(open.locator('.phase-bar.miss')).toHaveCount(0);
+  await expect(open).not.toContainText('16:00');
+  await expect(open.locator('[data-ring-row="win"] > .legend-item')).not.toHaveClass(/is-miss/);
+});
+
+test('a window still judged by the 16:00 rule, opened before it: the stripes of a miss, and the bar says it in words', async ({ page }) => {
+  await openAt(page, '2026-09-27T17:45');
+  await seed(page, {
+    settings: [...LAST_NIGHT.settings, ...OLD_RULES],
     days: [...LAST_NIGHT.days, { day: '2026-09-27', firstBite: ms('2026-09-27T15:30'), lastBite: null }],
   });
   const open = page.locator('[data-block="open"]');
@@ -329,7 +343,7 @@ const expectStripedWindow = async (scope) => {
 
 test('a missed day: the fasting hero names its striped window ring with the striped key', async ({ page }) => {
   await openAt(page, '2026-09-27T22:00');
-  await seed(page, { ...LAST_NIGHT, days: [...LAST_NIGHT.days, { day: '2026-09-27', firstBite: ms('2026-09-27T17:00'), lastBite: ms('2026-09-27T21:20') }] });
+  await seed(page, { ...LAST_NIGHT, days: [...LAST_NIGHT.days, { day: '2026-09-27', firstBite: ms('2026-09-27T17:00'), lastBite: ms('2026-09-27T21:40') }] });
   const hero = page.locator('[data-block="fasting"]');
   await expect(hero).toHaveClass(/\bhero\b/);
   await expectStripedWindow(hero);

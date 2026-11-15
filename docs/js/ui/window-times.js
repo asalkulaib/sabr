@@ -45,7 +45,7 @@ export function showOpeningSheet(app, initialKey) {
     return {
       head: sheetHead(api, 'Window opened'),
       body: form(
-        formIntro('Set the time of your first bite. The countdown, your eating window and the 16:00 rule follow it.'),
+        formIntro('Set the time of your first bite. The countdown and your eating window follow it.'),
         timeField({ label: 'First bite at', minutes: draft.minutes, name: 'opened-at', onChange: (m) => { draft.minutes = m; } }),
         h('div', { class: 'form-act' },
           errLine(draft.hint, 'times-hint'),

@@ -7,7 +7,7 @@ import {
   HOUR, MIN, addDays, dayStart, fmtCountdown, fmtDayLong, fmtDayShort, fmtDateLong, fmtFigure, weekdayName, fmtDuration, fmtMinutes, fmtTime, fmtWhen, isWorkweekday, minutesOfDay, now,
 } from '../core/time.js';
 import {
-  CUTOFF_MIN, GRACE_MS, LATE_NIGHT_END_MIN, canReopen, cutoffApplies, fastHoursFor, goalLabelFor, isFlexible, lastEatingSource, lastEatingTs, lateNightDay, longFastAhead, plannedStartMin, timeOnOrAfter, windowPhase,
+  LATE_NIGHT_END_MIN, canReopen, fastHoursFor, goalLabelFor, isFlexible, lastEatingSource, lastEatingTs, lateNightDay, longFastAhead, plannedStartMin, timeOnOrAfter, windowPhase,
 } from '../core/rules.js';
 import { dailySeries } from '../core/history.js';
 import * as P from './palette.js';
@@ -25,9 +25,9 @@ const hoursWord = (ms) => { const n = Math.round(ms / HOUR); return `${n} ${n ==
 
 export function signature(ctx) {
   const { mode, rec } = ctx.mode;
-  const parts = [mode, ctx.todayKey, minutesOfDay(ctx.nowTs) >= CUTOFF_MIN, !!lateNightDay(ctx)];
+  const parts = [mode, ctx.todayKey, !!lateNightDay(ctx)];
   // While the window is open, its band moves on every minute.
-  if (mode === 'open') parts.push(windowPhase(rec, ctx.nowTs, ctx.windowMsFor(rec.day)), Math.floor((ctx.nowTs - rec.firstBite) / MIN));
+  if (mode === 'open') parts.push(windowPhase(rec, ctx.nowTs, ctx.windowMsFor(rec.day), ctx.graceMsFor(rec.day)), Math.floor((ctx.nowTs - rec.firstBite) / MIN));
   if (mode === 'closed') parts.push(canReopen(rec, ctx.nowTs, ctx.windowMsFor(rec.day)));
   parts.push(runningFullness(ctx).length);
   // While fasting, redraw the ring every 5 minutes; each stage starts on a 5-minute mark.
@@ -173,7 +173,6 @@ function beforeBlock(ctx, app, animate) {
   const key = ctx.todayKey;
   const rec = ctx.days.get(key);
   const planned = plannedStartMin(key, rec, ctx.settings);
-  const workdayEarly = cutoffApplies(key, rec, ctx.settings) && minutesOfDay(ctx.nowTs) < CUTOFF_MIN;
   const lastSrc = lastEatingSource(ctx);
   const last = lastSrc ? lastSrc.ts : null;
   const late = lateNightDay(ctx);
@@ -187,17 +186,15 @@ function beforeBlock(ctx, app, animate) {
       ? h('p', { class: cls, 'data-testid': 'flexible-line' }, `Your ${Math.round(ctx.windowMsFor(key) / HOUR)}-hour window opens when you choose.`)
       : h('p', { class: cls }, `Window planned for ${fmtMinutes(planned)}.`));
   const startMeal = button('Start a meal', () => showStartMealSheet(app), { kind: 'win', big: true, block: true, name: 'start-meal' });
-  // The 16:00 warning: a miss in words, before it happens, just above the way in.
-  const firm = workdayEarly ? missLine('Opening before 16:00 makes today a miss.', { testid: 'firm-reminder' }) : null;
   let card;
   if (last) {
     // The fast leads, in the one order every ring mode keeps: the rings and
-    // their readout, the stage, the warning, the way in, then the fast's two times.
+    // their readout, the stage, the way in, then the fast's two times.
     card = h('section', { class: 'section strong hero', 'data-block': 'before' },
       context(fastingDay ? 'Fasting day' : 'Before the window', { testid: 'before-label' }),
       ringHero(ctx, last, {
         animate,
-        middle: [firm, h('div', { class: 'hero-primary' }, startMeal), actionGrid(addMealButton(app))],
+        middle: [h('div', { class: 'hero-primary' }, startMeal), actionGrid(addMealButton(app))],
         times: fastTimes(ctx, app, lastSrc),
       }));
   } else {
@@ -215,7 +212,6 @@ function beforeBlock(ctx, app, animate) {
           plannedLine('empty-plan'))),
       goalTile(ctx, app),
       h('p', { class: 'hero-hint', 'data-testid': 'begin-fast-hint' }, 'Already fasting? Tap Begin fast and set when it began, so none of it is lost.'),
-      firm,
       // With a fast already known (a last bite or a fast start), a meal is the only way in;
       // Begin fast is offered only when Sabr has nothing to time from. The
       // pair takes no box of its own: Start a meal spans the group, and Begin
@@ -231,7 +227,7 @@ function beforeBlock(ctx, app, animate) {
     h('p', { class: 'plan-drinks' }, 'Until then: water, sparkling water, black coffee, espresso, plain tea.'),
     h('div', { class: 'plan-rows' },
       late ? actionRow('Eating late? Count it against last night', () => showOutsideSheet(app, { day: late }), 'late-night') : null,
-      // A day off only lifts the 16:00 rule, which feasting hours do not have.
+      // A day off plans the window as at a weekend; feasting hours plan none.
       isWorkweekday(key) && !isFlexible(key, ctx.settings) ? dayOffToggle(ctx, key) : null,
       actionRow('Pause today', () => pauseToday(app), 'pause-today')),
   );
@@ -368,8 +364,9 @@ function dayOffToggle(ctx, key) {
 
 function openBlock(ctx, app, rec, animate) {
   const windowMs = ctx.windowMsFor(rec.day);
+  const graceMs = ctx.graceMsFor(rec.day);
   const closesAt = rec.firstBite + windowMs;
-  const phase = windowPhase(rec, ctx.nowTs, windowMs);
+  const phase = windowPhase(rec, ctx.nowTs, windowMs, graceMs);
   const e = ctx.evaluate(rec.day);
   const eating = mealInProgress(ctx, rec.day);
   const minsLeft = (t, end) => `${Math.max(0, Math.ceil((end - t) / MIN))} min`;
@@ -401,7 +398,7 @@ function openBlock(ctx, app, rec, animate) {
   if (phase === 'grace') {
     winRow = h('p', { class: 'grace-lead', 'data-testid': 'grace' },
       h('span', { class: 'grace-intro' }, `Your ${hoursWord(windowMs)} are up.`), ' ',
-      live('span', { class: 'value tabular' }, (t) => String(Math.max(0, Math.ceil((rec.firstBite + windowMs + GRACE_MS - t) / MIN))), (n) => h('span', { class: 'fig' }, n, h('span', { class: 'unit' }, ' min'))), ' ',
+      live('span', { class: 'value tabular' }, (t) => String(Math.max(0, Math.ceil((rec.firstBite + windowMs + graceMs - t) / MIN))), (n) => h('span', { class: 'fig' }, n, h('span', { class: 'unit' }, ' min'))), ' ',
       h('span', { class: 'grace-tail' }, 'of grace left.'));
   } else if (phase === 'over') {
     winRow = h('p', { class: 'statement clay over-lead', 'data-testid': 'over' },
@@ -440,7 +437,7 @@ function openBlock(ctx, app, rec, animate) {
     h('div', { class: 'time-pills' },
       timePill('Opened', fmtWhen(rec.firstBite, ctx.todayKey), () => showOpeningSheet(app, rec.day), 'edit-opened'),
       h('div', { class: 'time-pill plain' }, h('div', { class: 'label' }, 'Closes'), h('div', { class: 'time-pill-value tabular' }, fmtTime(closesAt)))),
-    windowBand(rec, ctx.nowTs, windowMs),
+    windowBand(rec, ctx.nowTs, windowMs, graceMs),
   );
 }
 
@@ -461,18 +458,18 @@ function startCap(svg, frac) {
 
 /**
  * The window as a band: time used in green, time left in pale green, then
- * the dashed 15 minutes of grace. Past the grace both turn to orange
+ * the dashed minutes of grace (30, or the 15 of a day before the change). Past the grace both turn to orange
  * stripes, the mark of a miss, the grace keeping its dashed edge. The legend
  * keeps Time used, Time left and the grace, and adds Over.
  */
-function windowBand(rec, nowTs, windowMs) {
+function windowBand(rec, nowTs, windowMs, graceMs) {
   const W = 340;
   const HT = 46;
   const X0 = 1;
   const X1 = 339;
   const Y = 4;
   const BH = 16;
-  const total = windowMs + GRACE_MS;
+  const total = windowMs + graceMs;
   const x = (ms) => X0 + (X1 - X0) * Math.min(1, Math.max(0, ms / total));
   const used = Math.max(0, nowTs - rec.firstBite);
   const over = used > total;
@@ -492,7 +489,7 @@ function windowBand(rec, nowTs, windowMs) {
       ...ticks,
       s('text', { x: X0, y: HT - 4 }, fmtTime(rec.firstBite)),
       s('text', { x: gx.toFixed(1), y: HT - 4, 'text-anchor': 'end' }, fmtTime(rec.firstBite + windowMs))),
-    legend([['band-used', 'Time used'], ['band-left', 'Time left'], ['band-grace', '15 min grace'], over ? ['band-over', 'Over'] : null], 'band-legend'));
+    legend([['band-used', 'Time used'], ['band-left', 'Time left'], ['band-grace', `${Math.round(graceMs / MIN)} min grace`], over ? ['band-over', 'Over'] : null], 'band-legend'));
 }
 
 // ---------- Forgotten close ----------

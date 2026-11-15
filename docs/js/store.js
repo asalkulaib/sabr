@@ -24,7 +24,13 @@ export const DEFAULTS = {
   // paused like any pause's, as far as through; extendOpenPause keeps that a
   // week ahead of today, so every rule reads it as it reads a dated pause.
   pauseOpen: null,
+  // Rules that changed over time; past days keep what they were judged by.
+  graceChanges: [], // [{ from: 'YYYY-MM-DD', minutes }]: the grace on a window's length from that day on (15 before any)
+  cutoffEnd: null, // the first day without the 16:00 workday rule
 };
+
+/** The grace on a window's length, in minutes, since the owner raised it from 15 (15 November 2026). */
+export const GRACE_MINUTES = 30;
 
 /** How far ahead of today an open pause is marked: the week row and Week show it paused. */
 export const OPEN_PAUSE_AHEAD = 6;
@@ -367,6 +373,29 @@ export async function extendOpenPause(todayKey) {
     apply(ops);
   } finally {
     extending = false;
+  }
+}
+
+/**
+ * Takes up the rules as they stand now, from today on: 30 minutes of grace
+ * and no 16:00 workday rule (the owner, 15 November 2026). A phone with
+ * history keeps its past days as they were judged; one with nothing logged
+ * takes them for every day. Done once, and again after a restore from a
+ * backup made before them.
+ */
+let adopting = false;
+export async function adoptRules(todayKey) {
+  const s = state.settings;
+  if (adopting || ((s.graceChanges || []).length && s.cutoffEnd)) return;
+  adopting = true;
+  try {
+    const from = state.days.size || state.meals.size || state.outside.size ? todayKey : '2000-01-01';
+    const values = {};
+    if (!(s.graceChanges || []).length) values.graceChanges = [{ from, minutes: GRACE_MINUTES }];
+    if (!s.cutoffEnd) values.cutoffEnd = from;
+    await setSettings(values);
+  } finally {
+    adopting = false;
   }
 }
 

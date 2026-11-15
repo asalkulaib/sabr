@@ -89,7 +89,7 @@ test('through a pause, a meal is started, finished and checked 20 minutes on, wi
   await expect(hero(page).getByTestId('ring-fullness')).toContainText('Not rated yet');
   await tap(page, 'start-meal');
   await expect(sheet(page, 'start-meal').getByTestId('meal-context')).toHaveText('Fasting is paused, so this meal opens no window. It counts for Satiety.');
-  await expect(sheet(page, 'start-meal').getByTestId('meal-warning')).toBeHidden(); // 13:10 on a workday, and no miss
+  await expect(sheet(page, 'start-meal')).not.toContainText('miss');
   await pick(page, 'hunger', 6);
   await tap(page, 'start-eating');
   await expect(page.getByTestId('flash')).toHaveText('Meal started at 13:10.');

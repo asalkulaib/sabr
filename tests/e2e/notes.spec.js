@@ -49,7 +49,7 @@ test('Just now on eating logged outside the window moves that entry to this minu
 
 test('after the window: tap First bite or Last bite to change just that time', async ({ page }) => {
   await openAt(page, '2026-09-27T22:30');
-  await seed(page, { days: [{ day: '2026-09-27', firstBite: ms('2026-09-27T17:30'), lastBite: ms('2026-09-27T21:50') }], settings: LAST_NIGHT.settings });
+  await seed(page, { days: [{ day: '2026-09-27', firstBite: ms('2026-09-27T17:10'), lastBite: ms('2026-09-27T21:50') }], settings: LAST_NIGHT.settings }); // 4 h 40 min: past the grace
   await expect(page.locator('[data-block="closed"]')).toHaveAttribute('data-result', 'miss');
   await tap(page, 'edit-first-bite');
   await setTime(page, 'edit-first-bite', '17:40');

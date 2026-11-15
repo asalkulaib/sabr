@@ -30,8 +30,8 @@ On first open, a short welcome sets your goal and planned start times and shows 
 - Your goal is an eating window: 16:8, 18:6, 20:4 (the default), 23:1, or any whole number of hours from 1 to 12. The fasting goal is the rest of the 24 hours. Change it in More, Goal, or by tapping the goal under the rings on Today. A change applies from that day on; past days keep the goal they had.
 - Custom sets the goal by its eating window or by its fast. A fast of 12 to 23 hours leaves the rest of the day to eat (fast 17 hours and the window is 7). A fast of 24 to 72 hours is a long fast, kept for every fast until you change it: each eating day keeps the window you had, with the same rules, and a day that begins inside the fast's goal, with nothing eaten, counts as a success on its own (Week calls it Fasted). A day past the goal with nothing logged asks to be filled in, as any other. Breaking a long fast early is not a miss; History shows that fast short of its goal. On a long fast Today calls a day the fast fills a Fasting day, says when the fast reaches its goal in place of the planned time, and the red ring runs to the long fast's goal (the line under it gives the hours to go). The calendar file drops the window alerts, since not every day has a window.
 - Starting your first meal opens the window: its start is the first bite, and the countdown of your eating window begins. A window belongs to the day of its first bite, even when it runs past midnight.
-- A day succeeds when all eating falls within the window goal, with 15 minutes of grace. Beyond that it is a miss, shown as the time over the goal.
-- What makes a day a success is set in More. With Planned start (the default), a workday window that opens before 16:00 is a miss, and a day marked as a day off follows weekend rules. With Feasting hours, the window opens at any hour of any day, and only its length and eating outside it count. Today then shows no planned time, and the calendar file drops the window alerts. Like the goal, a change applies from that day on, and past days keep the rule they had.
+- A day succeeds when all eating falls within the window goal, with 30 minutes of grace. Beyond that it is a miss, shown as the time over the goal. The grace was 15 minutes until 15 November 2026: days before the change keep the 15 they were judged by.
+- When your window opens is set in More. With Planned start (the default), the window has a planned time, one for workdays and one for weekends, and a day marked as a day off takes the weekend's. With Feasting hours, it opens when you choose. Either way a day succeeds on the window's length and on no eating outside it: the hour it opens makes no miss. Until 15 November 2026 a workday window on Planned start that opened before 16:00 was a miss; days before the change keep that verdict, and the Week schedule and a day still mark 16:00 on them. Today then shows no planned time, and the calendar file drops the window alerts. Like the goal, a change applies from that day on, and past days keep the rule they had.
 - Eating after "I'm done eating" counts as outside the window and makes the day a miss. While you are still inside the window goal, you can reopen the window instead.
 - Between midnight and 04:00, late eating can be counted against the night before.
 - The streak counts consecutive successful days, shown on Today and in Week. A day with nothing logged breaks it, so Sabr asks you to fill in any gap.
@@ -40,7 +40,7 @@ On first open, a short welcome sets your goal and planned start times and shows 
 ## Today
 
 - Across the top, the week: Sunday to Saturday, each day as a small window ring (green for a success, orange stripes for a miss, grey for a paused day or one not logged, dashed ahead, a blue dot when left wanting or satisfied), today's name on an ink pill. Tap a day to open it. A legend names the marks in the row.
-- Before your window, one card holds the fast: the three rings with the time fasted, the stage under them, then two times side by side, when the fast began (your last bite) and the clock time it reaches your fasting goal, then Start a meal, with Add a meal under it for a meal you already ate. On a workday before 16:00 the warning sits just above the button. Tap either time to change it; once the goal is reached it turns red. The planned time, what you can drink until then, a day off and Pause today follow on their own panel.
+- Before your window, one card holds the fast: the three rings with the time fasted, the stage under them, then two times side by side, when the fast began (your last bite) and the clock time it reaches your fasting goal, then Start a meal, with Add a meal under it for a meal you already ate. Tap either time to change it; once the goal is reached it turns red. The planned time, what you can drink until then, a day off and Pause today follow on their own panel.
 - Starting your first meal ends the fast. A note at the top of Today says how long it was, beside its red ring, with the length in red and "Fasting goal of 20 h reached." when it reached your goal; a shorter fast just gets its length. Close puts the note away; it also goes when the window closes.
 - When you close your window, the new fast moves to the top of Today: a Fasting card with the full rings, your last bite and when the fast reaches its goal, then the stage panel, and under them the window you just closed, with its hours, first and last bite, the result in words, Reopen window while you still can, Add a meal, Start a meal, I ate something, Change times and when tomorrow's window opens. While a 20-minute fullness check is running, its reminder sits above the fast. While a meal started after the window closed is still being eaten, no fast has begun, so the window's card stays on top with Finished this meal.
 
@@ -48,7 +48,7 @@ On first open, a short welcome sets your goal and planned start times and shows 
 
 Before your window, Today offers Start a meal. Begin fast appears beside it only when Sabr has nothing to time a fast from: on your first day, after a reset, or when no last bite is on record.
 
-- Start a meal: your first meal opens the window. The sheet has the eating reminders; what the meal is: Snack, Breakfast, Lunch or Dinner, or Other to type a name (names you typed before come back as one-tap shortcuts); hunger before; and its start time, with quick times (30 min, 1 h, 2 h ago) and the wheel. Already finished? Add a meal opens Add a meal (see below), with the time, meal and hunger you picked. On a workday before 16:00, the sheet says the day will count as a miss.
+- Start a meal: your first meal opens the window. The sheet has the eating reminders; what the meal is: Snack, Breakfast, Lunch or Dinner, or Other to type a name (names you typed before come back as one-tap shortcuts); hunger before; and its start time, with quick times (30 min, 1 h, 2 h ago) and the wheel. Already finished? Add a meal opens Add a meal (see below), with the time, meal and hunger you picked.
 - Begin fast: for a fast already under way, for example on your first day with Sabr or after a pause. Pick Now, 1 or 2 hours ago, last night, or any time on the wheel, so none of the fast is lost. Tap Sabr began on Today to adjust it later. A fast start never changes the result of the day it falls on, and it cannot be earlier than the last bite on record.
 
 Until you tap a meal, Sabr picks one from the start time: breakfast from 05:00, lunch from 11:00, dinner from 16:00 and a snack from 22:00. A snack follows the same rules as any meal. The choice is saved as the meal's name, so it shows in the Meals list and the export, and older meals typed as, say, "dinner" open as Dinner when you edit them.
@@ -67,7 +67,7 @@ Forgot to start a meal? Add it afterwards, whole, with no timer. Add a meal sits
   - After the window closed, still within your goal's hours, the window runs on to the end of the meal.
   - Later than that, it counts as eating outside the window, and the day is a miss.
   - On a paused day, it counts for Satiety only, as a meal started there does.
-- A rule the meal would break (opening before 16:00 on a workday, a window longer than the goal, eating outside it) is spelled out in orange before you save.
+- A rule the meal would break (a window longer than the goal and its grace, eating outside it) is spelled out in orange before you save.
 - A meal that overlaps one already logged is refused. So is any meal while an earlier day's window is still open: close it on Today first.
 - Leave fullness at 20 minutes blank and a meal that has only just ended still gets its 20-minute check. For an older one, tap the meal in Satiety, Meals later to add it. A fullness at 20 minutes given here, or entered or changed later in the meal's sheet, counts as added: it was not taken in the check, so Satiety's 20-minute figures leave it out (see Satiety tab).
 - Saving shows Meal saved, with Undo for 10 seconds.
@@ -78,7 +78,7 @@ Every time in Sabr is set on a rolling 24-hour wheel, like the iPhone clock. The
 
 - On Today, tap Last bite (before your window) or First bite and Last bite (after it) to change that time. On Last bite, Just now moves it to this minute; the sheet shows the window's new length before you save, so you can see if it stretches the window.
 - While the window is open, tap Opened to move the opening time, or remove a window opened by mistake.
-- After the window, Change times sets the first and last bite together. When the new times would make the day a miss (opening before 16:00 on a workday, or a window past its goal), the sheet says so in orange, in the same words Add a meal uses, before you save.
+- After the window, Change times sets the first and last bite together. When the new times would make the day a miss (a window past its goal and grace), the sheet says so in orange, in the same words Add a meal uses, before you save.
 - Any day can be corrected from Week: tap the day.
 - After a change is saved, the message above the tabs offers Undo for 10 seconds. Removing a window, a meal or an entry can be undone the same way.
 
@@ -130,7 +130,7 @@ Tap the stage under the rings, or About the stages, to see the stages one at a t
 
 Read more, at the foot of each card, turns the sheet to that stage's own page: what happens in your body, what the studies found (each finding named by its first author and year), plain advice, and the studies it draws on. Nothing in it links out of the app. Back to the stages returns to that stage's card.
 
-While the window is open, a band under the countdown fills as the hours pass: time used in green, time left in soft green, then the dashed 15 minutes of grace. Past the grace it turns to orange stripes. Beside the countdown, the rings show the window ring filling.
+While the window is open, a band under the countdown fills as the hours pass: time used in green, time left in soft green, then the dashed 30 minutes of grace. Past the grace it turns to orange stripes. Beside the countdown, the rings show the window ring filling.
 
 | Stage | Typical time | Based on |
 |---|---|---|
@@ -206,11 +206,11 @@ Sabr cannot ring while it is closed. In More, Alarms, switch it on and build a s
 
 ## Week
 
-The week opens as a schedule: a row a day, Sunday to Saturday, each eating window drawn on a line from 04:00 to 04:00 (late eating sits with its evening, as Sabr counts it), with its times and result beside it. A success is green, a miss orange stripes, a paused day grey; an orange cross marks eating outside the window, and a dashed line marks 16:00 on workdays. The ring at the start of each row repeats the result, with a blue dot on days left wanting or satisfied. Tap a row to open the day. A legend under the schedule names every mark. Satiety numbers and findings are on the Satiety tab.
+The week opens as a schedule: a row a day, Sunday to Saturday, each eating window drawn on a line from 04:00 to 04:00 (late eating sits with its evening, as Sabr counts it), with its times and result beside it. A success is green, a miss orange stripes, a paused day grey; an orange cross marks eating outside the window, and a dashed line marks 16:00 on workdays from before 15 November 2026, when that rule ended. The ring at the start of each row repeats the result, with a blue dot on days left wanting or satisfied. Tap a row to open the day. A legend under the schedule names every mark. Satiety numbers and findings are on the Satiety tab.
 
 ## Travel
 
-Sabr follows your phone's time zone. When you land somewhere on a different clock, Sabr says "Times now follow Dubai time." (for example), and the header shows "Dubai time" while you are away. Every time you see or enter then is local: the time wheels, the window's opening and closing, the 16:00 rule and the planned starts. Days change at local midnight, so a travel day can run 23 or 25 hours; fasting hours and window lengths are always exact.
+Sabr follows your phone's time zone. When you land somewhere on a different clock, Sabr says "Times now follow Dubai time." (for example), and the header shows "Dubai time" while you are away. Every time you see or enter then is local: the time wheels, the window's opening and closing and the planned starts. Days change at local midnight, so a travel day can run 23 or 25 hours; fasting hours and window lengths are always exact.
 
 Each day keeps the times it happened in. Back home Sabr says "Back on Kuwait time.", and your Dubai dinner still reads 19:00 to 22:30. A day that happened on another clock says so in its day view, for example "Times in Dubai time". The change starts just after Sabr was last open, so anything you log after landing is on local time. Flying west late at night, the date never goes back: the new clock starts at its own midnight. Zones on Kuwait's clock, such as Riyadh, count as home.
 

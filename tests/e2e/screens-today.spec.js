@@ -70,12 +70,13 @@ test('window open: in the window, eating, warn, grace, over', async ({ page }) =
   await shot(page, 'T06-today-open-warn');
   await advance(page, 30); // grace
   await shot(page, 'T07-today-open-grace');
-  await advance(page, 20); // over
+  await advance(page, 35); // over: past the 30 minutes of grace
+  await expect(page.getByTestId('over')).toBeVisible();
   await shot(page, 'T08-today-open-over');
   await shot(page, 'T08b-today-open-over-full', { full: true });
 });
 
-test('window open: a meal running, opened before 16:00', async ({ page }) => {
+test('window open: a meal running, opened before 16:00 on a workday, which is no miss', async ({ page }) => {
   await openAt(page, '2026-09-27T17:45');
   await seed(page, {
     ...WEEK,
@@ -83,6 +84,7 @@ test('window open: a meal running, opened before 16:00', async ({ page }) => {
     meals: [...WEEK.meals, { id: 9, day: '2026-09-27', name: 'Dinner', startedAt: ms('2026-09-27T15:30'), finishedAt: null }],
     settings: install,
   });
+  await expect(page.locator('[data-block="open"] .phase-bar.miss')).toHaveCount(0);
   await shot(page, 'T17-today-open-early-eating');
 });
 
@@ -330,7 +332,7 @@ test.describe('narrow phone', () => {
     await expect(page.getByTestId('grace')).toBeVisible();
     await fits(page, 'grace');
     await shot(page, 'T90c-narrow-grace');
-    await advance(page, 20);
+    await advance(page, 30);
     await expect(page.getByTestId('over')).toBeVisible();
     await fits(page, 'over');
     await shot(page, 'T90d-narrow-over');

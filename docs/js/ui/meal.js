@@ -12,7 +12,7 @@ import { button, choice, errorLine, key, missLine, scale, textField, timeField, 
 import { openSheet, sheetHead } from './sheet.js';
 import * as store from '../store.js';
 import { MIN, HOUR, addDays, at, dayKey, floorToMinute, fmtDayLong, fmtDayShort, fmtDuration, fmtOnDay, fmtTime, fmtWhen, minutesOfDay, nearestTime, now } from '../core/time.js';
-import { CUTOFF_MIN, LATE_NIGHT_END_MIN, canReopen, cutoffApplies, evaluateDay, isFlexible, plannedStartMin, timeOnOrAfter, windowMsFor, FORGOT_AFTER_MS } from '../core/rules.js';
+import { LATE_NIGHT_END_MIN, canReopen, evaluateDay, isFlexible, plannedStartMin, timeOnOrAfter, windowMsFor, FORGOT_AFTER_MS } from '../core/rules.js';
 import { placeAddedMeal } from '../core/added-meal.js';
 import { editedReading } from '../core/satiety.js';
 import { MEAL_TYPES, guessMealType, typeOfName } from '../core/meal-types.js';
@@ -221,7 +221,7 @@ function missWords(ctx, day) {
  * eating outside the window does not follow the times, so it is not said here.
  */
 export function timesMissLines(ctx, day, rec, kinds) {
-  const after = evaluateDay(day, rec, 0, ctx.nowTs, ctx.todayKey, ctx.startKey, ctx.windowMsFor(day), isFlexible(day, ctx.settings));
+  const after = evaluateDay(day, rec, 0, ctx.nowTs, ctx.todayKey, ctx.startKey, ctx.windowMsFor(day), isFlexible(day, ctx.settings), false, ctx.rulesFor(day));
   const words = missWords(ctx, day);
   return after.reasons.filter((r) => kinds.includes(r)).map((r) => words[r]);
 }
@@ -265,15 +265,9 @@ export function showStartMealSheet(app) {
     // Until a meal is tapped, its start time picks it.
     const typeBox = mealTypeSection(ctx, draft, () => minutesOfDay(draft.ts ?? now()));
     const rec = sit.rec;
-    // Only a first meal before 16:00 on a workday makes the day a miss.
-    const warnEl = missLine('', { testid: 'meal-warning' });
+    // No start time makes a miss of its own: the 16:00 workday rule ended (settings.cutoffEnd).
     const aheadEl = errLine('', 'meal-ahead');
-    const updateWarn = () => {
-      const key = draft.ts == null ? null : dayKey(draft.ts);
-      const early = key != null && sit.kind === 'first' && cutoffApplies(key, ctx.days.get(key), ctx.settings) && minutesOfDay(draft.ts) < CUTOFF_MIN;
-      warnEl.set(early ? 'Before 16:00 on a workday: today will count as a miss.' : '');
-      say(aheadEl, draft.ts == null ? 'That time is still ahead.' : '');
-    };
+    const updateWarn = () => say(aheadEl, draft.ts == null ? 'That time is still ahead.' : '');
     // The quick times stand beside the wheel, a stack as tall as it.
     const presets = h('div', { class: 'presets', role: 'group', 'aria-label': 'Quick times' },
       QUICK.map(([mins, label]) => button(label, () => {
@@ -330,7 +324,7 @@ export function showStartMealSheet(app) {
           h('p', {}, 'Protein and vegetables first.'),
           h('p', {}, 'Eat slowly.'),
           h('p', {}, 'Pause halfway.')),
-        field(startField, aheadEl, warnEl),
+        field(startField, aheadEl),
         typeBox,
         hungerScale(draft),
         button('Already finished? Add a meal', () => showAddMealSheet(app, { from: {
@@ -395,7 +389,7 @@ function missLines(ctx, place) {
   if (place.kind === 'paused') return [];
   const before = ctx.evaluate(place.day);
   const after = evaluateDay(place.day, place.rec || ctx.days.get(place.day), before.outsideCount + (place.outside ? 1 : 0),
-    ctx.nowTs, ctx.todayKey, ctx.startKey, ctx.windowMsFor(place.day), isFlexible(place.day, ctx.settings));
+    ctx.nowTs, ctx.todayKey, ctx.startKey, ctx.windowMsFor(place.day), isFlexible(place.day, ctx.settings), false, ctx.rulesFor(place.day));
   const text = missWords(ctx, place.day);
   return after.reasons.filter((r) => !before.reasons.includes(r)).map((r) => text[r]);
 }

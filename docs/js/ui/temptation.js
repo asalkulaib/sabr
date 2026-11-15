@@ -2,12 +2,12 @@
 // against fasting. Each event records time, trigger and outcome.
 
 import { h, live } from './dom.js';
-import { button, choice, missLine, scale, TRIGGER_OPTIONS } from './components.js';
+import { button, choice, scale, TRIGGER_OPTIONS } from './components.js';
 import { RING, progressRing } from './rings.js';
 import { openSheet } from './sheet.js';
 import * as store from '../store.js';
-import { HOUR, MIN, at, fmtDuration, fmtMinutes, fmtTime, fmtTimer, fmtWhen, minutesOfDay, now } from '../core/time.js';
-import { CUTOFF_MIN, cutoffApplies, isFlexible, lateNightDay, longFastAhead, plannedStartMin } from '../core/rules.js';
+import { HOUR, MIN, at, fmtDuration, fmtMinutes, fmtTime, fmtTimer, fmtWhen, now } from '../core/time.js';
+import { isFlexible, lateNightDay, longFastAhead, plannedStartMin } from '../core/rules.js';
 import { showStartMealSheet } from './meal.js';
 import { nextWindowLine } from './shared.js';
 
@@ -378,11 +378,9 @@ function render(app, api, id) {
       }
       if (sit.kind === 'before' || sit.kind === 'late') {
         const clock = `${Math.round(ctx.windowMsFor(today) / (60 * MIN))}-hour clock`;
-        const workdayEarly = cutoffApplies(today, todayRec, ctx.settings) && minutesOfDay(ctx.nowTs) < CUTOFF_MIN;
         blocks.push(h('section', { class: 'exit-card' },
           h('h3', { class: 'card-title' }, 'Open the window now'),
-          h('p', {}, `This starts your ${clock}. Everything you eat fits by ${fmtTime(ctx.nowTs + ctx.windowMsFor(today))}.`),
-          workdayEarly ? missLine('Today is a workday and it is before 16:00, so today will count as a miss.') : null));
+          h('p', {}, `This starts your ${clock}. Everything you eat fits by ${fmtTime(ctx.nowTs + ctx.windowMsFor(today))}.`)));
         dock.push(button(`Start the ${clock}`, openNow, { block: true, name: 'open-now' }));
       }
       if (sit.kind === 'after' || sit.kind === 'late') {
